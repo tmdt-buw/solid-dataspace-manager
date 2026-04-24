@@ -21,7 +21,6 @@ export default function ExternalHost() {
   const iconMap = {
     plasma: faHexagonNodes,
     "node-red": faDiagramProject,
-    "smart-city-urban-heat-monitoring": faTemperatureHigh,
     "smart-city-environmental-monitoring": faTemperatureHigh,
     "solid-health-app": faHeartPulse,
   };

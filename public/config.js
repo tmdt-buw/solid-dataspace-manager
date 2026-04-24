@@ -1,16 +1,6 @@
 window.__APP_CONFIG__ = {
   "apps": [
     {
-      "id": "smart-city-urban-heat-monitoring",
-      "title": "Urban Heat Monitoring",
-      "href": "/web/smart-city-urban-heat-monitoring",
-      "section": "applications",
-      "iconKey": "temperature",
-      "visible": true,
-      "order": 10,
-      "linkType": "internal"
-    },
-    {
       "id": "smart-city-environmental-monitoring",
       "title": "Environmental Monitoring",
       "href": "/web/smart-city-environmental-monitoring",

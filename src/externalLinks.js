@@ -10,11 +10,6 @@ export const externalLinks = [
     url: "/node-red/",
   },
   {
-    slug: "smart-city-urban-heat-monitoring",
-    title: "Urban Heat Monitoring",
-    url: "/smart-city-urban-heat-monitoring/",
-  },
-  {
     slug: "smart-city-environmental-monitoring",
     title: "Environmental Monitoring",
     url: "/smart-city-environmental-monitoring/",
