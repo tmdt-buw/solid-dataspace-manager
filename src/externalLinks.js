@@ -15,6 +15,11 @@ export const externalLinks = [
     url: "/smart-city-urban-heat-monitoring/",
   },
   {
+    slug: "smart-city-environmental-monitoring",
+    title: "Environmental Monitoring",
+    url: "/smart-city-environmental-monitoring/",
+  },
+  {
     slug: "solid-health-app",
     title: "Solid Health App",
     url: "/solid-health-app/",

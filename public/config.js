@@ -11,6 +11,16 @@ window.__APP_CONFIG__ = {
       "linkType": "internal"
     },
     {
+      "id": "smart-city-environmental-monitoring",
+      "title": "Environmental Monitoring",
+      "href": "/web/smart-city-environmental-monitoring",
+      "section": "applications",
+      "iconKey": "temperature",
+      "visible": true,
+      "order": 15,
+      "linkType": "internal"
+    },
+    {
       "id": "solid-health-app",
       "title": "Solid Health App",
       "href": "/web/solid-health-app",
