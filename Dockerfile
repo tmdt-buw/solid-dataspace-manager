@@ -8,7 +8,8 @@ COPY package.json ./
 RUN echo "@hoelk-f:registry=https://npm.pkg.github.com/" > .npmrc \
     && echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> .npmrc \
     && npm install \
-    && npm install @hoelk-f/solid-data-manager@latest --no-save \
+    && npm uninstall @hoelk-f/solid-data-manager --no-save \
+    && npm install @hoelk-f/solid-data-manager@latest --save-exact \
     && npm install @hoelk-f/semantic-data-catalog@latest --no-save \
     && rm -f .npmrc
 
