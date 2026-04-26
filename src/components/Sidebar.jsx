@@ -16,6 +16,8 @@ import {
   faChartLine,
   faFolder,
   faHeartPulse,
+  faChevronLeft,
+  faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
 import session from "../solidSession";
 import {
@@ -29,7 +31,6 @@ import {
 } from "@inrupt/solid-client";
 import { LDP, RDF } from "@inrupt/vocab-common-rdf";
 import "./Sidebar.css";
-import { appVersion } from "../versions";
 import { getAppsBySection, getBranding } from "../config/runtimeConfig";
 
 const SDM_NS = "https://w3id.org/solid-dataspace-manager#";
@@ -41,7 +42,6 @@ const SDM = {
 };
 
 const DCT_CREATED = "http://purl.org/dc/terms/created";
-const LAST_SEEN_REQUESTS_KEY = "sdm-last-seen-requests";
 const LAST_SEEN_DECISIONS_KEY = "sdm-last-seen-decisions";
 
 const noCacheFetch = (input, init = {}) =>
@@ -59,7 +59,7 @@ const appIconMap = {
   server: faServer,
 };
 
-function Sidebar({ webId }) {
+function Sidebar({ webId, collapsed = false, onToggle }) {
   const { pathname } = useLocation();
   const isActive = (to) => pathname === to;
   const [unreadRequests, setUnreadRequests] = useState(0);
@@ -167,17 +167,26 @@ function Sidebar({ webId }) {
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${collapsed ? " is-collapsed" : ""}`}>
       <div className="sb-brand">
         <div className="sb-logo">
           <img src={branding.logoUrl} alt={branding.logoAlt} />
         </div>
+        <button
+          type="button"
+          className="sb-collapse"
+          onClick={onToggle}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <FontAwesomeIcon icon={collapsed ? faChevronRight : faChevronLeft} />
+        </button>
       </div>
 
       <nav className="sb-nav">
         <div className="sb-section">General</div>
 
-        <Link to="/" className={"sb-link" + (isActive("/") ? " active" : "")}>
+        <Link to="/" className={"sb-link" + (isActive("/") ? " active" : "")} title="Solid Data Manager">
           <FontAwesomeIcon icon={faFolder} />
           <span>Solid Data Manager</span>
         </Link>
@@ -185,6 +194,7 @@ function Sidebar({ webId }) {
         <Link
           to="/transactions"
           className={"sb-link" + (isActive("/transactions") ? " active" : "")}
+          title="Transaction History"
         >
           <FontAwesomeIcon icon={faChartLine} />
           <span>Transaction History</span>
@@ -193,6 +203,7 @@ function Sidebar({ webId }) {
         <Link
           to="/notifications"
           className={"sb-link" + (isActive("/notifications") ? " active" : "")}
+          title="Access Requests"
         >
           <span className="sb-icon">
             <FontAwesomeIcon icon={faInbox} />
@@ -208,6 +219,7 @@ function Sidebar({ webId }) {
         <Link
           to="/decisions"
           className={"sb-link" + (isActive("/decisions") ? " active" : "")}
+          title="Access Decisions"
         >
           <span className="sb-icon">
             <FontAwesomeIcon icon={faBell} />
@@ -223,12 +235,13 @@ function Sidebar({ webId }) {
         <Link
           to="/profile"
           className={"sb-link" + (isActive("/profile") ? " active" : "")}
+          title="Profile Manager"
         >
           <FontAwesomeIcon icon={faUser} />
           <span>Profile Manager</span>
         </Link>
 
-        <Link to="/info" className={"sb-link" + (isActive("/info") ? " active" : "")}>
+        <Link to="/info" className={"sb-link" + (isActive("/info") ? " active" : "")} title="Information">
           <FontAwesomeIcon icon={faInfo} />
           <span>Information</span>
         </Link>
@@ -238,17 +251,18 @@ function Sidebar({ webId }) {
         <Link
           to="/catalog"
           className={"sb-link" + (isActive("/catalog") ? " active" : "")}
+          title="Semantic Data Catalog"
         >
           <FontAwesomeIcon icon={faBookOpen} />
           <span>Semantic Data Catalog</span>
         </Link>
 
-        <Link to="/web/plasma" className="sb-link">
+        <Link to="/web/plasma" className="sb-link" title="PLASMA">
           <FontAwesomeIcon icon={faHexagonNodes} />
           <span>PLASMA</span>
         </Link>
 
-        <Link to="/web/node-red" className="sb-link">
+        <Link to="/web/node-red" className="sb-link" title="Node-RED">
           <FontAwesomeIcon icon={faDatabase} />
           <span>Node-RED</span>
         </Link>
@@ -261,7 +275,7 @@ function Sidebar({ webId }) {
 
               if (app.linkType === "internal") {
                 return (
-                  <Link key={app.id} to={app.href} className="sb-link">
+                  <Link key={app.id} to={app.href} className="sb-link" title={app.title}>
                     <FontAwesomeIcon icon={icon} />
                     <span>{app.title}</span>
                   </Link>
@@ -269,7 +283,7 @@ function Sidebar({ webId }) {
               }
 
               return (
-                <a key={app.id} href={app.href} className="sb-link">
+                <a key={app.id} href={app.href} className="sb-link" title={app.title}>
                   <FontAwesomeIcon icon={icon} />
                   <span>{app.title}</span>
                 </a>
@@ -284,6 +298,7 @@ function Sidebar({ webId }) {
           className="sb-link"
           target="_blank"
           rel="noopener noreferrer"
+          title="Solid Pod Provider"
         >
           <FontAwesomeIcon icon={faServer} />
           <span>Solid Pod Provider</span>
@@ -291,11 +306,10 @@ function Sidebar({ webId }) {
       </nav>
 
       <div className="sb-bottom">
-        <button onClick={handleLogout} className="icon-pill danger">
+        <button onClick={handleLogout} className="icon-pill danger" title="Logout">
           <FontAwesomeIcon icon={faRightFromBracket} />
           <span>Logout</span>
         </button>
-        <div className="sb-foot">© 2026 TMDT · {appVersion}</div>
       </div>
     </aside>
   );

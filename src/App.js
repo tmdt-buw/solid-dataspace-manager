@@ -24,13 +24,14 @@ import Notifications from "./components/Notifications";
 import DecisionInbox from "./components/DecisionInbox";
 import TransactionHistory from "./components/TransactionHistory";
 import OnboardingWizard from "./components/OnboardingWizard";
+import { appVersion } from "./versions";
 import {
   buildDefaultPrivateRegistry,
   loadRegistryConfig,
   resolveCatalogUrl,
   SDP_CATALOG,
 } from "./solidCatalog";
-import { dataManagerVersion } from "./versions";
+import { getFundingGrantNumber, getFundingLogos } from "./config/runtimeConfig";
 
 const AUTH_BRIDGE_KEY = "__SOLID_DATASPACE_AUTH__";
 
@@ -41,6 +42,7 @@ const App = () => {
   );
   const [onboardingRequired, setOnboardingRequired] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const getAuthState = useCallback(() => {
     return {
@@ -301,9 +303,6 @@ const App = () => {
   const DataManagerPage = () => (
     <div className="data-manager-embed">
       <DataManagerEmbed webId={webId} />
-      <div className="data-manager-footer">
-        Solid Data Manager {dataManagerVersion}
-      </div>
     </div>
   );
 
@@ -314,18 +313,23 @@ const App = () => {
           <FontAwesomeIcon icon={faBookOpen} className="crumb-icon" />
           <span>Semantic Data Catalog</span>
         </div>
+        <span className="integrated-version">{catalogVersion}</span>
       </div>
       <SemanticDataCatalogEmbed webId={webId} />
-      <div className="catalog-footer">
-        Semantic Data Catalog {catalogVersion}
-      </div>
     </div>
   );
 
+  const fundingLogos = getFundingLogos();
+  const fundingGrantNumber = getFundingGrantNumber();
+
   return (
     <BrowserRouter>
-      <div className="layout">
-        <Sidebar webId={webId} />
+      <div className={`layout${sidebarCollapsed ? " layout--sidebar-collapsed" : ""}`}>
+        <Sidebar
+          webId={webId}
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed((value) => !value)}
+        />
         <div className="main">
           <div className="container">
             <Routes>
@@ -339,6 +343,29 @@ const App = () => {
               <Route path="/web/:slug" element={<ExternalHost />} />
             </Routes>
           </div>
+          <footer className="app-footer">
+            <div className="app-footer__brand">
+              <img src="/Logo_TMDT.png" alt="TMDT" />
+            </div>
+            <div className="app-footer__meta">
+              <span>&copy; 2026 TMDT</span>
+              <span className="app-footer__separator">&middot;</span>
+              <span className="app-footer__version">{appVersion}</span>
+            </div>
+            {(fundingLogos.length > 0 || fundingGrantNumber) && (
+              <div className="app-footer__funding" aria-label="Funding logos">
+                {fundingGrantNumber && (
+                  <div className="app-footer__grant">
+                    <span>grant number</span>
+                    <strong>{fundingGrantNumber}</strong>
+                  </div>
+                )}
+                {fundingLogos.map((logo) => (
+                  <img key={logo.id} src={logo.src} alt={logo.alt} />
+                ))}
+              </div>
+            )}
+          </footer>
         </div>
       </div>
     </BrowserRouter>

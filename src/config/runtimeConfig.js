@@ -1,9 +1,9 @@
 const fallbackConfig = {
   apps: [
     {
-      id: "smart-city-environmental-monitoring",
+      id: "environmental-monitoring",
       title: "Environmental Monitoring",
-      href: "/web/smart-city-environmental-monitoring",
+      href: "/web/environmental-monitoring",
       section: "applications",
       iconKey: "temperature",
       visible: true,
@@ -44,6 +44,8 @@ const fallbackConfig = {
     logoUrl: "/Logo_TMDT.png",
     logoAlt: "Project Logo",
   },
+  fundingLogos: [],
+  fundingGrantNumber: "",
 };
 
 function getWindowConfig() {
@@ -86,6 +88,16 @@ function normalizeBranding(branding) {
   };
 }
 
+function normalizeFundingLogo(logo, index) {
+  return {
+    id: logo?.id || `funding-logo-${index}`,
+    src: logo?.src || logo?.url || "",
+    alt: logo?.alt || logo?.label || `Funding logo ${index + 1}`,
+    visible: logo?.visible !== false,
+    order: typeof logo?.order === "number" ? logo.order : index,
+  };
+}
+
 const runtimeConfig = getWindowConfig();
 
 const appsSource =
@@ -103,10 +115,23 @@ const brandingSource =
     ? runtimeConfig.branding
     : fallbackConfig.branding;
 
+const fundingLogosSource =
+  Array.isArray(runtimeConfig.fundingLogos) && runtimeConfig.fundingLogos.length > 0
+    ? runtimeConfig.fundingLogos
+    : fallbackConfig.fundingLogos;
+
 export const appConfig = {
   apps: appsSource.map(normalizeApp),
   providers: providersSource.map(normalizeProvider),
   branding: normalizeBranding(brandingSource),
+  fundingLogos: fundingLogosSource
+    .map(normalizeFundingLogo)
+    .filter((logo) => logo.visible && logo.src)
+    .sort((a, b) => a.order - b.order),
+  fundingGrantNumber:
+    typeof runtimeConfig.fundingGrantNumber === "string"
+      ? runtimeConfig.fundingGrantNumber.trim()
+      : fallbackConfig.fundingGrantNumber,
 };
 
 export function getAppsBySection(section) {
@@ -128,4 +153,12 @@ export function getRecommendedProvider() {
 
 export function getBranding() {
   return appConfig.branding;
+}
+
+export function getFundingLogos() {
+  return appConfig.fundingLogos;
+}
+
+export function getFundingGrantNumber() {
+  return appConfig.fundingGrantNumber;
 }

@@ -17,6 +17,7 @@ import {
   faRightLeft,
   faDatabase,
   faDownload,
+  faRotateRight,
 } from "@fortawesome/free-solid-svg-icons";
 import "./TransactionHistory.css";
 
@@ -342,7 +343,8 @@ const TransactionHistory = ({ webId }) => {
           <span>Transaction History</span>
         </div>
         <button className="pill-btn" onClick={loadTransactions} disabled={loading}>
-          Refresh
+          <FontAwesomeIcon icon={faRotateRight} />
+          <span>Refresh</span>
         </button>
       </div>
 

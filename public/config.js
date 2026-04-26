@@ -1,9 +1,9 @@
 window.__APP_CONFIG__ = {
   "apps": [
     {
-      "id": "smart-city-environmental-monitoring",
+      "id": "environmental-monitoring",
       "title": "Environmental Monitoring",
-      "href": "/web/smart-city-environmental-monitoring",
+      "href": "/web/environmental-monitoring",
       "section": "applications",
       "iconKey": "temperature",
       "visible": true,
@@ -43,5 +43,20 @@ window.__APP_CONFIG__ = {
     "projectName": "Gesundes Tal",
     "logoUrl": "/project-logos/GesundesTal_Logo.png",
     "logoAlt": "Gesundes Tal Logo"
-  }
+  },
+  "fundingLogos": [
+    {
+      "id": "bmwsb",
+      "src": "/foerder-logos/BMWSB.png",
+      "alt": "Federal Ministry for Housing, Urban Development and Building",
+      "order": 1
+    },
+    {
+      "id": "kfw",
+      "src": "/foerder-logos/KFW.svg",
+      "alt": "KfW",
+      "order": 2
+    }
+  ],
+  "fundingGrantNumber": "19454890"
 };

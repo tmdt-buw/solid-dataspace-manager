@@ -21,6 +21,8 @@ const config = {
   apps: parseJsonEnv("APP_CONFIG_APPS_JSON", []),
   providers: parseJsonEnv("APP_CONFIG_PROVIDERS_JSON", []),
   branding: parseJsonEnv("APP_BRANDING_JSON", {}),
+  fundingLogos: parseJsonEnv("APP_FUNDING_LOGOS_JSON", []),
+  fundingGrantNumber: process.env.APP_FUNDING_GRANT_NUMBER || "",
 };
 
 const fileContent =

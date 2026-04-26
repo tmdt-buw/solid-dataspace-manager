@@ -21,7 +21,7 @@ export default function ExternalHost() {
   const iconMap = {
     plasma: faHexagonNodes,
     "node-red": faDiagramProject,
-    "smart-city-environmental-monitoring": faTemperatureHigh,
+    "environmental-monitoring": faTemperatureHigh,
     "solid-health-app": faHeartPulse,
   };
 
@@ -69,15 +69,20 @@ export default function ExternalHost() {
         </div>
 
         <div className="primary-actions">
-          <a
-            className="pill-btn"
-            href={activeLink.url}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <FontAwesomeIcon icon={faUpRightFromSquare} />
-            <span>Open</span>
-          </a>
+          {activeLink.version ? (
+            <span className="integrated-version">{activeLink.version}</span>
+          ) : null}
+          {!activeLink.hideOpenButton ? (
+            <a
+              className="pill-btn"
+              href={activeLink.url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <FontAwesomeIcon icon={faUpRightFromSquare} />
+              <span>Open</span>
+            </a>
+          ) : null}
         </div>
       </div>
 
