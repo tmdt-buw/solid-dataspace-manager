@@ -1,6 +1,6 @@
 .layout {
   display: flex;
-  min-height: 100vh;
+  min-height: var(--dataspace-scaled-vh, 100vh);
   background: var(--bg);
 }
 
@@ -13,7 +13,7 @@
   inset: 0 auto 0 0;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: var(--dataspace-scaled-vh, 100vh);
   overflow: hidden;
   transition: width 0.2s ease, padding 0.2s ease;
   z-index: 1000;

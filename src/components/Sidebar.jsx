@@ -19,6 +19,7 @@ import {
   faChevronLeft,
   faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
+import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import session from "../solidSession";
 import {
   getSolidDataset,
@@ -57,11 +58,12 @@ const appIconMap = {
   database: faDatabase,
   health: faHeartPulse,
   server: faServer,
+  rocketchat: faRocketchat,
 };
 
 function Sidebar({ webId, collapsed = false, onToggle }) {
   const { pathname } = useLocation();
-  const isActive = (to) => pathname === to;
+  const isActive = (to) => pathname === to || (to !== "/" && pathname.startsWith(`${to}/`));
   const [unreadRequests, setUnreadRequests] = useState(0);
   const [unreadDecisions, setUnreadDecisions] = useState(0);
 
@@ -257,12 +259,20 @@ function Sidebar({ webId, collapsed = false, onToggle }) {
           <span>Semantic Data Catalog</span>
         </Link>
 
-        <Link to="/web/plasma" className="sb-link" title="PLASMA">
+        <Link
+          to="/web/plasma"
+          className={"sb-link" + (isActive("/web/plasma") ? " active" : "")}
+          title="PLASMA"
+        >
           <FontAwesomeIcon icon={faHexagonNodes} />
           <span>PLASMA</span>
         </Link>
 
-        <Link to="/web/node-red" className="sb-link" title="Node-RED">
+        <Link
+          to="/web/node-red"
+          className={"sb-link" + (isActive("/web/node-red") ? " active" : "")}
+          title="Node-RED"
+        >
           <FontAwesomeIcon icon={faDatabase} />
           <span>Node-RED</span>
         </Link>
@@ -275,7 +285,12 @@ function Sidebar({ webId, collapsed = false, onToggle }) {
 
               if (app.linkType === "internal") {
                 return (
-                  <Link key={app.id} to={app.href} className="sb-link" title={app.title}>
+                  <Link
+                    key={app.id}
+                    to={app.href}
+                    className={"sb-link" + (isActive(app.href) ? " active" : "")}
+                    title={app.title}
+                  >
                     <FontAwesomeIcon icon={icon} />
                     <span>{app.title}</span>
                   </Link>

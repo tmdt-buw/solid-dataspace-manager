@@ -13,6 +13,18 @@
   align-items: center;
 }
 
+.transactions-header.toolbar--title {
+  min-height: 56px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.transactions-header.toolbar--title .pill-btn {
+  min-height: 34px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .transactions-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

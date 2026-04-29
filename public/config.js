@@ -16,8 +16,18 @@ window.__APP_CONFIG__ = {
       "href": "/web/solid-health-app",
       "section": "applications",
       "iconKey": "health",
-      "visible": false,
+      "visible": true,
       "order": 20,
+      "linkType": "internal"
+    },
+    {
+      "id": "solid-chatbot",
+      "title": "Solid Chatbot",
+      "href": "/web/solid-chatbot",
+      "section": "applications",
+      "iconKey": "rocketchat",
+      "visible": true,
+      "order": 25,
       "linkType": "internal"
     }
   ],
@@ -40,23 +50,10 @@ window.__APP_CONFIG__ = {
     }
   ],
   "branding": {
-    "projectName": "Gesundes Tal",
-    "logoUrl": "/project-logos/GesundesTal_Logo.png",
-    "logoAlt": "Gesundes Tal Logo"
+    "projectName": "TMDT",
+    "logoUrl": "/project-logos/Logo_TMDT.png",
+    "logoAlt": "TMDT Logo"
   },
-  "fundingLogos": [
-    {
-      "id": "bmwsb",
-      "src": "/foerder-logos/BMWSB.png",
-      "alt": "Federal Ministry for Housing, Urban Development and Building",
-      "order": 1
-    },
-    {
-      "id": "kfw",
-      "src": "/foerder-logos/KFW.svg",
-      "alt": "KfW",
-      "order": 2
-    }
-  ],
-  "fundingGrantNumber": "19454890"
+  "fundingLogos": [],
+  "fundingGrantNumber": ""
 };

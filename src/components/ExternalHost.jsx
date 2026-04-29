@@ -10,6 +10,7 @@ import {
   faTemperatureHigh,
   faHeartPulse,
 } from "@fortawesome/free-solid-svg-icons";
+import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import "./ExternalHost.css";
 
 export default function ExternalHost() {
@@ -23,6 +24,7 @@ export default function ExternalHost() {
     "node-red": faDiagramProject,
     "environmental-monitoring": faTemperatureHigh,
     "solid-health-app": faHeartPulse,
+    "solid-chatbot": faRocketchat,
   };
 
   const isParentHttps =
@@ -56,9 +58,10 @@ export default function ExternalHost() {
   }
 
   const cannotEmbed = isParentHttps && targetIsHttp;
+  const useAppFrame = true;
 
   return (
-    <div className="container">
+    <div className="container external-host-container">
       <div className="toolbar toolbar--title external-host-header">
         <div className="crumb">
           <FontAwesomeIcon
@@ -86,7 +89,11 @@ export default function ExternalHost() {
         </div>
       </div>
 
-      <div className="external-host-shell">
+      <div
+        className={`external-host-shell${
+          useAppFrame ? " external-host-shell--framed" : ""
+        }`}
+      >
         {cannotEmbed ? (
           <div className="notice">
             <p>
@@ -96,7 +103,7 @@ export default function ExternalHost() {
           </div>
         ) : (
           <>
-            {!loaded && <p>Loading...</p>}
+            {!loaded && <p className="external-host-loading">Loading...</p>}
             <div className="external-host-frame">
               <iframe
                 src={activeLink.url}

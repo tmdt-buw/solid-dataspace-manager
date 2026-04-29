@@ -4,6 +4,17 @@
   gap: 24px;
 }
 
+.info-shell {
+  display: grid;
+  gap: 20px;
+  padding: 12px;
+  border-radius: 22px;
+  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 16px 40px rgba(15, 23, 42, 0.1);
+}
+
 .info-hero {
   display: grid;
   gap: 20px;
