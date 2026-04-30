@@ -11,6 +11,7 @@ RUN echo "@hoelk-f:registry=https://npm.pkg.github.com/" > .npmrc \
     && npm uninstall @hoelk-f/solid-data-manager --no-save \
     && npm install @hoelk-f/solid-data-manager@latest --save-exact \
     && npm install @hoelk-f/semantic-data-catalog@latest --no-save \
+    && npm install @hoelk-f/solid-chatbot@latest --no-save \
     && rm -f .npmrc
 
 COPY . .

@@ -336,7 +336,7 @@ const App = () => {
         </div>
         <span className="integrated-version">{chatbotVersion}</span>
       </div>
-      <ChatbotEmbed webId={webId} />
+      <ChatbotEmbed webId={webId} session={session} />
     </div>
   );
 

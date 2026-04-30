@@ -69,6 +69,15 @@ body {
   padding-bottom: 0;
 }
 
+.solid-chatbot-embed .page--embedded {
+  height: calc(var(--dataspace-scaled-vh, 100vh) - 250px);
+  min-height: 520px;
+}
+
+.solid-chatbot-embed .main {
+  width: 100%;
+}
+
 .catalog-header {
   display: flex;
   align-items: center;
