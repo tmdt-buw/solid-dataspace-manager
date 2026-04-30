@@ -65,16 +65,22 @@ body {
 
 .solid-chatbot-embed {
   position: relative;
+  width: 100%;
   min-height: auto;
   padding-bottom: 0;
 }
 
 .solid-chatbot-embed .page--embedded {
+  width: 100%;
   height: calc(var(--dataspace-scaled-vh, 100vh) - 250px);
   min-height: 520px;
 }
 
 .solid-chatbot-embed .main {
+  width: 100%;
+}
+
+.solid-chatbot-embed .chat-shell {
   width: 100%;
 }
 

@@ -29,7 +29,7 @@ export const externalLinks = [
     slug: "solid-chatbot",
     title: "Solid Chatbot",
     url: "/solid-chatbot/",
-    version: "0.1.4",
+    version: "0.1.5",
     hideOpenButton: true,
   },
 ];
