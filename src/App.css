@@ -83,6 +83,7 @@ body {
 
 .solid-chatbot-embed .main {
   width: 100%;
+  margin-left: 0;
 }
 
 .solid-chatbot-embed .chat-shell {
