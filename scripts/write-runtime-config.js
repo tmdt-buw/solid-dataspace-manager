@@ -28,9 +28,14 @@ const config = {
 const fileContent =
   `window.__APP_CONFIG__ = ${JSON.stringify(config, null, 2)};\n`;
 
-const targetPath = path.join(__dirname, "..", "public", "config.js");
+const targets = [
+  path.join(__dirname, "..", "public", "config.js"),
+  path.join(__dirname, "..", "build", "config.js"),
+].filter((targetPath) => fs.existsSync(path.dirname(targetPath)));
 
-fs.writeFileSync(targetPath, fileContent, "utf8");
+targets.forEach((targetPath) => {
+  fs.writeFileSync(targetPath, fileContent, "utf8");
+  console.log("Runtime config written to:", targetPath);
+});
 
-console.log("Runtime config written to:", targetPath);
 console.log(JSON.stringify(config, null, 2));

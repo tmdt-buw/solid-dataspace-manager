@@ -16,7 +16,10 @@ RUN echo "@hoelk-f:registry=https://npm.pkg.github.com/" > .npmrc \
 
 COPY . .
 
+RUN npm run build \
+    && npm install -g serve
+
 ENV PORT=3001
 EXPOSE 3001
 
-CMD ["npm","start"]
+CMD ["sh", "-c", "node scripts/write-runtime-config.js && serve -s build -l ${PORT:-3001}"]
