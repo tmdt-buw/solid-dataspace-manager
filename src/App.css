@@ -63,7 +63,19 @@ body {
   padding-bottom: 0;
 }
 
+.solid-chatbot-embed {
+  position: relative;
+  min-height: auto;
+  padding-bottom: 0;
+}
+
 .catalog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chatbot-header {
   display: flex;
   align-items: center;
   justify-content: space-between;

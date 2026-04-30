@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
   repository_dispatch:
-    types: ["semantic-data-catalog-released"]
+    types: ["semantic-data-catalog-released", "solid-chatbot-released"]
 
 jobs:
   build-and-push:

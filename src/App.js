@@ -13,8 +13,15 @@ import {
   setSession as setCatalogSession,
   catalogVersion,
 } from "@hoelk-f/semantic-data-catalog/embed";
+import "@hoelk-f/solid-chatbot/embed.css";
+import {
+  ChatbotEmbed,
+  setSession as setChatbotSession,
+  chatbotVersion,
+} from "@hoelk-f/solid-chatbot/embed";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
+import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import "./App.css";
 import ExternalHost from "./components/ExternalHost";
 import Info from "./components/Info";
@@ -82,6 +89,7 @@ const App = () => {
   useEffect(() => {
     setDataManagerSession(session);
     setCatalogSession(session);
+    setChatbotSession(session);
   }, []);
 
   useEffect(() => {
@@ -319,6 +327,19 @@ const App = () => {
     </div>
   );
 
+  const ChatbotPage = () => (
+    <div className="solid-chatbot-embed">
+      <div className="chatbot-header toolbar--title">
+        <div className="crumb">
+          <FontAwesomeIcon icon={faRocketchat} className="crumb-icon" />
+          <span>Solid Chatbot</span>
+        </div>
+        <span className="integrated-version">{chatbotVersion}</span>
+      </div>
+      <ChatbotEmbed webId={webId} />
+    </div>
+  );
+
   const fundingLogos = getFundingLogos();
   const fundingGrantNumber = getFundingGrantNumber();
 
@@ -340,6 +361,7 @@ const App = () => {
               <Route path="/decisions" element={<DecisionInbox webId={webId} />} />
               <Route path="/profile" element={<ProfilePage webId={webId} />} />
               <Route path="/info" element={<Info />} />
+              <Route path="/web/solid-chatbot" element={<ChatbotPage />} />
               <Route path="/web/:slug" element={<ExternalHost />} />
             </Routes>
           </div>
