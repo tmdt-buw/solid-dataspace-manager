@@ -13,6 +13,12 @@ import {
   setSession as setCatalogSession,
   catalogVersion,
 } from "@hoelk-f/semantic-data-catalog/embed";
+import "@hoelk-f/solid-health-app/embed.css";
+import {
+  HealthAppEmbed,
+  setSession as setHealthAppSession,
+  healthAppVersion,
+} from "@hoelk-f/solid-health-app/embed";
 import "@hoelk-f/solid-chatbot/embed.css";
 import {
   ChatbotEmbed,
@@ -20,7 +26,7 @@ import {
   chatbotVersion,
 } from "@hoelk-f/solid-chatbot/embed";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
+import { faBookOpen, faHeartPulse } from "@fortawesome/free-solid-svg-icons";
 import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import "./App.css";
 import ExternalHost from "./components/ExternalHost";
@@ -89,6 +95,7 @@ const App = () => {
   useEffect(() => {
     setDataManagerSession(session);
     setCatalogSession(session);
+    setHealthAppSession(session);
     setChatbotSession(session);
   }, []);
 
@@ -340,6 +347,19 @@ const App = () => {
     </div>
   );
 
+  const HealthAppPage = () => (
+    <div className="solid-health-app-embed">
+      <div className="health-app-header toolbar--title">
+        <div className="crumb">
+          <FontAwesomeIcon icon={faHeartPulse} className="crumb-icon" />
+          <span>Solid Health App</span>
+        </div>
+        <span className="integrated-version">{healthAppVersion}</span>
+      </div>
+      <HealthAppEmbed webId={webId} />
+    </div>
+  );
+
   const fundingLogos = getFundingLogos();
   const fundingGrantNumber = getFundingGrantNumber();
 
@@ -361,6 +381,7 @@ const App = () => {
               <Route path="/decisions" element={<DecisionInbox webId={webId} />} />
               <Route path="/profile" element={<ProfilePage webId={webId} />} />
               <Route path="/info" element={<Info />} />
+              <Route path="/web/solid-health-app" element={<HealthAppPage />} />
               <Route path="/web/solid-chatbot" element={<ChatbotPage />} />
               <Route path="/web/:slug" element={<ExternalHost />} />
             </Routes>
