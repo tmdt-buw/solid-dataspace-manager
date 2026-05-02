@@ -172,7 +172,11 @@ function Sidebar({ webId, collapsed = false, onToggle }) {
     <aside className={`sidebar${collapsed ? " is-collapsed" : ""}`}>
       <div className="sb-brand">
         <div className="sb-logo">
-          <img src={branding.logoUrl} alt={branding.logoAlt} />
+          <img
+            src={branding.logoUrl}
+            alt={branding.logoAlt}
+            style={branding.logoStyle}
+          />
         </div>
         <button
           type="button"

@@ -401,7 +401,12 @@ const App = () => {
                   </div>
                 )}
                 {fundingLogos.map((logo) => (
-                  <img key={logo.id} src={logo.src} alt={logo.alt} />
+                  <img
+                    key={logo.id}
+                    src={logo.src}
+                    alt={logo.alt}
+                    style={logo.logoStyle}
+                  />
                 ))}
               </div>
             )}

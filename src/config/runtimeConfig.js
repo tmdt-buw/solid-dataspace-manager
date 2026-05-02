@@ -80,11 +80,70 @@ function normalizeProvider(provider, index) {
   };
 }
 
+const cssSizePattern =
+  /^(?:0|[0-9]+(?:\.[0-9]+)?(?:px|rem|em|%|vh|vw|vmin|vmax|ch))$/;
+
+function normalizeCssSize(
+  value,
+  { allowAuto = true, allowNone = false } = {}
+) {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+    return `${value}px`;
+  }
+
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue) {
+    return undefined;
+  }
+
+  if (
+    (allowAuto && normalizedValue === "auto") ||
+    (allowNone && normalizedValue === "none")
+  ) {
+    return normalizedValue;
+  }
+
+  return cssSizePattern.test(normalizedValue) ? normalizedValue : undefined;
+}
+
+function normalizeLogoStyle(config) {
+  const style = {};
+  const width = normalizeCssSize(config?.logoWidth ?? config?.width);
+  const height = normalizeCssSize(config?.logoHeight ?? config?.height);
+  const maxWidth = normalizeCssSize(
+    config?.logoMaxWidth ?? config?.maxWidth,
+    {
+      allowAuto: false,
+      allowNone: true,
+    }
+  );
+  const maxHeight = normalizeCssSize(
+    config?.logoMaxHeight ?? config?.maxHeight,
+    {
+      allowAuto: false,
+      allowNone: true,
+    }
+  );
+
+  if (width) style.width = width;
+  if (height) style.height = height;
+  if (maxWidth) style.maxWidth = maxWidth;
+  if (maxHeight) style.maxHeight = maxHeight;
+
+  return style;
+}
+
 function normalizeBranding(branding) {
   return {
     projectName: branding?.projectName || "Solid Dataspace",
     logoUrl: branding?.logoUrl || "/Logo_TMDT.png",
     logoAlt: branding?.logoAlt || branding?.projectName || "Project Logo",
+    logoStyle: normalizeLogoStyle(branding),
   };
 }
 
@@ -95,6 +154,7 @@ function normalizeFundingLogo(logo, index) {
     alt: logo?.alt || logo?.label || `Funding logo ${index + 1}`,
     visible: logo?.visible !== false,
     order: typeof logo?.order === "number" ? logo.order : index,
+    logoStyle: normalizeLogoStyle(logo),
   };
 }
 
