@@ -258,22 +258,6 @@ body {
   backdrop-filter: blur(10px);
 }
 
-.app-footer__brand {
-  position: absolute;
-  left: 24px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-}
-
-.app-footer__brand img {
-  display: block;
-  max-width: 140px;
-  max-height: 42px;
-  object-fit: contain;
-}
-
 .app-footer__meta {
   display: inline-flex;
   align-items: center;

@@ -387,9 +387,6 @@ const App = () => {
             </Routes>
           </div>
           <footer className="app-footer">
-            <div className="app-footer__brand">
-              <img src="/Logo_TMDT.png" alt="TMDT" />
-            </div>
             <div className="app-footer__meta">
               <span>&copy; 2026 TMDT</span>
               <span className="app-footer__separator">&middot;</span>
