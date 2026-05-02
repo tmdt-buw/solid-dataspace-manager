@@ -1,6 +1,32 @@
 import { Session } from "@inrupt/solid-client-authn-browser";
 
-const session = new Session();
+const STORAGE_PREFIX = "solid-dataspace-manager:";
+const storageKey = (key) => `${STORAGE_PREFIX}${key}`;
+
+const sessionStorageWrapper = {
+  get: async (key) =>
+    typeof window === "undefined"
+      ? undefined
+      : window.sessionStorage.getItem(storageKey(key)) ?? undefined,
+  set: async (key, value) => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(storageKey(key), value);
+    }
+  },
+  delete: async (key) => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(storageKey(key));
+    }
+  },
+};
+
+const session = new Session(
+  {
+    secureStorage: sessionStorageWrapper,
+    insecureStorage: sessionStorageWrapper,
+  },
+  "solid-dataspace-manager"
+);
 
 export async function restoreSession() {
   await session.handleIncomingRedirect({ restorePreviousSession: true });

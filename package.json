@@ -1,6 +1,6 @@
 {
   "name": "pod_browser",
-  "version": "0.3.29",
+  "version": "0.3.30",
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
