@@ -52,7 +52,9 @@ window.__APP_CONFIG__ = {
   "branding": {
     "projectName": "TMDT",
     "logoUrl": "/project-logos/Logo_TMDT.png",
-    "logoAlt": "TMDT Logo"
+    "logoAlt": "TMDT Logo",
+    "logoWidth": "95px",
+    "logoHeight": "auto"
   },
   "fundingLogos": [],
   "fundingGrantNumber": ""
