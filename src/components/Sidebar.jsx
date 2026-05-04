@@ -69,6 +69,7 @@ function Sidebar({ webId, collapsed = false, onToggle }) {
 
   const applicationApps = getAppsBySection("applications");
   const branding = getBranding();
+  const logoStyle = collapsed ? undefined : branding.logoStyle;
 
   useEffect(() => {
     let cancelled = false;
@@ -175,7 +176,7 @@ function Sidebar({ webId, collapsed = false, onToggle }) {
           <img
             src={branding.logoUrl}
             alt={branding.logoAlt}
-            style={branding.logoStyle}
+            style={logoStyle}
           />
         </div>
         <button
