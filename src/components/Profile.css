@@ -53,6 +53,7 @@
 @media (min-width:760px){
   .pf-grid{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px 16px; }
 }
+.pf-podFields{ display:grid; gap:12px; }
 
 .pf-ro{ display:grid; gap:4px; min-width:0; }
 .pf-label{ font-size:12px; color:var(--muted); }

@@ -34,7 +34,7 @@ import ConfirmModal from "./ConfirmModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUserCircle, faPen, faPlus, faTrash,
-  faEnvelope, faInbox, faBookOpen, faSitemap, faFlask
+  faEnvelope, faInbox, faBookOpen, faSitemap, faFlask, faDatabase
 } from "@fortawesome/free-solid-svg-icons";
 import {
   buildDefaultPrivateRegistry,
@@ -259,6 +259,14 @@ export default function Profile({ webId }) {
   };
 
   const profileDocUrl = webId ? webId.split("#")[0] : "";
+  const solidPodUrl = (() => {
+    if (!webId) return "";
+    try {
+      return getPodRoot(webId);
+    } catch {
+      return "";
+    }
+  })();
 
   useEffect(() => {
     if (!webId) return;
@@ -643,6 +651,43 @@ export default function Profile({ webId }) {
       <form className="pf-wrap" onSubmit={onSave}>
       <div className="pf-head">
         <h2>Your Profile</h2>
+      </div>
+
+      <div className="pf-card">
+        <div className="pf-card__head">
+          <div className="pf-card__title">
+            <FontAwesomeIcon icon={faDatabase} className="pf-card__titleIcon" />
+            <span>Solid Pod</span>
+          </div>
+        </div>
+        <div className="pf-card__body">
+          <div className="pf-podFields">
+            <div className="pf-ro">
+              <div className="pf-label">Pod URL</div>
+              <div className="pf-value">
+                {solidPodUrl ? (
+                  <a href={solidPodUrl} target="_blank" rel="noopener noreferrer">
+                    {solidPodUrl}
+                  </a>
+                ) : (
+                  <span className="pf-muted">Not available</span>
+                )}
+              </div>
+            </div>
+            <div className="pf-ro">
+              <div className="pf-label">Web ID</div>
+              <div className="pf-value">
+                {webId ? (
+                  <a href={webId} target="_blank" rel="noopener noreferrer">
+                    {webId}
+                  </a>
+                ) : (
+                  <span className="pf-muted">Not available</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <SectionCard
