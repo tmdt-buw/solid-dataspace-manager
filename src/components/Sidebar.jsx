@@ -313,16 +313,14 @@ function Sidebar({ webId, collapsed = false, onToggle }) {
         )}
 
         <div className="sb-section">Miscellaneous</div>
-        <a
-          href="https://tmdt-solid-community-server.de"
-          className="sb-link"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          to="/pod-provider"
+          className={"sb-link" + (isActive("/pod-provider") ? " active" : "")}
           title="Solid Pod Provider"
         >
           <FontAwesomeIcon icon={faServer} />
           <span>Solid Pod Provider</span>
-        </a>
+        </Link>
       </nav>
 
       <div className="sb-bottom">

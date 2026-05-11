@@ -34,7 +34,8 @@ import ConfirmModal from "./ConfirmModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUserCircle, faPen, faPlus, faTrash,
-  faEnvelope, faInbox, faBookOpen, faSitemap, faFlask, faDatabase
+  faEnvelope, faInbox, faBookOpen, faSitemap, faFlask, faDatabase,
+  faKey, faEye, faEyeSlash
 } from "@fortawesome/free-solid-svg-icons";
 import {
   buildDefaultPrivateRegistry,
@@ -49,8 +50,10 @@ import {
   syncRegistryMembersInContainer,
   syncRegistryMembership,
 } from "../solidCatalog";
+import { loadCredentialToken } from "../solidCredentialToken";
 
 const VCARD_TYPE = "http://www.w3.org/2006/vcard/ns#type";
+const DATASPACE_TOKEN_NAME = "solid-dataspace";
 const REGISTRY_ICON_MAP = {
   flask: faFlask,
 };
@@ -194,6 +197,9 @@ export default function Profile({ webId }) {
   const [registrySelections, setRegistrySelections] = useState([]);
   const [privateRegistryUrl, setPrivateRegistryUrl] = useState("");
   const [privateRegistryMembers, setPrivateRegistryMembers] = useState([]);
+  const [credentialToken, setCredentialToken] = useState(null);
+  const [credentialTokenError, setCredentialTokenError] = useState("");
+  const [showCredentialSecret, setShowCredentialSecret] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const catalogContainerUrl = toCatalogContainerUrl(catalogUrl);
@@ -333,6 +339,20 @@ export default function Profile({ webId }) {
             session.fetch
           );
           setPrivateRegistryMembers(normalizeRegistryMembers(members));
+        }
+        try {
+          const token = await loadCredentialToken(
+            webId,
+            session.fetch,
+            DATASPACE_TOKEN_NAME
+          );
+          setCredentialToken(token);
+          setCredentialTokenError("");
+          setShowCredentialSecret(false);
+        } catch (err) {
+          console.warn("Failed to load credential token:", err);
+          setCredentialToken(null);
+          setCredentialTokenError("Credential token could not be loaded.");
         }
       } catch (e) {
         console.error("Loading profile failed:", e);
@@ -687,6 +707,53 @@ export default function Profile({ webId }) {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="pf-card">
+        <div className="pf-card__head">
+          <div className="pf-card__title">
+            <FontAwesomeIcon icon={faKey} className="pf-card__titleIcon" />
+            <span>Credential Token</span>
+          </div>
+        </div>
+        <div className="pf-card__body">
+          <div className="pf-ro">
+            <div className="pf-label">Identifier</div>
+            <div className="pf-value">
+              {credentialToken?.id || <span className="pf-muted">No token found</span>}
+            </div>
+          </div>
+          <div className="pf-ro" style={{ marginTop: 10 }}>
+            <div className="pf-label">Secret</div>
+            <div className="pf-secretRow">
+              <div className="pf-value pf-secretValue">
+                {credentialToken?.secret ? (
+                  showCredentialSecret ? (
+                    credentialToken.secret
+                  ) : (
+                    "****************"
+                  )
+                ) : (
+                  <span className="pf-muted">No secret found</span>
+                )}
+              </div>
+              <button
+                type="button"
+                className="pf-iconBtn"
+                onClick={() => setShowCredentialSecret((value) => !value)}
+                disabled={!credentialToken?.secret}
+                title={showCredentialSecret ? "Hide secret" : "Show secret"}
+              >
+                <FontAwesomeIcon icon={showCredentialSecret ? faEyeSlash : faEye} />
+              </button>
+            </div>
+          </div>
+          {credentialTokenError ? (
+            <div className="pf-muted" style={{ marginTop: 8 }}>
+              {credentialTokenError}
+            </div>
+          ) : null}
         </div>
       </div>
 

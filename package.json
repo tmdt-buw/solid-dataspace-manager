@@ -1,6 +1,6 @@
 {
   "name": "pod_browser",
-  "version": "0.3.35",
+  "version": "0.3.36",
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
@@ -31,6 +31,7 @@
     "react-force-graph-2d": "^1.25.6",
     "react-router-dom": "^7.8.0",
     "react-scripts": "5.0.1",
+    "three": "^0.184.0",
     "uuid": "^11.1.0",
     "vis-network": "^9.1.9",
     "web-vitals": "^2.1.4"

@@ -113,6 +113,14 @@
   justify-items: start;
 }
 
+.onboarding-avatar__upload {
+  position: relative;
+  display: inline-grid;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
 .onboarding-avatar img,
 .onboarding-avatar__placeholder {
   width: 96px;
@@ -128,23 +136,39 @@
   font-weight: 700;
 }
 
-.onboarding-avatar__btn {
-  border: 1px solid #c5dbff;
-  background: #eaf2ff;
-  color: #1d4ed8;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border-radius: 999px;
-  font-weight: 700;
-  cursor: pointer;
+.onboarding-avatar__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: grid;
   place-items: center;
+  gap: 4px;
+  color: #ffffff;
+  background: rgba(15, 23, 42, 0.58);
+  opacity: 0;
+  transition: opacity 0.16s ease;
+  pointer-events: none;
+}
+
+.onboarding-avatar__upload:hover .onboarding-avatar__overlay,
+.onboarding-avatar__upload.is-uploading .onboarding-avatar__overlay {
+  opacity: 1;
+}
+
+.onboarding-avatar__upload:hover img,
+.onboarding-avatar__upload:hover .onboarding-avatar__placeholder {
+  border-color: #94b4ff;
+}
+
+.onboarding-avatar__uploading {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .onboarding-avatar__icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
 }
 
 .onboarding-grid label,
@@ -227,6 +251,17 @@
   margin-top: 8px;
   color: #64748b;
   font-size: 13px;
+}
+
+.onboarding-tokenStatus {
+  margin-top: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid #b6e3c6;
+  background: #e7f6ec;
+  color: #1f7a3f;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .onboarding-checkbox {

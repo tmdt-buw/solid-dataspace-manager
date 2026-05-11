@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import session from "../solidSession";
 import {
   getSolidDataset,
@@ -19,6 +19,7 @@ import {
   faDownload,
   faRotateRight,
 } from "@fortawesome/free-solid-svg-icons";
+import DataspaceConnectionsVisual from "./DataspaceConnectionsVisual";
 import "./TransactionHistory.css";
 
 const SDM_NS = "https://w3id.org/solid-dataspace-manager#";
@@ -98,6 +99,26 @@ const getOwnerRoot = (item) => {
   }
 };
 
+const getPartnerRoot = (item) => {
+  const requesterRoot = getPodRoot(item.requesterWebId);
+  const ownerRoot = getOwnerRoot(item);
+  if (item.direction === "incoming") {
+    return ownerRoot || requesterRoot || "unknown pod";
+  }
+  return requesterRoot || ownerRoot || "unknown pod";
+};
+
+const getPodLabel = (root) => {
+  if (!root || root === "unknown pod") return "Unknown Pod";
+  try {
+    const url = new URL(root);
+    const firstPath = url.pathname.split("/").filter(Boolean)[0];
+    return firstPath ? `${url.hostname}/${firstPath}` : url.hostname;
+  } catch {
+    return root;
+  }
+};
+
 const getDecisionTime = (item) =>
   Date.parse(item.decidedAt || item.createdAt) || item.urlTime || 0;
 
@@ -109,19 +130,11 @@ const isExpired = (item) => {
 };
 
 const TransactionHistory = ({ webId }) => {
-  const [inboxUrl, setInboxUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [decisions, setDecisions] = useState([]);
   const [requests, setRequests] = useState([]);
-  const [vizScale, setVizScale] = useState(1);
-  const [vizOffset, setVizOffset] = useState({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState(false);
-  const [draggingPod, setDraggingPod] = useState(null);
-  const [podAngles, setPodAngles] = useState([]);
-  const [ringRadius, setRingRadius] = useState(0);
-  const dragStart = useRef({ x: 0, y: 0 });
-  const ringRef = useRef(null);
+  const [dataSourceCount, setDataSourceCount] = useState(0);
 
   const resolveInboxUrl = async () => {
     const profileDataset = await getSolidDataset(webId, { fetch: noCacheFetch });
@@ -189,19 +202,41 @@ const TransactionHistory = ({ webId }) => {
     };
   };
 
+  const loadCatalogDataSourceCount = async () => {
+    if (!webId) {
+      setDataSourceCount(0);
+      return 0;
+    }
+
+    try {
+      const datasetContainerUrl = `${getPodRoot(webId)}catalog/ds/`;
+      const datasetContainer = await getSolidDataset(datasetContainerUrl, {
+        fetch: noCacheFetch,
+      });
+      const resourceUrls = getContainedResourceUrlAll(datasetContainer).filter(
+        (url) => !url.endsWith("/")
+      );
+      setDataSourceCount(resourceUrls.length);
+      return resourceUrls.length;
+    } catch (err) {
+      console.warn("Failed to count catalog data sources:", err);
+      setDataSourceCount(0);
+      return 0;
+    }
+  };
+
   const loadTransactions = async () => {
     setLoading(true);
     setError("");
+    void loadCatalogDataSourceCount();
     try {
       const inbox = await resolveInboxUrl();
       if (!inbox) {
-        setInboxUrl("");
         setDecisions([]);
         setRequests([]);
         setError("No Solid inbox found for this profile.");
         return;
       }
-      setInboxUrl(inbox);
 
       const inboxDataset = await getSolidDataset(inbox, { fetch: noCacheFetch });
       const resourceUrls = getContainedResourceUrlAll(inboxDataset);
@@ -274,67 +309,55 @@ const TransactionHistory = ({ webId }) => {
     }));
   }, [decisions, requests, webId]);
 
+  const connectionNodes = useMemo(
+    () =>
+      activeConnections
+        .map((item, index) => {
+          const root = getPartnerRoot(item);
+          return {
+            id: item.id || `${root}-${index}`,
+            root,
+            label: getPodLabel(root),
+            detail: item.datasetTitle || item.datasetIdentifier || "Active connection",
+            direction: item.direction,
+            connectionCount: 1,
+            datasetCount: item.datasetIdentifier || item.datasetAccessUrl ? 1 : 0,
+            latestAt: getDecisionTime(item),
+          };
+        })
+        .sort((a, b) => b.latestAt - a.latestAt || a.label.localeCompare(b.label)),
+    [activeConnections]
+  );
+
+  const uniquePartnerCount = useMemo(() => {
+    const roots = new Set();
+    activeConnections.forEach((item) => {
+      const root = getPartnerRoot(item);
+      if (root) roots.add(root);
+    });
+    return roots.size;
+  }, [activeConnections]);
+
   const stats = useMemo(() => {
     const incoming = activeConnections.filter((item) => item.direction === "incoming");
     const outgoing = activeConnections.filter((item) => item.direction === "outgoing");
     const datasets = new Set(activeConnections.map((item) => item.datasetIdentifier || item.datasetAccessUrl));
-    const partners = new Set(activeConnections.map((item) => item.requesterWebId).filter(Boolean));
     return {
       total: activeConnections.length,
       incoming: incoming.length,
       outgoing: outgoing.length,
       datasets: datasets.size,
-      partners: partners.size,
+      partners: uniquePartnerCount,
       downloads: null,
     };
-  }, [activeConnections]);
+  }, [activeConnections, uniquePartnerCount]);
 
-  const connectionPairs = useMemo(() => {
-    const selfRoot = getPodRoot(webId) || "your pod";
-    return activeConnections.map((item) => {
-      const requesterRoot = getPodRoot(item.requesterWebId);
-      const ownerRoot = getOwnerRoot(item);
-      const partnerRoot =
-        item.direction === "incoming" ? ownerRoot || requesterRoot : requesterRoot || ownerRoot;
-      return {
-        id: item.id,
-        partnerRoot: partnerRoot || "unknown pod",
-        direction: item.direction,
-      };
-    });
-  }, [activeConnections, webId]);
-
-  const getPartnerRoot = (item) => {
-    const requesterRoot = getPodRoot(item.requesterWebId);
-    const ownerRoot = getOwnerRoot(item);
-    if (item.direction === "incoming") {
-      return ownerRoot || requesterRoot || "unknown pod";
-    }
-    return requesterRoot || ownerRoot || "unknown pod";
-  };
-
-  useEffect(() => {
-    if (!connectionPairs.length) {
-      setPodAngles([]);
-      return;
-    }
-    setPodAngles((prev) => {
-      if (prev.length === connectionPairs.length) return prev;
-      return connectionPairs.map((_, index) => (360 / connectionPairs.length) * index - 90);
-    });
-  }, [connectionPairs]);
-
-
-  useEffect(() => {
-    const updateRadius = () => {
-      if (!ringRef.current) return;
-      const rect = ringRef.current.getBoundingClientRect();
-      setRingRadius(rect.width / 2);
-    };
-    updateRadius();
-    window.addEventListener("resize", updateRadius);
-    return () => window.removeEventListener("resize", updateRadius);
-  }, []);
+  const selfRoot = getPodRoot(webId) || "your pod";
+  const visualDataSourceCount = Math.max(
+    dataSourceCount,
+    stats.datasets,
+    activeConnections.length
+  );
   return (
     <div className="transactions-page">
       <div className="transactions-header toolbar--title">
@@ -385,99 +408,17 @@ const TransactionHistory = ({ webId }) => {
         <div className="transactions-graph-card">
           <div className="transactions-graph-header">
             <span>Active Dataspace Connections</span>
-            <span className="graph-meta">{activeConnections.length} link(s)</span>
+            <span className="graph-meta">
+              {visualDataSourceCount} data source point(s), {activeConnections.length} link(s)
+            </span>
           </div>
-          <div className="dataspace-visual">
-            <div
-              className="dataspace-visual-inner"
-              style={{ transform: `translate(${vizOffset.x}px, ${vizOffset.y}px) scale(${vizScale})` }}
-              onMouseDown={(event) => {
-                setDragging(true);
-                dragStart.current = {
-                  x: event.clientX - vizOffset.x,
-                  y: event.clientY - vizOffset.y,
-                };
-              }}
-              onMouseMove={(event) => {
-                if (draggingPod !== null && ringRef.current) {
-                  const rect = ringRef.current.getBoundingClientRect();
-                  const cx = rect.left + rect.width / 2;
-                  const cy = rect.top + rect.height / 2;
-                  const angle = (Math.atan2(event.clientY - cy, event.clientX - cx) * 180) / Math.PI;
-                  setPodAngles((prev) => {
-                    const next = [...prev];
-                    next[draggingPod] = angle;
-                    return next;
-                  });
-                  return;
-                }
-                if (!dragging) return;
-                setVizOffset({
-                  x: event.clientX - dragStart.current.x,
-                  y: event.clientY - dragStart.current.y,
-                });
-              }}
-              onMouseUp={() => {
-                setDragging(false);
-                setDraggingPod(null);
-              }}
-              onMouseLeave={() => {
-                setDragging(false);
-                setDraggingPod(null);
-              }}
-              onWheel={(event) => {
-                event.preventDefault();
-                const delta = event.deltaY > 0 ? -0.05 : 0.05;
-                setVizScale((s) => Math.min(2, Math.max(0.6, s + delta)));
-              }}
-            >
-            <div className="dataspace-ring" ref={ringRef} style={{ "--ring-radius": `${ringRadius}px` }}>
-              <div className="dataspace-center">SOLID DATASPACE</div>
-              <div className="pod-card pod-card--self">
-                <div className="pod-title">{getPodRoot(webId) || "your pod"}</div>
-                <div className="pod-subtitle">Your pod</div>
-              </div>
-              {connectionPairs.length === 0 && (
-                <div className="dataspace-empty">No active connections</div>
-              )}
-              {connectionPairs.map((pair, index) => {
-                const rawAngle = podAngles[index] ?? 0;
-                const normalized = ((rawAngle + 180) % 360) - 180;
-                const rad = (normalized * Math.PI) / 180;
-                const length = ringRadius ? Math.max(0, 2 * ringRadius * Math.cos(rad / 2)) : 0;
-                const rotate = (Math.atan2(Math.sin(rad), Math.cos(rad) + 1) * 180) / Math.PI;
-                return (
-                  <div
-                    key={pair.id}
-                    className={`dataspace-connection ${pair.direction === "incoming" ? "conn-incoming" : "conn-outgoing"}`}
-                    style={{
-                      "--conn-angle": `${rawAngle}deg`,
-                      "--conn-length": `${length}px`,
-                      "--conn-rotate": `${rotate}deg`,
-                      "--pod-angle": `${rawAngle}deg`,
-                    }}
-                  >
-                    <span className="connection-line" />
-                    <div
-                      className="pod-card pod-card--b"
-                      onMouseDown={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        setDraggingPod(index);
-                      }}
-                    >
-                      <div className="pod-title">{pair.partnerRoot}</div>
-                      <div className="pod-subtitle">
-                        {pair.direction === "incoming" ? "Outgoing" : "Incoming"}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <DataspaceConnectionsVisual
+            pods={connectionNodes}
+            dataSourceCount={visualDataSourceCount}
+            selfLabel={getPodLabel(selfRoot)}
+            selfRoot={selfRoot}
+          />
         </div>
-      </div>
 
         <div className="transactions-table-card">
           <div className="transactions-table-header">

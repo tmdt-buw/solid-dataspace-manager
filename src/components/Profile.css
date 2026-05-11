@@ -25,6 +25,7 @@
   box-shadow:0 6px 12px rgba(15,23,42,.08);
 }
 .pf-iconBtn:hover{ color:var(--text); background:var(--primary-ghost); }
+.pf-iconBtn:disabled{ opacity:.55; cursor:not-allowed; }
 .pf-iconBtn.danger{ color:var(--danger); border-color:#fecaca; }
 
 .pf-card{
@@ -65,6 +66,15 @@
   word-break:break-word;
 }
 .pf-muted{ color:var(--muted); }
+.pf-secretRow{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+  align-items:center;
+}
+.pf-secretValue{
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
 .pf-roBlock{
   border:1px dashed var(--border); border-radius:12px; padding:10px 12px; color:var(--text);
   max-width:100%;

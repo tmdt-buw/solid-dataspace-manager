@@ -37,6 +37,8 @@ import Notifications from "./components/Notifications";
 import DecisionInbox from "./components/DecisionInbox";
 import TransactionHistory from "./components/TransactionHistory";
 import OnboardingWizard from "./components/OnboardingWizard";
+import SolidPodProvider from "./components/SolidPodProvider";
+import LoadingParticleCloud from "./components/LoadingParticleCloud";
 import { appVersion } from "./versions";
 import {
   buildDefaultPrivateRegistry,
@@ -44,6 +46,7 @@ import {
   resolveCatalogUrl,
   SDP_CATALOG,
 } from "./solidCatalog";
+import { loadCredentialToken } from "./solidCredentialToken";
 import { getFundingGrantNumber, getFundingLogos } from "./config/runtimeConfig";
 
 const AUTH_BRIDGE_KEY = "__SOLID_DATASPACE_AUTH__";
@@ -258,8 +261,25 @@ const App = () => {
           missingRegistry = true;
         }
 
+        let missingCredentialToken = false;
+        try {
+          const credentialToken = await loadCredentialToken(
+            webId,
+            session.fetch,
+            "solid-dataspace"
+          );
+          missingCredentialToken = !credentialToken;
+        } catch {
+          missingCredentialToken = true;
+        }
+
         setOnboardingRequired(
-          missingBasics || missingEmail || missingInbox || missingCatalog || missingRegistry
+          missingBasics ||
+            missingEmail ||
+            missingInbox ||
+            missingCatalog ||
+            missingRegistry ||
+            missingCredentialToken
         );
       } catch (err) {
         console.error("Profile completeness check failed:", err);
@@ -291,9 +311,7 @@ const App = () => {
               <p className="loading-subtitle">
                 We are connecting to your Solid Pod and verifying required profile details.
               </p>
-              <div className="loading-bar" role="progressbar" aria-label="Checking profile">
-                <span className="loading-bar__fill"></span>
-              </div>
+              <LoadingParticleCloud />
             </div>
           </div>
         </div>
@@ -380,6 +398,7 @@ const App = () => {
               <Route path="/notifications" element={<Notifications webId={webId} />} />
               <Route path="/decisions" element={<DecisionInbox webId={webId} />} />
               <Route path="/profile" element={<ProfilePage webId={webId} />} />
+              <Route path="/pod-provider" element={<SolidPodProvider webId={webId} />} />
               <Route path="/info" element={<Info />} />
               <Route path="/web/solid-health-app" element={<HealthAppPage />} />
               <Route path="/web/solid-chatbot" element={<ChatbotPage />} />

@@ -38,9 +38,19 @@ import {
   saveRegistryConfig,
   SDP_CATALOG,
 } from "../solidCatalog";
+import {
+  createClientCredential,
+  getAccountIndexUrl,
+  loadAccountIndex,
+  readStoredAccountToken,
+  resolveClientCredentialsUrl,
+} from "../cssAccountApi";
+import { loadCredentialToken, saveCredentialToken } from "../solidCredentialToken";
 import "./OnboardingWizard.css";
 
 const VCARD_TYPE = "http://www.w3.org/2006/vcard/ns#type";
+const SOLID_OIDC_ISSUER = "http://www.w3.org/ns/solid/terms#oidcIssuer";
+const DATASPACE_TOKEN_NAME = "solid-dataspace";
 
 const REGISTRY_ICON_MAP = {
   flask: faFlask,
@@ -117,12 +127,15 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
   const [researchRegistryAcknowledged, setResearchRegistryAcknowledged] = useState(false);
   const [privateRegistryUrl, setPrivateRegistryUrl] = useState("");
   const [privateRegistryAcknowledged, setPrivateRegistryAcknowledged] = useState(false);
+  const [credentialAccountIndexUrl, setCredentialAccountIndexUrl] = useState("");
+  const [credentialTokenAcknowledged, setCredentialTokenAcknowledged] = useState(false);
+  const [credentialTokenStored, setCredentialTokenStored] = useState(false);
 
   const steps = useMemo(
     () => [
       { id: 1, title: "Basics" },
       { id: 2, title: "Email" },
-      { id: 3, title: "Inbox, Catalog & Registry" },
+      { id: 3, title: "Inbox, Catalog, Registry & Token" },
     ],
     []
   );
@@ -237,6 +250,22 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
       setResearchRegistryAcknowledged(hasResearchRegistryMembership);
       setPrivateRegistryAcknowledged(hasPrivateRegistryContainer);
 
+      const oidcIssuer = getUrl(me, SOLID_OIDC_ISSUER) || webId;
+      const accountIndexUrl = getAccountIndexUrl(oidcIssuer || webId);
+      setCredentialAccountIndexUrl(accountIndexUrl);
+      let storedCredential = null;
+      try {
+        storedCredential = await loadCredentialToken(
+          webId,
+          session.fetch,
+          DATASPACE_TOKEN_NAME
+        );
+      } catch (err) {
+        console.warn("Failed to load credential token from pod:", err);
+      }
+      setCredentialTokenStored(Boolean(storedCredential));
+      setCredentialTokenAcknowledged(Boolean(storedCredential));
+
       const missingBasics = !(nm && org && role);
       const missingEmail = allEmails.length === 0;
       const missingInbox = !inbox;
@@ -244,8 +273,16 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
       const registryMissing =
         !((registryConfig.privateRegistry || buildDefaultPrivateRegistry(webId)).trim()) ||
         (registryConfig.mode !== "private" && !(registryConfig.registries || []).length);
+      const missingCredentialToken = !storedCredential;
 
-      if (!missingBasics && !missingEmail && !missingInbox && !missingCatalog && !registryMissing) {
+      if (
+        !missingBasics &&
+        !missingEmail &&
+        !missingInbox &&
+        !missingCatalog &&
+        !registryMissing &&
+        !missingCredentialToken
+      ) {
         onComplete();
         return;
       }
@@ -451,6 +488,61 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
     setCatalogUrl(configuredUrl);
   };
 
+  const configureCredentialToken = async () => {
+    if (!webId) return;
+
+    const accountIndexUrl = credentialAccountIndexUrl || getAccountIndexUrl(webId);
+    const storedCredential = await loadCredentialToken(
+      webId,
+      session.fetch,
+      DATASPACE_TOKEN_NAME
+    );
+
+    if (storedCredential) {
+      setCredentialTokenStored(true);
+      return;
+    }
+
+    const accountToken = readStoredAccountToken(accountIndexUrl);
+    if (!accountToken) {
+      throw new Error(
+        "Account login is required to create the Solid Dataspace credential token."
+      );
+    }
+
+    const accountIndex = await loadAccountIndex(accountIndexUrl, accountToken);
+    if (!accountIndex.authorized) {
+      throw new Error("The stored account login is no longer accepted by the provider.");
+    }
+
+    const clientCredentialsUrl = resolveClientCredentialsUrl(accountIndex.controls);
+    if (!clientCredentialsUrl) {
+      throw new Error("This provider does not expose credential token creation.");
+    }
+
+    const credential = await createClientCredential(
+      clientCredentialsUrl,
+      {
+        name: DATASPACE_TOKEN_NAME,
+        webId,
+      },
+      accountToken
+    );
+
+    const stored = await saveCredentialToken(webId, session.fetch, {
+      name: DATASPACE_TOKEN_NAME,
+      id: credential?.id,
+      secret: credential?.secret,
+      resource: credential?.resource,
+    });
+
+    if (!stored) {
+      throw new Error("The provider did not return a complete credential token.");
+    }
+
+    setCredentialTokenStored(true);
+  };
+
   const handleNext = async () => {
     setError("");
     setSaving(true);
@@ -464,6 +556,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
       } else if (step === 3) {
         await configureInbox();
         await configureCatalog();
+        await configureCredentialToken();
         onComplete();
       }
     } catch (err) {
@@ -525,27 +618,30 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
             <p>Please provide your profile basics.</p>
             <div className="onboarding-basics">
               <div className="onboarding-avatar">
-                {photoSrc ? (
-                  <img src={photoSrc} alt="Profile avatar" />
-                ) : (
-                  <div className="onboarding-avatar__placeholder">No photo</div>
-                )}
                 <label
-                  className="onboarding-avatar__btn"
+                  className={`onboarding-avatar__upload${photoUploading ? " is-uploading" : ""}`}
                   aria-label="Upload profile photo"
                   title="Upload profile photo (optional)"
                 >
-                  <svg
-                    className="onboarding-avatar__icon"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fill="currentColor"
-                      d="M9 4h6l1.2 2H20a2 2 0 0 1 2 2v9a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V8a2 2 0 0 1 2-2h3.8L9 4Zm3 5a5 5 0 1 0 0 10a5 5 0 0 0 0-10Zm0 2a3 3 0 1 1 0 6a3 3 0 0 1 0-6Z"
-                    />
-                  </svg>
-                  {photoUploading ? "Uploading..." : ""}
+                  {photoSrc ? (
+                    <img src={photoSrc} alt="Profile avatar" />
+                  ) : (
+                    <div className="onboarding-avatar__placeholder">No photo</div>
+                  )}
+                  <span className="onboarding-avatar__overlay" aria-hidden="true">
+                    <svg
+                      className="onboarding-avatar__icon"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M9 4h6l1.2 2H20a2 2 0 0 1 2 2v9a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V8a2 2 0 0 1 2-2h3.8L9 4Zm3 5a5 5 0 1 0 0 10a5 5 0 0 0 0-10Zm0 2a3 3 0 1 1 0 6a3 3 0 0 1 0-6Z"
+                      />
+                    </svg>
+                    {photoUploading ? (
+                      <span className="onboarding-avatar__uploading">Uploading...</span>
+                    ) : null}
+                  </span>
                   <input type="file" accept="image/*" hidden onChange={onPickAvatar} />
                 </label>
               </div>
@@ -621,15 +717,15 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
 
         {step === 3 && (
           <div className="onboarding-section">
-            <h3>Solid Inbox, Catalog & Registry</h3>
+            <h3>Inbox, Catalog, Registry & Token</h3>
             <p>
-              Configure your Solid inbox, catalog, and registry settings so access requests and
-              metadata stay in your pod.
+              Configure your Solid inbox, catalog, registry settings, and a credential token
+              so access requests, metadata, and automated access can work with your pod.
             </p>
             <div className="onboarding-inbox">
               <div className="onboarding-inbox__label">Inbox URL</div>
               <div className="onboarding-inbox__value">
-                {inboxUrl || "Not configured"}
+                {inboxUrl || `${getPodRoot(webId)}inbox/`}
               </div>
               <div className="onboarding-inbox__hint">
                 The inbox will be created in a <code>inbox/</code> container in your pod.
@@ -647,7 +743,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
             <div className="onboarding-inbox" style={{ marginTop: 18 }}>
               <div className="onboarding-inbox__label">Catalog URL</div>
               <div className="onboarding-inbox__value">
-                {catalogUrl || "Not configured"}
+                {catalogUrl || `${getPodRoot(webId)}catalog/cat.ttl#it`}
               </div>
               <div className="onboarding-inbox__hint">
                 The catalog metadata will be created in a <code>catalog/</code> container in your pod.
@@ -712,7 +808,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
                             />
                           )}
                         </div>
-                        <span className="onboarding-registryCheck" aria-hidden="true">✓</span>
+                        <span className="onboarding-registryCheck" aria-hidden="true">&#10003;</span>
                       </button>
                     );
                   })}
@@ -730,14 +826,14 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
                 </label>
               </div>
             )}
-
             <div className="onboarding-inbox" style={{ marginTop: 18 }}>
               <div className="onboarding-inbox__label">Private Registry</div>
               <div className="onboarding-inbox__value">
-                {privateRegistryUrl || defaultPrivateRegistry || "Not configured"}
+                {privateRegistryUrl || defaultPrivateRegistry}
               </div>
               <div className="onboarding-inbox__hint">
-                The registry will always be created in your pod root under <code>registry/</code>.
+                The private registry will always be created in your pod root under{" "}
+                <code>registry/</code>.
               </div>
               <label className="onboarding-checkbox">
                 <input
@@ -746,6 +842,32 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
                   onChange={(e) => setPrivateRegistryAcknowledged(e.target.checked)}
                 />
                 <span>I understand that finishing will create and configure my registry.</span>
+              </label>
+            </div>
+
+            <div className="onboarding-inbox" style={{ marginTop: 18 }}>
+              <div className="onboarding-inbox__label">Credential Token</div>
+              <div className="onboarding-inbox__value">{DATASPACE_TOKEN_NAME}</div>
+              <div className="onboarding-inbox__hint">
+                A credential token named <code>{DATASPACE_TOKEN_NAME}</code> will be created
+                and stored in your Solid Pod with its identifier and secret under{" "}
+                <code>token/</code>.
+              </div>
+              {credentialTokenStored ? (
+                <div className="onboarding-tokenStatus">
+                  Token identifier and secret are already stored in your pod.
+                </div>
+              ) : null}
+              <label className="onboarding-checkbox">
+                <input
+                  type="checkbox"
+                  checked={credentialTokenAcknowledged}
+                  onChange={(e) => setCredentialTokenAcknowledged(e.target.checked)}
+                />
+                <span>
+                  I understand that finishing will create and store the solid-dataspace
+                  credential token in my pod.
+                </span>
               </label>
             </div>
           </div>
@@ -772,6 +894,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
                 (!inboxAcknowledged ||
                   !catalogAcknowledged ||
                   !privateRegistryAcknowledged ||
+                  !credentialTokenAcknowledged ||
                   (registryMode === "research" &&
                     (!researchRegistryAcknowledged || !registrySelectionsComplete))))
             }
