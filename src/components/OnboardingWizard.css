@@ -253,17 +253,6 @@
   font-size: 13px;
 }
 
-.onboarding-tokenStatus {
-  margin-top: 10px;
-  padding: 9px 10px;
-  border-radius: 10px;
-  border: 1px solid #b6e3c6;
-  background: #e7f6ec;
-  color: #1f7a3f;
-  font-size: 13px;
-  font-weight: 700;
-}
-
 .onboarding-checkbox {
   margin-top: 12px;
   display: flex;

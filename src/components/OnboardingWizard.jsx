@@ -46,6 +46,11 @@ import {
   resolveClientCredentialsUrl,
 } from "../cssAccountApi";
 import { loadCredentialToken, saveCredentialToken } from "../solidCredentialToken";
+import {
+  connectionContainerExists,
+  ensureConnectionsContainer,
+  getConnectionsContainerUrl,
+} from "../solidConnections";
 import "./OnboardingWizard.css";
 
 const VCARD_TYPE = "http://www.w3.org/2006/vcard/ns#type";
@@ -129,13 +134,13 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
   const [privateRegistryAcknowledged, setPrivateRegistryAcknowledged] = useState(false);
   const [credentialAccountIndexUrl, setCredentialAccountIndexUrl] = useState("");
   const [credentialTokenAcknowledged, setCredentialTokenAcknowledged] = useState(false);
-  const [credentialTokenStored, setCredentialTokenStored] = useState(false);
+  const [connectionsAcknowledged, setConnectionsAcknowledged] = useState(false);
 
   const steps = useMemo(
     () => [
       { id: 1, title: "Basics" },
       { id: 2, title: "Email" },
-      { id: 3, title: "Inbox, Catalog, Registry & Token" },
+      { id: 3, title: "Pod setup" },
     ],
     []
   );
@@ -263,8 +268,13 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
       } catch (err) {
         console.warn("Failed to load credential token from pod:", err);
       }
-      setCredentialTokenStored(Boolean(storedCredential));
       setCredentialTokenAcknowledged(Boolean(storedCredential));
+
+      const hasConnectionsContainer = await connectionContainerExists(
+        webId,
+        session.fetch
+      );
+      setConnectionsAcknowledged(hasConnectionsContainer);
 
       const missingBasics = !(nm && org && role);
       const missingEmail = allEmails.length === 0;
@@ -274,6 +284,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
         !((registryConfig.privateRegistry || buildDefaultPrivateRegistry(webId)).trim()) ||
         (registryConfig.mode !== "private" && !(registryConfig.registries || []).length);
       const missingCredentialToken = !storedCredential;
+      const missingConnectionsContainer = !hasConnectionsContainer;
 
       if (
         !missingBasics &&
@@ -281,7 +292,8 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
         !missingInbox &&
         !missingCatalog &&
         !registryMissing &&
-        !missingCredentialToken
+        !missingCredentialToken &&
+        !missingConnectionsContainer
       ) {
         onComplete();
         return;
@@ -499,7 +511,6 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
     );
 
     if (storedCredential) {
-      setCredentialTokenStored(true);
       return;
     }
 
@@ -539,8 +550,11 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
     if (!stored) {
       throw new Error("The provider did not return a complete credential token.");
     }
+  };
 
-    setCredentialTokenStored(true);
+  const configureConnections = async () => {
+    if (!webId) return;
+    await ensureConnectionsContainer(webId, session.fetch);
   };
 
   const handleNext = async () => {
@@ -556,6 +570,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
       } else if (step === 3) {
         await configureInbox();
         await configureCatalog();
+        await configureConnections();
         await configureCredentialToken();
         onComplete();
       }
@@ -717,10 +732,11 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
 
         {step === 3 && (
           <div className="onboarding-section">
-            <h3>Inbox, Catalog, Registry & Token</h3>
+            <h3>Inbox, Catalog, Registry, Connections & Token</h3>
             <p>
-              Configure your Solid inbox, catalog, registry settings, and a credential token
-              so access requests, metadata, and automated access can work with your pod.
+              Configure your Solid inbox, catalog, registry settings, connections folder,
+              and a credential token so access requests, metadata, connections, and
+              automated access can work with your pod.
             </p>
             <div className="onboarding-inbox">
               <div className="onboarding-inbox__label">Inbox URL</div>
@@ -846,6 +862,25 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
             </div>
 
             <div className="onboarding-inbox" style={{ marginTop: 18 }}>
+              <div className="onboarding-inbox__label">Connections Folder</div>
+              <div className="onboarding-inbox__value">
+                {getConnectionsContainerUrl(webId)}
+              </div>
+              <div className="onboarding-inbox__hint">
+                Connection settings will be stored in your pod under{" "}
+                <code>connections/</code>.
+              </div>
+              <label className="onboarding-checkbox">
+                <input
+                  type="checkbox"
+                  checked={connectionsAcknowledged}
+                  onChange={(e) => setConnectionsAcknowledged(e.target.checked)}
+                />
+                <span>I understand that finishing will create my connections folder.</span>
+              </label>
+            </div>
+
+            <div className="onboarding-inbox" style={{ marginTop: 18 }}>
               <div className="onboarding-inbox__label">Credential Token</div>
               <div className="onboarding-inbox__value">{DATASPACE_TOKEN_NAME}</div>
               <div className="onboarding-inbox__hint">
@@ -853,11 +888,6 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
                 and stored in your Solid Pod with its identifier and secret under{" "}
                 <code>token/</code>.
               </div>
-              {credentialTokenStored ? (
-                <div className="onboarding-tokenStatus">
-                  Token identifier and secret are already stored in your pod.
-                </div>
-              ) : null}
               <label className="onboarding-checkbox">
                 <input
                   type="checkbox"
@@ -894,6 +924,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
                 (!inboxAcknowledged ||
                   !catalogAcknowledged ||
                   !privateRegistryAcknowledged ||
+                  !connectionsAcknowledged ||
                   !credentialTokenAcknowledged ||
                   (registryMode === "research" &&
                     (!researchRegistryAcknowledged || !registrySelectionsComplete))))

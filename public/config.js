@@ -34,7 +34,7 @@ window.__APP_CONFIG__ = {
   "providers": [
     {
       "id": "tmdt-solid",
-      "label": "TMDT Solid",
+      "label": "TMDT Solid Server",
       "issuer": "https://tmdt-solid-community-server.de",
       "note": "Recommended",
       "enabled": true,
@@ -42,7 +42,7 @@ window.__APP_CONFIG__ = {
     },
     {
       "id": "solid-community",
-      "label": "Solid Community",
+      "label": "Solid Community Server",
       "issuer": "https://solidcommunity.net",
       "note": "Public community server",
       "enabled": true,

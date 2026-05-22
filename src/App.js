@@ -38,6 +38,7 @@ import DecisionInbox from "./components/DecisionInbox";
 import TransactionHistory from "./components/TransactionHistory";
 import OnboardingWizard from "./components/OnboardingWizard";
 import SolidPodProvider from "./components/SolidPodProvider";
+import DataConnection from "./components/DataConnection";
 import LoadingParticleCloud from "./components/LoadingParticleCloud";
 import { appVersion } from "./versions";
 import {
@@ -46,6 +47,7 @@ import {
   resolveCatalogUrl,
   SDP_CATALOG,
 } from "./solidCatalog";
+import { connectionContainerExists } from "./solidConnections";
 import { loadCredentialToken } from "./solidCredentialToken";
 import { getFundingGrantNumber, getFundingLogos } from "./config/runtimeConfig";
 
@@ -273,13 +275,25 @@ const App = () => {
           missingCredentialToken = true;
         }
 
+        let missingConnectionsContainer = false;
+        try {
+          const hasConnectionsContainer = await connectionContainerExists(
+            webId,
+            session.fetch
+          );
+          missingConnectionsContainer = !hasConnectionsContainer;
+        } catch {
+          missingConnectionsContainer = true;
+        }
+
         setOnboardingRequired(
           missingBasics ||
             missingEmail ||
             missingInbox ||
             missingCatalog ||
             missingRegistry ||
-            missingCredentialToken
+            missingCredentialToken ||
+            missingConnectionsContainer
         );
       } catch (err) {
         console.error("Profile completeness check failed:", err);
@@ -394,6 +408,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<DataManagerPage />} />
               <Route path="/catalog" element={<CatalogPage />} />
+              <Route path="/data-connection" element={<DataConnection webId={webId} />} />
               <Route path="/transactions" element={<TransactionHistory webId={webId} />} />
               <Route path="/notifications" element={<Notifications webId={webId} />} />
               <Route path="/decisions" element={<DecisionInbox webId={webId} />} />

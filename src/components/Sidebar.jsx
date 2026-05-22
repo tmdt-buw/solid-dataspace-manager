@@ -18,6 +18,7 @@ import {
   faHeartPulse,
   faChevronLeft,
   faChevronRight,
+  faLink,
 } from "@fortawesome/free-solid-svg-icons";
 import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import session from "../solidSession";
@@ -280,6 +281,15 @@ function Sidebar({ webId, collapsed = false, onToggle }) {
         >
           <FontAwesomeIcon icon={faDatabase} />
           <span>Node-RED</span>
+        </Link>
+
+        <Link
+          to="/data-connection"
+          className={"sb-link" + (isActive("/data-connection") ? " active" : "")}
+          title="Data Connection"
+        >
+          <FontAwesomeIcon icon={faLink} />
+          <span>Data Connection</span>
         </Link>
 
         {applicationApps.length > 0 && (
