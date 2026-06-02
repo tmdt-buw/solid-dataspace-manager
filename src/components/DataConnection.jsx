@@ -55,20 +55,19 @@ const SYNC_WORKER_HEALTH = {
   OFFLINE: "offline",
 };
 
-const formatBackgroundSync = (syncWorkerConfig) =>
-  syncWorkerConfig.enabled
-    ? `Worker sync every ${syncWorkerConfig.intervalMinutes || 5} min`
-    : "Background worker not configured";
-
 const connectionSyncKey = (type, id) => `${type}:${id || ""}`;
 
 const formatLastUpdate = (value) => {
   if (!value) return "Last update: never";
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "Last update: never";
-  return `Last update: ${date.toLocaleString([], {
-    dateStyle: "short",
-    timeStyle: "short",
+  return `Last update: ${date.toLocaleString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   })}`;
 };
 
@@ -775,7 +774,6 @@ function DataConnection({ webId }) {
   const [loadingEntities, setLoadingEntities] = useState(false);
   const [error, setError] = useState("");
   const [testResult, setTestResult] = useState("");
-  const [syncStatuses, setSyncStatuses] = useState({});
   const [lastSyncByConnection, setLastSyncByConnection] = useState({});
   const [syncWorkerHealth, setSyncWorkerHealth] = useState(
     syncWorkerConfig.enabled
@@ -804,7 +802,6 @@ function DataConnection({ webId }) {
           setStorageDocumentUrl("");
           setDataModel("sdm-entity-snapshot");
           setSelectedEntities([]);
-          setSyncStatuses({});
           setCustomConnections(loadedCustom);
           setEntities([]);
         }
@@ -1093,7 +1090,7 @@ function DataConnection({ webId }) {
         selectedEntities,
       });
       const credentialToken = await loadCredentialToken(webId, session.fetch);
-      const registration = await registerSyncWorkerParticipant({
+      await registerSyncWorkerParticipant({
         webId,
         credentialToken,
         storageDocumentUrl: connection?.storageDocumentUrl || storageDocumentUrl,
@@ -1121,14 +1118,6 @@ function DataConnection({ webId }) {
       setStorageDocumentUrl(connection?.storageDocumentUrl || storageDocumentUrl);
       setDataModel(connection?.dataModel || dataModel);
       setSelectedEntities(connection?.selectedEntities || selectedEntities);
-      if (registration.registered) {
-        setSyncStatuses((current) => ({
-          ...current,
-          [connection.id]: `Worker registered every ${
-            registration.payload?.syncIntervalMinutes || 5
-          } min`,
-        }));
-      }
       setHomeAssistantOpen(false);
     } catch (err) {
       setError(err?.message || "Connection could not be saved.");
@@ -1145,7 +1134,7 @@ function DataConnection({ webId }) {
       setSaving(true);
       const saved = await saveCustomConnection(webId, session.fetch, customValues);
       const credentialToken = await loadCredentialToken(webId, session.fetch);
-      const registration = await registerSyncWorkerParticipant({
+      await registerSyncWorkerParticipant({
         webId,
         credentialToken,
         storageDocumentUrl:
@@ -1156,14 +1145,6 @@ function DataConnection({ webId }) {
         const withoutOld = current.filter((item) => item.id !== saved.id);
         return [...withoutOld, saved].sort((a, b) => a.name.localeCompare(b.name));
       });
-      if (registration.registered) {
-        setSyncStatuses((current) => ({
-          ...current,
-          [saved.id]: `Worker registered every ${
-            registration.payload?.syncIntervalMinutes || 5
-          } min`,
-        }));
-      }
       setCustomOpen(false);
     } catch (err) {
       setError(err?.message || "Custom connection could not be saved.");
@@ -1212,11 +1193,6 @@ function DataConnection({ webId }) {
         setHomeAssistantConnections((current) =>
           current.filter((connection) => connection.id !== targetConnection.id)
         );
-        setSyncStatuses((current) => {
-          const next = { ...current };
-          delete next[targetConnection.id];
-          return next;
-        });
         if (activeHomeAssistantId === targetConnection.id) {
           resetHomeAssistantForm();
         }
@@ -1226,11 +1202,6 @@ function DataConnection({ webId }) {
         setCustomConnections((current) =>
           current.filter((connection) => connection.id !== targetConnection.id)
         );
-        setSyncStatuses((current) => {
-          const next = { ...current };
-          delete next[targetConnection.id];
-          return next;
-        });
         if (customValues.id === targetConnection.id) {
           setCustomOpen(false);
           setCustomValues(emptyCustomConnection());
@@ -1272,10 +1243,6 @@ function DataConnection({ webId }) {
                 <span className="data-connection-card__copy">
                   <strong>Home Assistant</strong>
                   <span>{connection.selectedEntities.length} selected entities</span>
-                  <span>
-                    {syncStatuses[connection.id] ||
-                      formatBackgroundSync(syncWorkerConfig)}
-                  </span>
                   <span className="data-connection-card__lastUpdate">
                     {formatLastUpdate(
                       lastSyncByConnection[
@@ -1312,10 +1279,6 @@ function DataConnection({ webId }) {
                 <span className="data-connection-card__copy">
                   <strong>{connection.name}</strong>
                   <span>{connection.authType === "none" ? "No auth" : connection.authType}</span>
-                  <span>
-                    {syncStatuses[connection.id] ||
-                      formatBackgroundSync(syncWorkerConfig)}
-                  </span>
                   <span className="data-connection-card__lastUpdate">
                     {formatLastUpdate(
                       lastSyncByConnection[
