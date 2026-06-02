@@ -133,11 +133,11 @@ export default function LoadingParticleCloud() {
     window.addEventListener("resize", resize);
     resize();
 
-    const clock = new THREE.Clock();
+    const startedAt = performance.now();
     let animationFrame = 0;
 
     const render = () => {
-      const elapsed = clock.getElapsedTime();
+      const elapsed = (performance.now() - startedAt) / 1000;
       const reducedMotion = Boolean(motionQuery?.matches);
       const spin = reducedMotion ? 0 : elapsed;
 

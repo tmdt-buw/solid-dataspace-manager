@@ -328,11 +328,11 @@ export default function LoginParticleCloud() {
     window.addEventListener("resize", resize);
     resize();
 
-    const clock = new THREE.Clock();
+    const startedAt = performance.now();
     let animationFrame = 0;
 
     const render = () => {
-      const elapsed = clock.getElapsedTime();
+      const elapsed = (performance.now() - startedAt) / 1000;
       const reducedMotion = Boolean(motionQuery?.matches);
       const hoverStrength = state.hovered ? 1 : 0;
 

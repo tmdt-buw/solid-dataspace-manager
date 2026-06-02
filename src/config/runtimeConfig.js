@@ -46,6 +46,12 @@ const fallbackConfig = {
   },
   fundingLogos: [],
   fundingGrantNumber: "",
+  syncWorker: {
+    enabled: true,
+    apiUrl: "/sync-worker",
+    serviceWebId: "",
+    intervalMinutes: 5,
+  },
 };
 
 function getWindowConfig() {
@@ -158,6 +164,19 @@ function normalizeFundingLogo(logo, index) {
   };
 }
 
+function normalizeSyncWorker(syncWorker) {
+  const intervalMinutes = Number(syncWorker?.intervalMinutes ?? 5);
+  return {
+    enabled: syncWorker?.enabled !== false,
+    apiUrl: syncWorker?.apiUrl || "/sync-worker",
+    serviceWebId: syncWorker?.serviceWebId || "",
+    intervalMinutes:
+      Number.isInteger(intervalMinutes) && intervalMinutes > 0
+        ? intervalMinutes
+        : 5,
+  };
+}
+
 const runtimeConfig = getWindowConfig();
 
 const appsSource =
@@ -192,6 +211,9 @@ export const appConfig = {
     typeof runtimeConfig.fundingGrantNumber === "string"
       ? runtimeConfig.fundingGrantNumber.trim()
       : fallbackConfig.fundingGrantNumber,
+  syncWorker: normalizeSyncWorker(
+    runtimeConfig.syncWorker || fallbackConfig.syncWorker
+  ),
 };
 
 export function getAppsBySection(section) {
@@ -221,4 +243,8 @@ export function getFundingLogos() {
 
 export function getFundingGrantNumber() {
   return appConfig.fundingGrantNumber;
+}
+
+export function getSyncWorkerConfig() {
+  return appConfig.syncWorker;
 }

@@ -57,5 +57,11 @@ window.__APP_CONFIG__ = {
     "logoHeight": "auto"
   },
   "fundingLogos": [],
-  "fundingGrantNumber": ""
+  "fundingGrantNumber": "",
+  "syncWorker": {
+    "enabled": true,
+    "apiUrl": "/sync-worker",
+    "serviceWebId": "https://tmdt-solid-community-server.de/solidserviceworker/profile/card#me",
+    "intervalMinutes": 5
+  }
 };

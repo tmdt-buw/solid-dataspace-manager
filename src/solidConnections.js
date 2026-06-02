@@ -72,6 +72,7 @@ const SOSA_OBSERVED_PROPERTY = `${SOSA_NS}observedProperty`;
 const SOSA_HAS_SIMPLE_RESULT = `${SOSA_NS}hasSimpleResult`;
 const SOSA_RESULT_TIME = `${SOSA_NS}resultTime`;
 const HOME_ASSISTANT_SECRET_NAME = "homeassistant";
+const HOME_ASSISTANT_LEGACY_ID = "homeassistant";
 const CUSTOM_SECRET_PREFIX = "custom-connection";
 const DEMO_ENCRYPTION_ALGORITHM = "demo-xor-v1";
 const DEFAULT_HOME_ASSISTANT_DATA_MODEL = "sdm-entity-snapshot";
@@ -95,20 +96,58 @@ export const HOME_ASSISTANT_DATA_MODELS = [
 export const getConnectionsContainerUrl = (webId) =>
   webId ? `${getPodRoot(webId)}connections/` : "";
 
-export const getHomeAssistantConnectionDocumentUrl = (webId) =>
-  webId ? `${getConnectionsContainerUrl(webId)}homeassistant.ttl` : "";
+export const getHomeAssistantConnectionDocumentUrl = (
+  webId,
+  id = HOME_ASSISTANT_LEGACY_ID
+) => {
+  if (!webId) return "";
+  const normalizedId = normalizeHomeAssistantConnectionId(id);
+  const filename =
+    normalizedId === HOME_ASSISTANT_LEGACY_ID
+      ? "homeassistant.ttl"
+      : `homeassistant-${normalizedId}.ttl`;
+  return `${getConnectionsContainerUrl(webId)}${filename}`;
+};
 
-export const getHomeAssistantEntitiesDocumentUrl = (webId) =>
-  webId ? `${getConnectionsContainerUrl(webId)}homeassistant-entities.ttl` : "";
+export const getHomeAssistantEntitiesDocumentUrl = (
+  webId,
+  id = HOME_ASSISTANT_LEGACY_ID
+) => {
+  if (!webId) return "";
+  const normalizedId = normalizeHomeAssistantConnectionId(id);
+  const filename =
+    normalizedId === HOME_ASSISTANT_LEGACY_ID
+      ? "homeassistant-entities.ttl"
+      : `homeassistant-entities-${normalizedId}.ttl`;
+  return `${getConnectionsContainerUrl(webId)}${filename}`;
+};
 
-export const getHomeAssistantSolidSyncDocumentUrl = (webId) =>
-  webId ? `${getConnectionsContainerUrl(webId)}homeassistant-solid-sync.json` : "";
+export const getHomeAssistantSolidSyncDocumentUrl = (
+  webId,
+  id = HOME_ASSISTANT_LEGACY_ID
+) => {
+  if (!webId) return "";
+  const normalizedId = normalizeHomeAssistantConnectionId(id);
+  const filename =
+    normalizedId === HOME_ASSISTANT_LEGACY_ID
+      ? "homeassistant-solid-sync.json"
+      : `homeassistant-solid-sync-${normalizedId}.json`;
+  return `${getConnectionsContainerUrl(webId)}${filename}`;
+};
 
 const getCustomConnectionDocumentUrl = (webId, id) =>
   webId && id ? `${getConnectionsContainerUrl(webId)}custom-${id}.ttl` : "";
 
-const getHomeAssistantConnectionThingUrl = (webId) => {
-  const documentUrl = getHomeAssistantConnectionDocumentUrl(webId);
+export const getCustomSyncDocumentUrl = (webId, id) =>
+  webId && id
+    ? `${getConnectionsContainerUrl(webId)}custom-${slugifyConnectionId(id)}-sync.json`
+    : "";
+
+const getHomeAssistantConnectionThingUrl = (
+  webId,
+  id = HOME_ASSISTANT_LEGACY_ID
+) => {
+  const documentUrl = getHomeAssistantConnectionDocumentUrl(webId, id);
   return documentUrl ? `${documentUrl}#it` : "";
 };
 
@@ -250,6 +289,21 @@ const normalizeStorageDocumentUrl = (webId, value) => {
   }
 };
 
+const normalizeCustomStorageDocumentUrl = (webId, value, id) => {
+  const raw = String(value || "").trim();
+  if (!raw) return getCustomSyncDocumentUrl(webId, id);
+
+  try {
+    const parsed = hasProtocol(raw)
+      ? new URL(raw)
+      : new URL(raw.replace(/^\/+/, ""), getPodRoot(webId));
+    parsed.hash = "";
+    return parsed.href;
+  } catch {
+    throw new Error("Enter a valid Pod storage document URL.");
+  }
+};
+
 const getContainerUrlForDocument = (documentUrl) => {
   const parsed = new URL(documentUrl);
   parsed.hash = "";
@@ -314,6 +368,31 @@ const slugifyConnectionId = (value) =>
 
 const createConnectionId = (name) =>
   `${slugifyConnectionId(name)}-${Date.now().toString(36)}`;
+
+const normalizeHomeAssistantConnectionId = (id) =>
+  slugifyConnectionId(id || HOME_ASSISTANT_LEGACY_ID);
+
+const getHomeAssistantSecretName = (id) => {
+  const normalizedId = normalizeHomeAssistantConnectionId(id);
+  return normalizedId === HOME_ASSISTANT_LEGACY_ID
+    ? HOME_ASSISTANT_SECRET_NAME
+    : `${HOME_ASSISTANT_SECRET_NAME}-${normalizedId}`;
+};
+
+const getHomeAssistantConnectionIdFromDocumentUrl = (documentUrl) => {
+  const filename = String(documentUrl || "").split("/").pop() || "";
+  if (filename === "homeassistant.ttl") return HOME_ASSISTANT_LEGACY_ID;
+  const match = filename.match(/^homeassistant-(.+)\.ttl$/);
+  return match ? normalizeHomeAssistantConnectionId(match[1]) : "";
+};
+
+const isHomeAssistantConnectionDocumentUrl = (documentUrl) => {
+  const filename = String(documentUrl || "").split("/").pop() || "";
+  if (filename === "homeassistant.ttl") return true;
+  if (filename === "homeassistant-entities.ttl") return false;
+  if (!/^homeassistant-.+\.ttl$/.test(filename)) return false;
+  return !filename.startsWith("homeassistant-entities-");
+};
 
 const normalizeHttpMethod = (value) => {
   const method = String(value || "GET").trim().toUpperCase();
@@ -414,6 +493,76 @@ const extractSolidSyncEntries = (existing) => {
   throw new Error("Existing Solid Sync resource must be JSON with entries.");
 };
 
+const parseSyncDate = (value) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const newestDate = (dates) => {
+  const validDates = dates.filter(Boolean);
+  if (!validDates.length) return null;
+  return new Date(Math.max(...validDates.map((date) => date.getTime())));
+};
+
+const extractJsonSyncDate = (payload) => {
+  if (!payload || typeof payload !== "object") return null;
+
+  const candidates = [
+    parseSyncDate(payload.updated_at),
+    parseSyncDate(payload.updatedAt),
+    parseSyncDate(payload.captured_at),
+    parseSyncDate(payload.capturedAt),
+  ];
+
+  if (Array.isArray(payload.entries)) {
+    payload.entries.forEach((entry) => {
+      candidates.push(parseSyncDate(entry?.captured_at));
+      candidates.push(parseSyncDate(entry?.capturedAt));
+      candidates.push(parseSyncDate(entry?.updated_at));
+      candidates.push(parseSyncDate(entry?.updatedAt));
+      candidates.push(parseSyncDate(entry?.observed_at));
+      candidates.push(parseSyncDate(entry?.observedAt));
+    });
+  }
+
+  return newestDate(candidates);
+};
+
+export async function loadConnectionLastSync(storageDocumentUrl, fetch) {
+  if (!storageDocumentUrl || !fetch) return null;
+
+  const documentUrl = String(storageDocumentUrl || "").trim();
+  if (!documentUrl) return null;
+
+  if (documentUrl.toLowerCase().endsWith(".json")) {
+    const response = await fetch(documentUrl, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+
+    if (response.status === 404 || response.status === 204) return null;
+    if (!response.ok) {
+      throw new Error(`Sync document could not be loaded (${response.status}).`);
+    }
+
+    const body = await response.text();
+    if (!body.trim()) return null;
+    return extractJsonSyncDate(JSON.parse(body));
+  }
+
+  try {
+    const dataset = await getSolidDataset(documentUrl, { fetch });
+    return newestDate(
+      getThingAll(dataset).map((thing) => getDatetime(thing, DCTERMS_MODIFIED))
+    );
+  } catch (err) {
+    const status = err?.statusCode || err?.response?.status;
+    if (status === 404) return null;
+    throw err;
+  }
+}
+
 const getResourcePathForDocument = (webId, documentUrl) => {
   const podRoot = getPodRoot(webId);
   if (podRoot && documentUrl.startsWith(podRoot)) {
@@ -428,6 +577,7 @@ const getResourcePathForDocument = (webId, documentUrl) => {
 };
 
 export const normalizeHomeAssistantConnection = ({
+  id,
   webId,
   url,
   port,
@@ -458,13 +608,18 @@ export const normalizeHomeAssistantConnection = ({
     throw new Error("Access token is required.");
   }
 
+  const normalizedId = id
+    ? normalizeHomeAssistantConnectionId(id)
+    : createConnectionId("homeassistant");
   const normalizedDataModel = normalizeDataModel(dataModel);
   const defaultStorageDocumentUrl =
     normalizedDataModel === SOLID_SYNC_JSON_DATA_MODEL
-      ? getHomeAssistantSolidSyncDocumentUrl(webId)
-      : "";
+      ? getHomeAssistantSolidSyncDocumentUrl(webId, normalizedId)
+      : getHomeAssistantEntitiesDocumentUrl(webId, normalizedId);
 
   return {
+    id: normalizedId,
+    name: "Home Assistant",
     url: normalizedUrl,
     port: normalizedPort,
     endpoint: buildEndpoint(normalizedUrl, normalizedPort),
@@ -481,6 +636,7 @@ export const normalizeHomeAssistantConnection = ({
 
 export const normalizeCustomConnection = ({
   id,
+  webId,
   name,
   description,
   url,
@@ -489,6 +645,7 @@ export const normalizeCustomConnection = ({
   authSecret = "",
   authHeader = "",
   headersJson = "",
+  storageDocumentUrl = "",
 }) => {
   const normalizedName = String(name || "").trim();
   if (!normalizedName) {
@@ -536,71 +693,125 @@ export const normalizeCustomConnection = ({
     authSecret: normalizedAuthSecret,
     authHeader: normalizedAuthHeader,
     headersJson: normalizedHeadersJson,
+    storageDocumentUrl: normalizeCustomStorageDocumentUrl(
+      webId,
+      storageDocumentUrl,
+      normalizedId
+    ),
   };
 };
 
-export async function loadHomeAssistantConnection(webId, fetch) {
-  const documentUrl = getHomeAssistantConnectionDocumentUrl(webId);
-  const thingUrl = getHomeAssistantConnectionThingUrl(webId);
+const homeAssistantConnectionFromThing = (thing, webId, documentUrl) => {
+  if (!thing) return null;
+  const types = getUrlAll(thing, RDF_TYPE);
+  if (!types.includes(SDM_HOME_ASSISTANT_TYPE)) return null;
+
+  const id =
+    getStringNoLocale(thing, SDM_CONNECTION_ID) ||
+    getHomeAssistantConnectionIdFromDocumentUrl(documentUrl);
+  if (!id) return null;
+
+  const url = getUrl(thing, SDM_CONNECTION_URL) || "";
+  const port = getStringNoLocale(thing, SDM_CONNECTION_PORT) || "";
+  if (!url || !port) return null;
+
+  const dataModel = normalizeDataModel(
+    getStringNoLocale(thing, SDM_CONNECTION_DATA_MODEL)
+  );
+  const storageDocumentUrl =
+    getUrl(thing, SDM_CONNECTION_STORAGE_DOCUMENT) ||
+    (dataModel === SOLID_SYNC_JSON_DATA_MODEL
+      ? getHomeAssistantSolidSyncDocumentUrl(webId, id)
+      : getHomeAssistantEntitiesDocumentUrl(webId, id));
+  const encryptedAccessToken =
+    getStringNoLocale(thing, SDM_CONNECTION_ACCESS_TOKEN) || "";
+  const selectedEntities = getStringNoLocaleAll(thing, SDM_SELECTED_ENTITY) || [];
+
+  return {
+    id,
+    kind: "home-assistant",
+    name: getStringNoLocale(thing, SDM_CONNECTION_NAME) || "Home Assistant",
+    url,
+    port,
+    endpoint: getUrl(thing, SDM_CONNECTION_ENDPOINT) || "",
+    storageDocumentUrl,
+    dataModel,
+    syncIntervalMinutes: normalizeSyncIntervalMinutes(
+      getStringNoLocale(thing, SDM_CONNECTION_SYNC_INTERVAL_MINUTES)
+    ),
+    accessToken: encryptedAccessToken
+      ? decryptCredentialSecret(
+          encryptedAccessToken,
+          webId,
+          getHomeAssistantSecretName(id)
+        )
+      : "",
+    encryptedAccessToken,
+    tokenAlgorithm:
+      getStringNoLocale(thing, SDM_CONNECTION_TOKEN_ALGORITHM) ||
+      DEMO_ENCRYPTION_ALGORITHM,
+    selectedEntities: normalizeSelectedEntities(selectedEntities),
+    documentUrl,
+    createdAt: getDatetime(thing, DCTERMS_CREATED),
+    modifiedAt: getDatetime(thing, DCTERMS_MODIFIED),
+  };
+};
+
+export async function loadHomeAssistantConnection(
+  webId,
+  fetch,
+  id = HOME_ASSISTANT_LEGACY_ID
+) {
+  const normalizedId = normalizeHomeAssistantConnectionId(id);
+  const documentUrl = getHomeAssistantConnectionDocumentUrl(webId, normalizedId);
+  const thingUrl = getHomeAssistantConnectionThingUrl(webId, normalizedId);
   if (!documentUrl || !thingUrl || !fetch) return null;
 
   try {
     const dataset = await getSolidDataset(documentUrl, { fetch });
-    const connectionThing = getThing(dataset, thingUrl);
-    if (!connectionThing) return null;
-
-    const url = getUrl(connectionThing, SDM_CONNECTION_URL) || "";
-    const port = getStringNoLocale(connectionThing, SDM_CONNECTION_PORT) || "";
-    const endpoint = getUrl(connectionThing, SDM_CONNECTION_ENDPOINT) || "";
-    const dataModel = normalizeDataModel(
-      getStringNoLocale(connectionThing, SDM_CONNECTION_DATA_MODEL)
-    );
-    const storageDocumentUrl =
-      getUrl(connectionThing, SDM_CONNECTION_STORAGE_DOCUMENT) ||
-      (dataModel === SOLID_SYNC_JSON_DATA_MODEL
-        ? getHomeAssistantSolidSyncDocumentUrl(webId)
-        : getHomeAssistantEntitiesDocumentUrl(webId));
-    const syncIntervalMinutes = normalizeSyncIntervalMinutes(
-      getStringNoLocale(connectionThing, SDM_CONNECTION_SYNC_INTERVAL_MINUTES)
-    );
-    const encryptedAccessToken =
-      getStringNoLocale(connectionThing, SDM_CONNECTION_ACCESS_TOKEN) || "";
-    const selectedEntities =
-      getStringNoLocaleAll(connectionThing, SDM_SELECTED_ENTITY) || [];
-
-    if (!url || !port) return null;
-
-    return {
-      name:
-        getStringNoLocale(connectionThing, SDM_CONNECTION_NAME) ||
-        "Home Assistant",
-      url,
-      port,
-      endpoint,
-      storageDocumentUrl,
-      dataModel,
-      syncIntervalMinutes,
-      accessToken: encryptedAccessToken
-        ? decryptCredentialSecret(
-            encryptedAccessToken,
-            webId,
-            HOME_ASSISTANT_SECRET_NAME
-          )
-        : "",
-      encryptedAccessToken,
-      tokenAlgorithm:
-        getStringNoLocale(connectionThing, SDM_CONNECTION_TOKEN_ALGORITHM) ||
-        DEMO_ENCRYPTION_ALGORITHM,
-      selectedEntities: normalizeSelectedEntities(selectedEntities),
-      documentUrl,
-      createdAt: getDatetime(connectionThing, DCTERMS_CREATED),
-      modifiedAt: getDatetime(connectionThing, DCTERMS_MODIFIED),
-    };
+    const connectionThing = getThing(dataset, thingUrl) || getThingAll(dataset)[0];
+    return homeAssistantConnectionFromThing(connectionThing, webId, documentUrl);
   } catch (err) {
     const status = err?.statusCode || err?.response?.status;
     if (status === 404) return null;
     throw err;
   }
+}
+
+export async function loadHomeAssistantConnections(webId, fetch) {
+  const containerUrl = getConnectionsContainerUrl(webId);
+  if (!containerUrl || !fetch) return [];
+
+  let containerDataset;
+  try {
+    containerDataset = await getSolidDataset(containerUrl, { fetch });
+  } catch (err) {
+    const status = err?.statusCode || err?.response?.status;
+    if (status === 404) return [];
+    throw err;
+  }
+
+  const resourceUrls = getContainedResourceUrlAll(containerDataset).filter(
+    (url) => !url.endsWith("/") && isHomeAssistantConnectionDocumentUrl(url)
+  );
+  const connections = [];
+
+  for (const resourceUrl of resourceUrls) {
+    try {
+      const dataset = await getSolidDataset(resourceUrl, { fetch });
+      const thing = getThing(dataset, `${resourceUrl}#it`) || getThingAll(dataset)[0];
+      const connection = homeAssistantConnectionFromThing(thing, webId, resourceUrl);
+      if (connection) connections.push(connection);
+    } catch {
+      // Ignore malformed Home Assistant connection documents.
+    }
+  }
+
+  return connections.sort((a, b) => {
+    const left = a.modifiedAt?.getTime?.() || a.createdAt?.getTime?.() || 0;
+    const right = b.modifiedAt?.getTime?.() || b.createdAt?.getTime?.() || 0;
+    return right - left || a.id.localeCompare(b.id);
+  });
 }
 
 export async function saveHomeAssistantConnection(webId, fetch, values) {
@@ -609,8 +820,8 @@ export async function saveHomeAssistantConnection(webId, fetch, values) {
   const normalized = normalizeHomeAssistantConnection({ ...values, webId });
   await ensureConnectionsContainer(webId, fetch);
 
-  const documentUrl = getHomeAssistantConnectionDocumentUrl(webId);
-  const thingUrl = getHomeAssistantConnectionThingUrl(webId);
+  const documentUrl = getHomeAssistantConnectionDocumentUrl(webId, normalized.id);
+  const thingUrl = getHomeAssistantConnectionThingUrl(webId, normalized.id);
   let dataset;
 
   try {
@@ -626,6 +837,7 @@ export async function saveHomeAssistantConnection(webId, fetch, values) {
 
   let connectionThing = getThing(dataset, thingUrl) || createThing({ url: thingUrl });
   connectionThing = removeAll(connectionThing, RDF_TYPE);
+  connectionThing = removeAll(connectionThing, SDM_CONNECTION_ID);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_NAME);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_URL);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_PORT);
@@ -642,8 +854,13 @@ export async function saveHomeAssistantConnection(webId, fetch, values) {
   connectionThing = addUrl(connectionThing, RDF_TYPE, SDM_HOME_ASSISTANT_TYPE);
   connectionThing = setStringNoLocale(
     connectionThing,
+    SDM_CONNECTION_ID,
+    normalized.id
+  );
+  connectionThing = setStringNoLocale(
+    connectionThing,
     SDM_CONNECTION_NAME,
-    "Home Assistant"
+    normalized.name
   );
   connectionThing = setUrl(connectionThing, SDM_CONNECTION_URL, normalized.url);
   connectionThing = setStringNoLocale(
@@ -677,7 +894,7 @@ export async function saveHomeAssistantConnection(webId, fetch, values) {
     encryptCredentialSecret(
       normalized.accessToken,
       webId,
-      HOME_ASSISTANT_SECRET_NAME
+      getHomeAssistantSecretName(normalized.id)
     )
   );
   connectionThing = setStringNoLocale(
@@ -701,17 +918,26 @@ export async function saveHomeAssistantConnection(webId, fetch, values) {
   dataset = setThing(dataset, connectionThing);
   await saveSolidDatasetAt(documentUrl, dataset, { fetch });
 
-  return loadHomeAssistantConnection(webId, fetch);
+  return loadHomeAssistantConnection(webId, fetch, normalized.id);
 }
 
-export async function deleteHomeAssistantConnection(webId, fetch) {
+export async function deleteHomeAssistantConnection(
+  webId,
+  fetch,
+  id = HOME_ASSISTANT_LEGACY_ID
+) {
   if (!webId || !fetch) return;
 
-  const existingConnection = await loadHomeAssistantConnection(webId, fetch);
+  const normalizedId = normalizeHomeAssistantConnectionId(id);
+  const existingConnection = await loadHomeAssistantConnection(
+    webId,
+    fetch,
+    normalizedId
+  );
   const documentUrls = [
-    getHomeAssistantConnectionDocumentUrl(webId),
-    getHomeAssistantEntitiesDocumentUrl(webId),
-    getHomeAssistantSolidSyncDocumentUrl(webId),
+    getHomeAssistantConnectionDocumentUrl(webId, normalizedId),
+    getHomeAssistantEntitiesDocumentUrl(webId, normalizedId),
+    getHomeAssistantSolidSyncDocumentUrl(webId, normalizedId),
     existingConnection?.storageDocumentUrl,
   ].filter(Boolean);
 
@@ -751,6 +977,9 @@ const customConnectionFromThing = (thing, webId, documentUrl) => {
     description: getStringNoLocale(thing, SDM_CONNECTION_DESCRIPTION) || "",
     url: getUrl(thing, SDM_CONNECTION_URL) || "",
     endpoint: getUrl(thing, SDM_CONNECTION_ENDPOINT) || "",
+    storageDocumentUrl:
+      getUrl(thing, SDM_CONNECTION_STORAGE_DOCUMENT) ||
+      normalizeCustomStorageDocumentUrl(webId, "", id),
     method: normalizeHttpMethod(
       getStringNoLocale(thing, SDM_CONNECTION_METHOD) || "GET"
     ),
@@ -824,7 +1053,7 @@ export async function loadCustomConnections(webId, fetch) {
 export async function saveCustomConnection(webId, fetch, values) {
   if (!webId || !fetch) return null;
 
-  const normalized = normalizeCustomConnection(values);
+  const normalized = normalizeCustomConnection({ ...values, webId });
   await ensureConnectionsContainer(webId, fetch);
 
   const documentUrl = getCustomConnectionDocumentUrl(webId, normalized.id);
@@ -849,6 +1078,7 @@ export async function saveCustomConnection(webId, fetch, values) {
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_DESCRIPTION);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_URL);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_ENDPOINT);
+  connectionThing = removeAll(connectionThing, SDM_CONNECTION_STORAGE_DOCUMENT);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_METHOD);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_AUTH_TYPE);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_AUTH_SECRET);
@@ -881,6 +1111,11 @@ export async function saveCustomConnection(webId, fetch, values) {
     connectionThing,
     SDM_CONNECTION_ENDPOINT,
     normalized.endpoint
+  );
+  connectionThing = setUrl(
+    connectionThing,
+    SDM_CONNECTION_STORAGE_DOCUMENT,
+    normalized.storageDocumentUrl
   );
   connectionThing = setStringNoLocale(
     connectionThing,
@@ -938,13 +1173,21 @@ export async function deleteCustomConnection(webId, fetch, id) {
   const normalizedId = slugifyConnectionId(id);
   const documentUrl = getCustomConnectionDocumentUrl(webId, normalizedId);
   if (!documentUrl || !fetch) return;
+  const existingConnection = await loadCustomConnection(webId, fetch, normalizedId);
+  const documentUrls = [
+    documentUrl,
+    getCustomSyncDocumentUrl(webId, normalizedId),
+    existingConnection?.storageDocumentUrl,
+  ].filter(Boolean);
 
-  try {
-    await deleteFile(documentUrl, { fetch });
-  } catch (err) {
-    const status = err?.statusCode || err?.response?.status;
-    if (status !== 404) {
-      throw err;
+  for (const targetUrl of Array.from(new Set(documentUrls))) {
+    try {
+      await deleteFile(targetUrl, { fetch });
+    } catch (err) {
+      const status = err?.statusCode || err?.response?.status;
+      if (status !== 404) {
+        throw err;
+      }
     }
   }
 }

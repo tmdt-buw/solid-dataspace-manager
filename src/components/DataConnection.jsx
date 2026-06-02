@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+  faCheck,
   faLink,
   faPlus,
   faServer,
@@ -20,12 +21,15 @@ import {
   getHomeAssistantSolidSyncDocumentUrl,
   HOME_ASSISTANT_DATA_MODELS,
   isSolidSyncJsonDataModel,
+  loadConnectionLastSync,
   loadCustomConnections,
-  loadHomeAssistantConnection,
+  loadHomeAssistantConnections,
   saveCustomConnection,
   saveHomeAssistantConnection,
-  saveHomeAssistantEntitySnapshots,
 } from "../solidConnections";
+import { getSyncWorkerConfig } from "../config/runtimeConfig";
+import { loadCredentialToken } from "../solidCredentialToken";
+import { registerSyncWorkerParticipant } from "../syncWorkerRegistration";
 import "./DataConnection.css";
 
 const HOME_ASSISTANT_LOGO =
@@ -36,6 +40,7 @@ const emptyCustomConnection = () => ({
   name: "",
   description: "",
   url: "",
+  storageDocumentUrl: "",
   method: "GET",
   authType: "none",
   authSecret: "",
@@ -43,21 +48,73 @@ const emptyCustomConnection = () => ({
   headersJson: "",
 });
 
-const formatSyncInterval = (value) => {
-  const minutes = Number(value || 0);
-  if (!Number.isInteger(minutes) || minutes <= 0) return "Manual sync";
-  return `Every ${minutes} min`;
+const WORKER_SYNC_INTERVAL_MINUTES = "5";
+const SYNC_WORKER_HEALTH = {
+  CHECKING: "checking",
+  ONLINE: "online",
+  OFFLINE: "offline",
 };
 
-const formatSyncTimestamp = (value) => {
-  if (!value) return "";
+const formatBackgroundSync = (syncWorkerConfig) =>
+  syncWorkerConfig.enabled
+    ? `Worker sync every ${syncWorkerConfig.intervalMinutes || 5} min`
+    : "Background worker not configured";
+
+const connectionSyncKey = (type, id) => `${type}:${id || ""}`;
+
+const formatLastUpdate = (value) => {
+  if (!value) return "Last update: never";
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  if (Number.isNaN(date.getTime())) return "Last update: never";
+  return `Last update: ${date.toLocaleString([], {
+    dateStyle: "short",
+    timeStyle: "short",
+  })}`;
 };
+
+const normalizeWorkerApiUrl = (apiUrl) =>
+  String(apiUrl || "")
+    .trim()
+    .replace(/\/+$/, "");
+
+async function loadSyncWorkerHealth(syncWorkerConfig, signal) {
+  if (!syncWorkerConfig.enabled) return SYNC_WORKER_HEALTH.OFFLINE;
+
+  const apiUrl = normalizeWorkerApiUrl(syncWorkerConfig.apiUrl);
+  if (!apiUrl) return SYNC_WORKER_HEALTH.OFFLINE;
+
+  const response = await window.fetch(`${apiUrl}/health`, {
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  return response.ok && payload?.ok
+    ? SYNC_WORKER_HEALTH.ONLINE
+    : SYNC_WORKER_HEALTH.OFFLINE;
+}
+
+async function registerExistingConnectionsForWorker(webId, connections) {
+  if (!webId || !connections.length) return;
+  const credentialToken = await loadCredentialToken(webId, session.fetch);
+
+  const storageDocumentUrls = Array.from(
+    new Set(
+      connections
+        .map((connection) => connection?.storageDocumentUrl)
+        .filter(Boolean)
+    )
+  );
+
+  for (const storageDocumentUrl of storageDocumentUrls) {
+    await registerSyncWorkerParticipant({
+      webId,
+      credentialToken,
+      storageDocumentUrl,
+      solidFetch: session.fetch,
+    });
+  }
+}
 
 function ModalFrame({ title, icon, children, onClose, saving, compact = false }) {
   return (
@@ -146,7 +203,6 @@ function HomeAssistantModal({
   accessToken,
   storageDocumentUrl,
   dataModel,
-  syncIntervalMinutes,
   entities,
   selectedEntities,
   entitySearch,
@@ -156,12 +212,12 @@ function HomeAssistantModal({
   loadingEntities,
   error,
   testResult,
+  syncWorkerHealth,
   onUrlChange,
   onPortChange,
   onAccessTokenChange,
   onStorageDocumentUrlChange,
   onDataModelChange,
-  onSyncIntervalMinutesChange,
   onEntitySearchChange,
   onDomainFilterChange,
   onToggleEntity,
@@ -180,6 +236,12 @@ function HomeAssistantModal({
     () => new Set(selectedEntities),
     [selectedEntities]
   );
+  const syncWorkerOnline = syncWorkerHealth === SYNC_WORKER_HEALTH.ONLINE;
+  const syncWorkerLabel = syncWorkerOnline
+    ? "Background sync worker is reachable"
+    : syncWorkerHealth === SYNC_WORKER_HEALTH.CHECKING
+      ? "Checking background sync worker"
+      : "Background sync worker is not reachable";
   const filteredEntities = useMemo(() => {
     const query = entitySearch.trim().toLowerCase();
     return entities.filter((entity) => {
@@ -284,22 +346,14 @@ function HomeAssistantModal({
               ))}
             </select>
           </label>
-
-          <label>
-            <span>Sync interval (min)</span>
-            <input
-              type="number"
-              min="0"
-              max="1440"
-              step="1"
-              value={syncIntervalMinutes}
-              onChange={(event) =>
-                onSyncIntervalMinutesChange(event.target.value)
-              }
-              placeholder="0"
-              disabled={saving}
-            />
-          </label>
+          <div
+            className={`data-connection-form__managedSync data-connection-form__managedSync--${syncWorkerOnline ? "online" : "offline"}`}
+          >
+            <span>Background sync</span>
+            <strong title={syncWorkerLabel} aria-label={syncWorkerLabel}>
+              <FontAwesomeIcon icon={syncWorkerOnline ? faCheck : faXmark} />
+            </strong>
+          </div>
         </div>
 
         <div className="data-connection-form__test">
@@ -449,6 +503,7 @@ function CustomConnectionModal({
   values,
   saving,
   error,
+  syncWorkerHealth,
   onChange,
   onClose,
   onSubmit,
@@ -469,6 +524,12 @@ function CustomConnectionModal({
   if (!open) return null;
 
   const update = (key, value) => onChange({ ...values, [key]: value });
+  const syncWorkerOnline = syncWorkerHealth === SYNC_WORKER_HEALTH.ONLINE;
+  const syncWorkerLabel = syncWorkerOnline
+    ? "Background sync worker is reachable"
+    : syncWorkerHealth === SYNC_WORKER_HEALTH.CHECKING
+      ? "Checking background sync worker"
+      : "Background sync worker is not reachable";
 
   return (
     <ModalFrame
@@ -518,6 +579,29 @@ function CustomConnectionModal({
             disabled={saving}
           />
         </label>
+
+        <div className="data-connection-form__split data-connection-form__split--wide">
+          <label>
+            <span>Pod storage document</span>
+            <input
+              type="text"
+              value={values.storageDocumentUrl}
+              onChange={(event) =>
+                update("storageDocumentUrl", event.target.value)
+              }
+              placeholder="connections/custom-api-sync.json"
+              disabled={saving}
+            />
+          </label>
+          <div
+            className={`data-connection-form__managedSync data-connection-form__managedSync--${syncWorkerOnline ? "online" : "offline"}`}
+          >
+            <span>Background sync</span>
+            <strong title={syncWorkerLabel} aria-label={syncWorkerLabel}>
+              <FontAwesomeIcon icon={syncWorkerOnline ? faCheck : faXmark} />
+            </strong>
+          </div>
+        </div>
 
         <label>
           <span>Description</span>
@@ -610,19 +694,75 @@ function CustomConnectionModal({
   );
 }
 
+function DeleteConnectionModal({ target, saving, onCancel, onConfirm }) {
+  if (!target) return null;
+
+  const connection = target.connection || {};
+  const isHomeAssistant = target.type === "home-assistant";
+  const label = isHomeAssistant
+    ? "Home Assistant"
+    : connection.name || connection.id || "Custom API";
+  const detail = isHomeAssistant
+    ? connection.endpoint || connection.storageDocumentUrl || connection.id
+    : connection.url || connection.endpoint || connection.id;
+
+  return (
+    <ModalFrame
+      title="Delete Data Connection"
+      icon={faTrash}
+      onClose={onCancel}
+      saving={saving}
+      compact
+    >
+      <div className="data-connection-confirm">
+        <div className="data-connection-confirm__icon">
+          <FontAwesomeIcon icon={faTrash} />
+        </div>
+        <div className="data-connection-confirm__copy">
+          <strong>{label}</strong>
+          {detail ? <span>{detail}</span> : null}
+          <p>
+            This connection and its stored configuration will be permanently
+            removed from your Pod.
+          </p>
+        </div>
+        <div className="data-connection-confirm__actions">
+          <button
+            type="button"
+            className="data-connection-btn data-connection-btn--secondary"
+            onClick={onCancel}
+            disabled={saving}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="data-connection-btn data-connection-btn--danger"
+            onClick={onConfirm}
+            disabled={saving}
+          >
+            {saving ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </ModalFrame>
+  );
+}
+
 function DataConnection({ webId }) {
-  const syncInFlightRef = useRef(false);
+  const syncWorkerConfig = getSyncWorkerConfig();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [homeAssistantOpen, setHomeAssistantOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const [url, setUrl] = useState("");
   const [port, setPort] = useState("443");
   const [accessToken, setAccessToken] = useState("");
   const [storageDocumentUrl, setStorageDocumentUrl] = useState("");
   const [dataModel, setDataModel] = useState("sdm-entity-snapshot");
-  const [syncIntervalMinutes, setSyncIntervalMinutes] = useState("0");
-  const [homeAssistantConnection, setHomeAssistantConnection] = useState(null);
+  const [homeAssistantConnections, setHomeAssistantConnections] = useState([]);
+  const [activeHomeAssistantId, setActiveHomeAssistantId] = useState("");
   const [entities, setEntities] = useState([]);
   const [selectedEntities, setSelectedEntities] = useState([]);
   const [entitySearch, setEntitySearch] = useState("");
@@ -635,7 +775,13 @@ function DataConnection({ webId }) {
   const [loadingEntities, setLoadingEntities] = useState(false);
   const [error, setError] = useState("");
   const [testResult, setTestResult] = useState("");
-  const [syncStatus, setSyncStatus] = useState("");
+  const [syncStatuses, setSyncStatuses] = useState({});
+  const [lastSyncByConnection, setLastSyncByConnection] = useState({});
+  const [syncWorkerHealth, setSyncWorkerHealth] = useState(
+    syncWorkerConfig.enabled
+      ? SYNC_WORKER_HEALTH.CHECKING
+      : SYNC_WORKER_HEALTH.OFFLINE
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -645,27 +791,35 @@ function DataConnection({ webId }) {
 
       setError("");
       try {
-        const [loadedHomeAssistant, loadedCustom] = await Promise.all([
-          loadHomeAssistantConnection(webId, session.fetch),
+        const [loadedHomeAssistantConnections, loadedCustom] = await Promise.all([
+          loadHomeAssistantConnections(webId, session.fetch),
           loadCustomConnections(webId, session.fetch),
         ]);
         if (!cancelled) {
-          setHomeAssistantConnection(loadedHomeAssistant);
-          setUrl(loadedHomeAssistant?.url || "");
-          setPort(loadedHomeAssistant?.port || "443");
-          setAccessToken(loadedHomeAssistant?.accessToken || "");
-          setStorageDocumentUrl(
-            loadedHomeAssistant?.storageDocumentUrl ||
-              getHomeAssistantEntitiesDocumentUrl(webId)
-          );
-          setDataModel(loadedHomeAssistant?.dataModel || "sdm-entity-snapshot");
-          setSyncIntervalMinutes(
-            loadedHomeAssistant?.syncIntervalMinutes || "0"
-          );
-          setSelectedEntities(loadedHomeAssistant?.selectedEntities || []);
-          setSyncStatus("");
+          setHomeAssistantConnections(loadedHomeAssistantConnections);
+          setActiveHomeAssistantId("");
+          setUrl("");
+          setPort("443");
+          setAccessToken("");
+          setStorageDocumentUrl("");
+          setDataModel("sdm-entity-snapshot");
+          setSelectedEntities([]);
+          setSyncStatuses({});
           setCustomConnections(loadedCustom);
           setEntities([]);
+        }
+        try {
+          await registerExistingConnectionsForWorker(webId, [
+            ...loadedHomeAssistantConnections,
+            ...loadedCustom,
+          ]);
+        } catch (registrationError) {
+          if (!cancelled) {
+            setError(
+              registrationError?.message ||
+                "Sync worker access could not be refreshed."
+            );
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -681,83 +835,118 @@ function DataConnection({ webId }) {
     };
   }, [webId]);
 
-  const runHomeAssistantSync = useCallback(
-    async (connection, { silent = false } = {}) => {
-      if (!webId || !connection || !connection.selectedEntities?.length) {
-        return null;
-      }
-      if (syncInFlightRef.current) return null;
-
-      syncInFlightRef.current = true;
-      try {
-        const loadedEntities = await loadHomeAssistantEntities(connection);
-        const selectedSet = new Set(connection.selectedEntities);
-        const selectedSnapshots = loadedEntities.filter((entity) =>
-          selectedSet.has(entity.entityId)
-        );
-        if (selectedSnapshots.length === 0) {
-          throw new Error("No selected Home Assistant entities were found.");
-        }
-        const result = await saveHomeAssistantEntitySnapshots(
-          webId,
-          session.fetch,
-          selectedSnapshots,
-          {
-            storageDocumentUrl: connection.storageDocumentUrl,
-            dataModel: connection.dataModel,
-          }
-        );
-        const syncTime = formatSyncTimestamp(result?.observedAt);
-        if (syncTime) {
-          setSyncStatus(`Last sync ${syncTime}`);
-        }
-        return result;
-      } catch (err) {
-        const message = err?.message || "Home Assistant sync failed.";
-        setSyncStatus(`Sync failed: ${message}`);
-        if (!silent) {
-          setError(message);
-        }
-        return null;
-      } finally {
-        syncInFlightRef.current = false;
-      }
-    },
-    [webId]
-  );
-
   useEffect(() => {
-    if (!homeAssistantConnection) return undefined;
+    let cancelled = false;
+    const controller = new AbortController();
 
-    const intervalMinutes = Number(
-      homeAssistantConnection.syncIntervalMinutes || 0
-    );
-    if (
-      !Number.isInteger(intervalMinutes) ||
-      intervalMinutes <= 0 ||
-      !homeAssistantConnection.selectedEntities?.length
-    ) {
+    if (!syncWorkerConfig.enabled || !syncWorkerConfig.apiUrl) {
+      setSyncWorkerHealth(SYNC_WORKER_HEALTH.OFFLINE);
       return undefined;
     }
 
-    const timer = window.setInterval(() => {
-      runHomeAssistantSync(homeAssistantConnection, { silent: true });
-    }, intervalMinutes * 60 * 1000);
+    setSyncWorkerHealth(SYNC_WORKER_HEALTH.CHECKING);
+    loadSyncWorkerHealth(syncWorkerConfig, controller.signal)
+      .then((status) => {
+        if (!cancelled) {
+          setSyncWorkerHealth(status);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled && err?.name !== "AbortError") {
+          setSyncWorkerHealth(SYNC_WORKER_HEALTH.OFFLINE);
+        }
+      });
 
-    return () => window.clearInterval(timer);
-  }, [homeAssistantConnection, runHomeAssistantSync]);
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [syncWorkerConfig]);
 
-  const openHomeAssistant = () => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const connections = [
+      ...homeAssistantConnections.map((connection) => ({
+        type: "home-assistant",
+        connection,
+      })),
+      ...customConnections.map((connection) => ({
+        type: "custom",
+        connection,
+      })),
+    ];
+
+    const loadLastSyncs = async () => {
+      if (!webId || connections.length === 0) {
+        if (!cancelled) setLastSyncByConnection({});
+        return;
+      }
+
+      const entries = await Promise.all(
+        connections.map(async ({ type, connection }) => {
+          const key = connectionSyncKey(type, connection.id);
+          try {
+            const lastSyncAt = await loadConnectionLastSync(
+              connection.storageDocumentUrl,
+              session.fetch
+            );
+            return [key, lastSyncAt ? lastSyncAt.toISOString() : ""];
+          } catch {
+            return [key, ""];
+          }
+        })
+      );
+
+      if (!cancelled) {
+        setLastSyncByConnection(Object.fromEntries(entries));
+      }
+    };
+
+    loadLastSyncs();
+    const timer = window.setInterval(loadLastSyncs, 60000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [webId, homeAssistantConnections, customConnections]);
+
+  const resetHomeAssistantForm = () => {
+    setActiveHomeAssistantId("");
+    setUrl("");
+    setPort("443");
+    setAccessToken("");
+    setStorageDocumentUrl("");
+    setDataModel("sdm-entity-snapshot");
+    setEntities([]);
+    setSelectedEntities([]);
+    setEntitySearch("");
+    setDomainFilter("all");
+  };
+
+  const openNewHomeAssistant = () => {
     setAddModalOpen(false);
     setError("");
     setTestResult("");
-    if (!storageDocumentUrl && webId) {
-      setStorageDocumentUrl(
-        isSolidSyncJsonDataModel(dataModel)
-          ? getHomeAssistantSolidSyncDocumentUrl(webId)
-          : getHomeAssistantEntitiesDocumentUrl(webId)
-      );
-    }
+    resetHomeAssistantForm();
+    setHomeAssistantOpen(true);
+  };
+
+  const openExistingHomeAssistant = (connection) => {
+    setAddModalOpen(false);
+    setError("");
+    setTestResult("");
+    setActiveHomeAssistantId(connection.id || "");
+    setUrl(connection.url || "");
+    setPort(connection.port || "443");
+    setAccessToken(connection.accessToken || "");
+    setStorageDocumentUrl(connection.storageDocumentUrl || "");
+    setDataModel(connection.dataModel || "sdm-entity-snapshot");
+    setSelectedEntities(connection.selectedEntities || []);
+    setEntities([]);
+    setEntitySearch("");
+    setDomainFilter("all");
     setHomeAssistantOpen(true);
   };
 
@@ -775,6 +964,7 @@ function DataConnection({ webId }) {
       name: connection.name || "",
       description: connection.description || "",
       url: connection.url || "",
+      storageDocumentUrl: connection.storageDocumentUrl || "",
       method: connection.method || "GET",
       authType: connection.authType || "none",
       authSecret: connection.authSecret || "",
@@ -799,10 +989,16 @@ function DataConnection({ webId }) {
 
   const handleDataModelChange = (nextDataModel) => {
     setDataModel(nextDataModel);
-    if (!webId) return;
+    if (!webId || !activeHomeAssistantId) return;
 
-    const ttlDocumentUrl = getHomeAssistantEntitiesDocumentUrl(webId);
-    const solidSyncDocumentUrl = getHomeAssistantSolidSyncDocumentUrl(webId);
+    const ttlDocumentUrl = getHomeAssistantEntitiesDocumentUrl(
+      webId,
+      activeHomeAssistantId
+    );
+    const solidSyncDocumentUrl = getHomeAssistantSolidSyncDocumentUrl(
+      webId,
+      activeHomeAssistantId
+    );
 
     if (
       isSolidSyncJsonDataModel(nextDataModel) &&
@@ -887,51 +1083,52 @@ function DataConnection({ webId }) {
     try {
       setSaving(true);
       const connection = await saveHomeAssistantConnection(webId, session.fetch, {
+        id: activeHomeAssistantId,
         url,
         port,
         accessToken,
         storageDocumentUrl,
         dataModel,
-        syncIntervalMinutes,
+        syncIntervalMinutes: WORKER_SYNC_INTERVAL_MINUTES,
         selectedEntities,
       });
-      const selectedSet = new Set(selectedEntities);
-      const selectedSnapshots = entities.filter((entity) =>
-        selectedSet.has(entity.entityId)
-      );
-      let snapshotResult = null;
+      const credentialToken = await loadCredentialToken(webId, session.fetch);
+      const registration = await registerSyncWorkerParticipant({
+        webId,
+        credentialToken,
+        storageDocumentUrl: connection?.storageDocumentUrl || storageDocumentUrl,
+        solidFetch: session.fetch,
+      });
       if (
         entities.length > 0 &&
         selectedEntities.length > 0 &&
-        selectedSnapshots.length === 0
+        !entities.some((entity) => selectedEntities.includes(entity.entityId))
       ) {
         throw new Error("No selected Home Assistant entities were found.");
       }
-      if (entities.length > 0 || selectedEntities.length === 0) {
-        snapshotResult = await saveHomeAssistantEntitySnapshots(
-          webId,
-          session.fetch,
-          selectedSnapshots,
-          {
-            storageDocumentUrl,
-            dataModel,
-          }
-        );
-      }
-      const syncTime = formatSyncTimestamp(snapshotResult?.observedAt);
-      if (syncTime && selectedSnapshots.length > 0) {
-        setSyncStatus(`Last sync ${syncTime}`);
-      }
-      setHomeAssistantConnection(connection);
+      setHomeAssistantConnections((current) => {
+        const withoutOld = current.filter((item) => item.id !== connection.id);
+        return [connection, ...withoutOld].sort((a, b) => {
+          const left = a.modifiedAt?.getTime?.() || a.createdAt?.getTime?.() || 0;
+          const right = b.modifiedAt?.getTime?.() || b.createdAt?.getTime?.() || 0;
+          return right - left || a.id.localeCompare(b.id);
+        });
+      });
+      setActiveHomeAssistantId(connection.id);
       setUrl(connection?.url || url);
       setPort(connection?.port || port);
       setAccessToken(connection?.accessToken || accessToken);
       setStorageDocumentUrl(connection?.storageDocumentUrl || storageDocumentUrl);
       setDataModel(connection?.dataModel || dataModel);
-      setSyncIntervalMinutes(
-        connection?.syncIntervalMinutes || syncIntervalMinutes
-      );
       setSelectedEntities(connection?.selectedEntities || selectedEntities);
+      if (registration.registered) {
+        setSyncStatuses((current) => ({
+          ...current,
+          [connection.id]: `Worker registered every ${
+            registration.payload?.syncIntervalMinutes || 5
+          } min`,
+        }));
+      }
       setHomeAssistantOpen(false);
     } catch (err) {
       setError(err?.message || "Connection could not be saved.");
@@ -947,10 +1144,26 @@ function DataConnection({ webId }) {
     try {
       setSaving(true);
       const saved = await saveCustomConnection(webId, session.fetch, customValues);
+      const credentialToken = await loadCredentialToken(webId, session.fetch);
+      const registration = await registerSyncWorkerParticipant({
+        webId,
+        credentialToken,
+        storageDocumentUrl:
+          saved?.storageDocumentUrl || customValues.storageDocumentUrl,
+        solidFetch: session.fetch,
+      });
       setCustomConnections((current) => {
         const withoutOld = current.filter((item) => item.id !== saved.id);
         return [...withoutOld, saved].sort((a, b) => a.name.localeCompare(b.name));
       });
+      if (registration.registered) {
+        setSyncStatuses((current) => ({
+          ...current,
+          [saved.id]: `Worker registered every ${
+            registration.payload?.syncIntervalMinutes || 5
+          } min`,
+        }));
+      }
       setCustomOpen(false);
     } catch (err) {
       setError(err?.message || "Custom connection could not be saved.");
@@ -959,60 +1172,80 @@ function DataConnection({ webId }) {
     }
   };
 
-  const handleDeleteHomeAssistant = async () => {
-    const confirmed = window.confirm(
-      "Delete the Home Assistant connection and its stored entity snapshot?"
-    );
-    if (!confirmed) return;
-
-    setError("");
-    try {
-      setSaving(true);
-      await deleteHomeAssistantConnection(webId, session.fetch);
-      setHomeAssistantConnection(null);
-      setUrl("");
-      setPort("443");
-      setAccessToken("");
-      setStorageDocumentUrl(getHomeAssistantEntitiesDocumentUrl(webId));
-      setDataModel("sdm-entity-snapshot");
-      setSyncIntervalMinutes("0");
-      setEntities([]);
-      setSelectedEntities([]);
-      setSyncStatus("");
-      setHomeAssistantOpen(false);
-    } catch (err) {
-      setError(err?.message || "Home Assistant connection could not be deleted.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDeleteCustom = async (targetConnection = customValues) => {
+  const handleDeleteHomeAssistant = (targetConnection) => {
     if (!targetConnection?.id) return;
-    const confirmed = window.confirm(
-      `Delete the custom connection "${targetConnection.name || targetConnection.id}"?`
-    );
-    if (!confirmed) return;
+    setError("");
+    setDeleteTarget({
+      type: "home-assistant",
+      connection: targetConnection,
+    });
+  };
+
+  const handleDeleteCustom = (targetConnection = customValues) => {
+    if (!targetConnection?.id) return;
+    setError("");
+    setDeleteTarget({
+      type: "custom",
+      connection: targetConnection,
+    });
+  };
+
+  const closeDeleteModal = () => {
+    if (saving) return;
+    setDeleteTarget(null);
+  };
+
+  const confirmDeleteConnection = async () => {
+    const targetConnection = deleteTarget?.connection;
+    if (!targetConnection?.id) return;
 
     setError("");
     try {
       setSaving(true);
-      await deleteCustomConnection(webId, session.fetch, targetConnection.id);
-      setCustomConnections((current) =>
-        current.filter((connection) => connection.id !== targetConnection.id)
-      );
-      if (customValues.id === targetConnection.id) {
-        setCustomOpen(false);
-        setCustomValues(emptyCustomConnection());
+
+      if (deleteTarget.type === "home-assistant") {
+        await deleteHomeAssistantConnection(
+          webId,
+          session.fetch,
+          targetConnection.id
+        );
+        setHomeAssistantConnections((current) =>
+          current.filter((connection) => connection.id !== targetConnection.id)
+        );
+        setSyncStatuses((current) => {
+          const next = { ...current };
+          delete next[targetConnection.id];
+          return next;
+        });
+        if (activeHomeAssistantId === targetConnection.id) {
+          resetHomeAssistantForm();
+        }
+        setHomeAssistantOpen(false);
+      } else {
+        await deleteCustomConnection(webId, session.fetch, targetConnection.id);
+        setCustomConnections((current) =>
+          current.filter((connection) => connection.id !== targetConnection.id)
+        );
+        setSyncStatuses((current) => {
+          const next = { ...current };
+          delete next[targetConnection.id];
+          return next;
+        });
+        if (customValues.id === targetConnection.id) {
+          setCustomOpen(false);
+          setCustomValues(emptyCustomConnection());
+        }
       }
+
+      setDeleteTarget(null);
     } catch (err) {
-      setError(err?.message || "Custom connection could not be deleted.");
+      setError(err?.message || "Connection could not be deleted.");
     } finally {
       setSaving(false);
     }
   };
 
-  const hasConnections = Boolean(homeAssistantConnection) || customConnections.length > 0;
+  const hasConnections = homeAssistantConnections.length > 0 || customConnections.length > 0;
 
   return (
     <div className="data-connection">
@@ -1025,32 +1258,37 @@ function DataConnection({ webId }) {
 
       <div className="data-connection__shell">
         <div className="data-connection__grid">
-          {homeAssistantConnection ? (
-            <div className="data-connection-cardShell">
+          {homeAssistantConnections.map((connection) => (
+            <div className="data-connection-cardShell" key={connection.id}>
               <button
                 type="button"
                 className="data-connection-card data-connection-card--withAction"
-                onClick={openHomeAssistant}
-                title="Home Assistant"
+                onClick={() => openExistingHomeAssistant(connection)}
+                title={connection.endpoint || "Home Assistant"}
               >
                 <span className="data-connection-card__icon">
                   <img src={HOME_ASSISTANT_LOGO} alt="Home Assistant logo" />
                 </span>
                 <span className="data-connection-card__copy">
                   <strong>Home Assistant</strong>
-                  <span>{selectedEntities.length} selected entities</span>
+                  <span>{connection.selectedEntities.length} selected entities</span>
                   <span>
-                    {syncStatus ||
-                      formatSyncInterval(
-                        homeAssistantConnection.syncIntervalMinutes
-                      )}
+                    {syncStatuses[connection.id] ||
+                      formatBackgroundSync(syncWorkerConfig)}
+                  </span>
+                  <span className="data-connection-card__lastUpdate">
+                    {formatLastUpdate(
+                      lastSyncByConnection[
+                        connectionSyncKey("home-assistant", connection.id)
+                      ]
+                    )}
                   </span>
                 </span>
               </button>
               <button
                 type="button"
                 className="data-connection-card__delete"
-                onClick={handleDeleteHomeAssistant}
+                onClick={() => handleDeleteHomeAssistant(connection)}
                 title="Delete Home Assistant connection"
                 aria-label="Delete Home Assistant connection"
                 disabled={saving}
@@ -1058,7 +1296,7 @@ function DataConnection({ webId }) {
                 <FontAwesomeIcon icon={faTrash} />
               </button>
             </div>
-          ) : null}
+          ))}
 
           {customConnections.map((connection) => (
             <div className="data-connection-cardShell" key={connection.id}>
@@ -1074,6 +1312,17 @@ function DataConnection({ webId }) {
                 <span className="data-connection-card__copy">
                   <strong>{connection.name}</strong>
                   <span>{connection.authType === "none" ? "No auth" : connection.authType}</span>
+                  <span>
+                    {syncStatuses[connection.id] ||
+                      formatBackgroundSync(syncWorkerConfig)}
+                  </span>
+                  <span className="data-connection-card__lastUpdate">
+                    {formatLastUpdate(
+                      lastSyncByConnection[
+                        connectionSyncKey("custom", connection.id)
+                      ]
+                    )}
+                  </span>
                 </span>
               </button>
               <button
@@ -1111,7 +1360,7 @@ function DataConnection({ webId }) {
       <AddConnectionModal
         open={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        onHomeAssistant={openHomeAssistant}
+        onHomeAssistant={openNewHomeAssistant}
         onCustom={openNewCustom}
       />
 
@@ -1122,7 +1371,6 @@ function DataConnection({ webId }) {
         accessToken={accessToken}
         storageDocumentUrl={storageDocumentUrl}
         dataModel={dataModel}
-        syncIntervalMinutes={syncIntervalMinutes}
         entities={entities}
         selectedEntities={selectedEntities}
         entitySearch={entitySearch}
@@ -1132,12 +1380,12 @@ function DataConnection({ webId }) {
         loadingEntities={loadingEntities}
         error={error}
         testResult={testResult}
+        syncWorkerHealth={syncWorkerHealth}
         onUrlChange={setUrl}
         onPortChange={setPort}
         onAccessTokenChange={setAccessToken}
         onStorageDocumentUrlChange={setStorageDocumentUrl}
         onDataModelChange={handleDataModelChange}
-        onSyncIntervalMinutesChange={setSyncIntervalMinutes}
         onEntitySearchChange={setEntitySearch}
         onDomainFilterChange={setDomainFilter}
         onToggleEntity={toggleEntity}
@@ -1154,9 +1402,17 @@ function DataConnection({ webId }) {
         values={customValues}
         saving={saving}
         error={error}
+        syncWorkerHealth={syncWorkerHealth}
         onChange={setCustomValues}
         onClose={closeCustom}
         onSubmit={handleSaveCustom}
+      />
+
+      <DeleteConnectionModal
+        target={deleteTarget}
+        saving={saving}
+        onCancel={closeDeleteModal}
+        onConfirm={confirmDeleteConnection}
       />
     </div>
   );

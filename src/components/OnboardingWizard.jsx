@@ -47,6 +47,10 @@ import {
 } from "../cssAccountApi";
 import { loadCredentialToken, saveCredentialToken } from "../solidCredentialToken";
 import {
+  registerSyncWorkerParticipant,
+  resolveOidcIssuer,
+} from "../syncWorkerRegistration";
+import {
   connectionContainerExists,
   ensureConnectionsContainer,
   getConnectionsContainerUrl,
@@ -511,7 +515,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
     );
 
     if (storedCredential) {
-      return;
+      return storedCredential;
     }
 
     const accountToken = readStoredAccountToken(accountIndexUrl);
@@ -550,6 +554,8 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
     if (!stored) {
       throw new Error("The provider did not return a complete credential token.");
     }
+
+    return stored;
   };
 
   const configureConnections = async () => {
@@ -571,7 +577,17 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
         await configureInbox();
         await configureCatalog();
         await configureConnections();
-        await configureCredentialToken();
+        const credentialToken = await configureCredentialToken();
+        await registerSyncWorkerParticipant({
+          webId,
+          oidcIssuer: resolveOidcIssuer({
+            accountIndexUrl: credentialAccountIndexUrl,
+            webId,
+          }),
+          accountIndexUrl: credentialAccountIndexUrl,
+          credentialToken,
+          solidFetch: session.fetch,
+        });
         onComplete();
       }
     } catch (err) {
@@ -868,7 +884,9 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
               </div>
               <div className="onboarding-inbox__hint">
                 Connection settings will be stored in your pod under{" "}
-                <code>connections/</code>.
+                <code>connections/</code>. The background sync worker will be
+                granted access to this container so it can update selected data
+                sources without an open browser tab.
               </div>
               <label className="onboarding-checkbox">
                 <input

@@ -139,6 +139,12 @@
   font-weight: 700;
 }
 
+.data-connection-card__copy > span.data-connection-card__lastUpdate {
+  color: #475569;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 .data-connection-modalOverlay {
   position: fixed;
   inset: 0;
@@ -285,6 +291,50 @@
   outline: none;
 }
 
+.data-connection-form__managedSync {
+  align-self: start;
+  height: 40px;
+  min-height: 0;
+  margin-top: 21px;
+  border: 1px solid rgba(100, 116, 139, 0.26);
+  border-radius: 8px;
+  background: rgba(100, 116, 139, 0.08);
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.data-connection-form__managedSync--online {
+  border-color: rgba(34, 197, 94, 0.24);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.data-connection-form__managedSync--offline {
+  border-color: rgba(248, 113, 113, 0.28);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.data-connection-form__managedSync span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.data-connection-form__managedSync strong {
+  display: inline-flex;
+  align-items: center;
+  color: #b42318;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.data-connection-form__managedSync--online strong {
+  color: #166534;
+}
+
 .data-connection-form input:focus,
 .data-connection-form textarea:focus,
 .data-connection-form select:focus {
@@ -359,9 +409,70 @@
   color: #1d4ed8;
 }
 
+.data-connection-btn--danger {
+  border: 0;
+  background: linear-gradient(120deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(220, 38, 38, 0.24);
+}
+
 .data-connection-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.data-connection-confirm {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 22px;
+}
+
+.data-connection-confirm__icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fff1f2;
+  color: #b42318;
+  font-size: 20px;
+}
+
+.data-connection-confirm__copy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.data-connection-confirm__copy strong {
+  color: #0f172a;
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+.data-connection-confirm__copy span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.data-connection-confirm__copy p {
+  margin: 6px 0 0;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.data-connection-confirm__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .data-connection-entities {

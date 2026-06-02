@@ -23,6 +23,12 @@ const config = {
   branding: parseJsonEnv("APP_BRANDING_JSON", {}),
   fundingLogos: parseJsonEnv("APP_FUNDING_LOGOS_JSON", []),
   fundingGrantNumber: process.env.APP_FUNDING_GRANT_NUMBER || "",
+  syncWorker: {
+    enabled: process.env.APP_SYNC_WORKER_ENABLED !== "false",
+    apiUrl: process.env.APP_SYNC_WORKER_API_URL || "/sync-worker",
+    serviceWebId: process.env.APP_SYNC_WORKER_SERVICE_WEBID || "",
+    intervalMinutes: Number(process.env.APP_SYNC_WORKER_INTERVAL_MINUTES || 5),
+  },
 };
 
 const fileContent =
