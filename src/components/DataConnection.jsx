@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faCheck,
   faLink,
   faPlus,
   faServer,
@@ -10,25 +9,19 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import session from "../solidSession";
-import {
-  loadHomeAssistantEntities,
-  testHomeAssistantConnection,
-} from "../homeAssistantApi";
+import { loadHomeAssistantEntities } from "../homeAssistantApi";
 import {
   deleteCustomConnection,
   deleteHomeAssistantConnection,
-  getHomeAssistantEntitiesDocumentUrl,
   getHomeAssistantSolidSyncDocumentUrl,
-  HOME_ASSISTANT_DATA_MODELS,
-  isSolidSyncJsonDataModel,
   loadConnectionLastSync,
   loadCustomConnections,
   loadHomeAssistantConnections,
   saveCustomConnection,
   saveHomeAssistantConnection,
 } from "../solidConnections";
-import { getSyncWorkerConfig } from "../config/runtimeConfig";
 import { loadCredentialToken } from "../solidCredentialToken";
+import { getPodRoot } from "../solidCatalog";
 import { registerSyncWorkerParticipant } from "../syncWorkerRegistration";
 import "./DataConnection.css";
 
@@ -40,6 +33,8 @@ const emptyCustomConnection = () => ({
   name: "",
   description: "",
   url: "",
+  port: "",
+  sourceEndpoint: "/",
   storageDocumentUrl: "",
   method: "GET",
   authType: "none",
@@ -48,14 +43,16 @@ const emptyCustomConnection = () => ({
   headersJson: "",
 });
 
-const WORKER_SYNC_INTERVAL_MINUTES = "5";
-const SYNC_WORKER_HEALTH = {
-  CHECKING: "checking",
-  ONLINE: "online",
-  OFFLINE: "offline",
-};
+const WORKER_SYNC_INTERVAL_MINUTES = "10";
+const HOME_ASSISTANT_DATA_MODEL = "solid-sync-json";
 
 const connectionSyncKey = (type, id) => `${type}:${id || ""}`;
+
+const formatAuthType = (authType) => {
+  if (authType === "bearer") return "Bearer token";
+  if (authType === "api-key") return "API key";
+  return "No auth";
+};
 
 const formatLastUpdate = (value) => {
   if (!value) return "Last update: never";
@@ -71,27 +68,57 @@ const formatLastUpdate = (value) => {
   })}`;
 };
 
-const normalizeWorkerApiUrl = (apiUrl) =>
-  String(apiUrl || "")
-    .trim()
-    .replace(/\/+$/, "");
+const hasUrlScheme = (value) => /^[a-z][a-z\d+.-]*:/i.test(String(value || ""));
 
-async function loadSyncWorkerHealth(syncWorkerConfig, signal) {
-  if (!syncWorkerConfig.enabled) return SYNC_WORKER_HEALTH.OFFLINE;
+const toPodRelativeDocumentUrl = (webId, value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
 
-  const apiUrl = normalizeWorkerApiUrl(syncWorkerConfig.apiUrl);
-  if (!apiUrl) return SYNC_WORKER_HEALTH.OFFLINE;
+  const podRoot = getPodRoot(webId);
+  return podRoot && raw.startsWith(podRoot)
+    ? raw.slice(podRoot.length).replace(/^\/+/, "")
+    : raw;
+};
 
-  const response = await window.fetch(`${apiUrl}/health`, {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  const payload = await response.json().catch(() => ({}));
+const toAbsolutePodDocumentUrl = (webId, value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
 
-  return response.ok && payload?.ok
-    ? SYNC_WORKER_HEALTH.ONLINE
-    : SYNC_WORKER_HEALTH.OFFLINE;
-}
+  try {
+    const parsed = hasUrlScheme(raw)
+      ? new URL(raw)
+      : new URL(raw.replace(/^\/+/, ""), getPodRoot(webId));
+    parsed.hash = "";
+    return parsed.href;
+  } catch {
+    return raw;
+  }
+};
+
+const getCustomSourceEndpointPath = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  try {
+    const parsed = new URL(hasUrlScheme(raw) ? raw : `http://${raw}`);
+    const path = parsed.pathname && parsed.pathname !== "/" ? parsed.pathname : "/";
+    return `${path}${parsed.search || ""}`;
+  } catch {
+    return "";
+  }
+};
+
+const getCustomBaseUrl = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  try {
+    const parsed = new URL(hasUrlScheme(raw) ? raw : `http://${raw}`);
+    return hasUrlScheme(raw) ? parsed.origin : parsed.host;
+  } catch {
+    return raw;
+  }
+};
 
 async function registerExistingConnectionsForWorker(webId, connections) {
   if (!webId || !connections.length) return;
@@ -152,78 +179,74 @@ function ModalFrame({ title, icon, children, onClose, saving, compact = false })
   );
 }
 
-function AddConnectionModal({ open, onClose, onHomeAssistant, onCustom }) {
-  if (!open) return null;
-
+function ConnectionTypeSelector({ value, onChange, disabled }) {
   return (
-    <ModalFrame
-      title="New Data Connection"
-      icon={faPlus}
-      onClose={onClose}
-      compact
-    >
-      <div className="data-connection-typeGrid">
-        <button
-          type="button"
-          className="data-connection-typeCard"
-          onClick={onHomeAssistant}
-        >
-          <span className="data-connection-typeCard__icon">
-            <img src={HOME_ASSISTANT_LOGO} alt="" aria-hidden="true" />
-          </span>
-          <span>
-            <strong>Home Assistant</strong>
-            <small>Load entities through the Home Assistant REST API.</small>
-          </span>
-        </button>
+    <div className="data-connection-typeSwitch" aria-label="Connection type">
+      <button
+        type="button"
+        className={`data-connection-typeSwitch__option${
+          value === "home-assistant"
+            ? " data-connection-typeSwitch__option--active"
+            : ""
+        }`}
+        onClick={() => onChange("home-assistant")}
+        disabled={disabled}
+      >
+        <span className="data-connection-typeSwitch__icon">
+          <img src={HOME_ASSISTANT_LOGO} alt="" aria-hidden="true" />
+        </span>
+        <span>
+          <strong>Home Assistant</strong>
+          <small>Entity selection</small>
+        </span>
+      </button>
 
-        <button
-          type="button"
-          className="data-connection-typeCard"
-          onClick={onCustom}
-        >
-          <span className="data-connection-typeCard__icon">
-            <FontAwesomeIcon icon={faSliders} />
-          </span>
-          <span>
-            <strong>Custom API</strong>
-            <small>Store a generic endpoint with optional authentication.</small>
-          </span>
-        </button>
-      </div>
-    </ModalFrame>
+      <button
+        type="button"
+        className={`data-connection-typeSwitch__option${
+          value === "custom" ? " data-connection-typeSwitch__option--active" : ""
+        }`}
+        onClick={() => onChange("custom")}
+        disabled={disabled}
+      >
+        <span className="data-connection-typeSwitch__icon">
+          <FontAwesomeIcon icon={faSliders} />
+        </span>
+        <span>
+          <strong>Custom API</strong>
+          <small>HTTP endpoint</small>
+        </span>
+      </button>
+    </div>
   );
 }
 
 function HomeAssistantModal({
   open,
+  name,
   url,
   port,
   accessToken,
   storageDocumentUrl,
-  dataModel,
   entities,
   selectedEntities,
   entitySearch,
   domainFilter,
   saving,
-  testing,
   loadingEntities,
   error,
-  testResult,
-  syncWorkerHealth,
+  showTypeSelector,
+  onTypeChange,
+  onNameChange,
   onUrlChange,
   onPortChange,
   onAccessTokenChange,
   onStorageDocumentUrlChange,
-  onDataModelChange,
   onEntitySearchChange,
   onDomainFilterChange,
   onToggleEntity,
   onSelectEntities,
   onClearSelection,
-  onTest,
-  onLoadEntities,
   onClose,
   onSubmit,
 }) {
@@ -235,12 +258,6 @@ function HomeAssistantModal({
     () => new Set(selectedEntities),
     [selectedEntities]
   );
-  const syncWorkerOnline = syncWorkerHealth === SYNC_WORKER_HEALTH.ONLINE;
-  const syncWorkerLabel = syncWorkerOnline
-    ? "Background sync worker is reachable"
-    : syncWorkerHealth === SYNC_WORKER_HEALTH.CHECKING
-      ? "Checking background sync worker"
-      : "Background sync worker is not reachable";
   const filteredEntities = useMemo(() => {
     const query = entitySearch.trim().toLowerCase();
     return entities.filter((entity) => {
@@ -271,204 +288,207 @@ function HomeAssistantModal({
 
   return (
     <ModalFrame
-      title="Home Assistant"
+      title={showTypeSelector ? "Add Data Connection" : "Edit Home Assistant"}
       icon={HOME_ASSISTANT_LOGO}
       onClose={onClose}
       saving={saving}
     >
       <form className="data-connection-form" onSubmit={onSubmit}>
-        <label>
-          <span>URL</span>
-          <input
-            type="text"
-            value={url}
-            onChange={(event) => onUrlChange(event.target.value)}
-            placeholder="https://homeassistant.example or 192.168.1.50"
-            autoComplete="url"
-            autoFocus
+        {showTypeSelector ? (
+          <ConnectionTypeSelector
+            value="home-assistant"
+            onChange={onTypeChange}
             disabled={saving}
           />
-        </label>
+        ) : null}
 
-        <label>
-          <span>Port</span>
-          <input
-            type="number"
-            min="1"
-            max="65535"
-            value={port}
-            onChange={(event) => onPortChange(event.target.value)}
-            placeholder="443"
-            disabled={saving}
-          />
-        </label>
-
-        <label>
-          <span>Access token</span>
-          <input
-            type="password"
-            value={accessToken}
-            onChange={(event) => onAccessTokenChange(event.target.value)}
-            placeholder="Long-lived access token"
-            autoComplete="off"
-            disabled={saving || testing}
-          />
-        </label>
-
-        <label>
-          <span>Pod storage document</span>
-          <input
-            type="text"
-            value={storageDocumentUrl}
-            onChange={(event) => onStorageDocumentUrlChange(event.target.value)}
-            placeholder={
-              isSolidSyncJsonDataModel(dataModel)
-                ? "connections/homeassistant-solid-sync.json"
-                : "connections/homeassistant-entities.ttl"
-            }
-            disabled={saving}
-          />
-        </label>
-
-        <div className="data-connection-form__split data-connection-form__split--wide">
+        <FormSection title="Connection">
           <label>
-            <span>Data model</span>
-            <select
-              value={dataModel}
-              onChange={(event) => onDataModelChange(event.target.value)}
+            <span>Name</span>
+            <input
+              type="text"
+              value={name}
+              onChange={(event) => onNameChange(event.target.value)}
+              placeholder="Home Assistant"
+              autoFocus
               disabled={saving}
-            >
-              {HOME_ASSISTANT_DATA_MODELS.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.label}
-                </option>
-              ))}
-            </select>
+            />
           </label>
-          <div
-            className={`data-connection-form__managedSync data-connection-form__managedSync--${syncWorkerOnline ? "online" : "offline"}`}
-          >
-            <span>Background sync</span>
-            <strong title={syncWorkerLabel} aria-label={syncWorkerLabel}>
-              <FontAwesomeIcon icon={syncWorkerOnline ? faCheck : faXmark} />
-            </strong>
-          </div>
-        </div>
 
-        <div className="data-connection-form__test">
-          <button
-            type="button"
-            className="data-connection-btn data-connection-btn--secondary"
-            onClick={onTest}
-            disabled={
-              saving || testing || loadingEntities || !url || !port || !accessToken
-            }
-          >
-            {testing ? "Testing..." : "Test"}
-          </button>
-          <button
-            type="button"
-            className="data-connection-btn data-connection-btn--secondary"
-            onClick={onLoadEntities}
-            disabled={
-              saving ||
-              testing ||
-              loadingEntities ||
-              !url ||
-              !port ||
-              !accessToken
-            }
-          >
-            {loadingEntities ? "Loading..." : "Load entities"}
-          </button>
-          {testResult ? (
-            <span className="data-connection-form__result">{testResult}</span>
-          ) : null}
-        </div>
-
-        {entities.length > 0 ? (
-          <div className="data-connection-entities">
-            <div className="data-connection-entities__head">
-              <strong>Entities</strong>
-              <span>{selectedEntities.length} selected</span>
-            </div>
-
-            <div className="data-connection-entities__filters">
+          <div className="data-connection-form__split data-connection-form__split--sourceRequest">
+            <label>
+              <span>URL</span>
               <input
-                type="search"
-                value={entitySearch}
-                onChange={(event) => onEntitySearchChange(event.target.value)}
-                placeholder="Search entities"
+                type="text"
+                value={url}
+                onChange={(event) => onUrlChange(event.target.value)}
+                placeholder="https://homeassistant.example or 192.168.1.50"
+                autoComplete="url"
                 disabled={saving}
               />
-              <select
-                value={domainFilter}
-                onChange={(event) => onDomainFilterChange(event.target.value)}
+            </label>
+
+            <label>
+              <span>Port</span>
+              <input
+                type="number"
+                min="1"
+                max="65535"
+                value={port}
+                onChange={(event) => onPortChange(event.target.value)}
+                placeholder="8123"
                 disabled={saving}
-              >
-                <option value="all">All domains</option>
-                {domains.map((domain) => (
-                  <option key={domain} value={domain}>
-                    {domain}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="data-connection-entities__actions">
-              <button
-                type="button"
-                className="data-connection-miniBtn"
-                onClick={() =>
-                  onSelectEntities([
-                    ...selectedEntities,
-                    ...filteredEntities.map((entity) => entity.entityId),
-                  ])
-                }
-                disabled={saving || filteredEntities.length === 0}
-              >
-                Select visible
-              </button>
-              <button
-                type="button"
-                className="data-connection-miniBtn"
-                onClick={onClearSelection}
-                disabled={saving || selectedEntities.length === 0}
-              >
-                Clear
-              </button>
-            </div>
-
-            <div className="data-connection-entities__list">
-              {filteredEntities.length > 0 ? (
-                filteredEntities.map((entity) => (
-                  <label key={entity.entityId} className="data-connection-entity">
-                    <input
-                      type="checkbox"
-                      checked={selectedSet.has(entity.entityId)}
-                      onChange={() => onToggleEntity(entity.entityId)}
-                      disabled={saving}
-                    />
-                    <span className="data-connection-entity__main">
-                      <span className="data-connection-entity__name">
-                        {entity.friendlyName}
-                      </span>
-                      <code>{entity.entityId}</code>
-                    </span>
-                    <span className="data-connection-entity__state">
-                      {entity.state}
-                      {entity.unit ? ` ${entity.unit}` : ""}
-                    </span>
-                  </label>
-                ))
-              ) : (
-                <div className="data-connection-entities__empty">
-                  No entities match the current filter.
-                </div>
-              )}
-            </div>
+              />
+            </label>
           </div>
-        ) : null}
+        </FormSection>
+
+        <FormSection title="Source request">
+          <div className="data-connection-form__split">
+            <label>
+              <span>Request method</span>
+              <input
+                className="data-connection-form__lockedInput"
+                type="text"
+                value="GET"
+                readOnly
+              />
+            </label>
+
+            <label>
+              <span>Source endpoint</span>
+              <input
+                className="data-connection-form__lockedInput"
+                type="text"
+                value="/api/states"
+                readOnly
+              />
+            </label>
+          </div>
+        </FormSection>
+
+        <FormSection title="Authentication">
+          <label>
+            <span>Long-lived access token</span>
+            <input
+              type="password"
+              value={accessToken}
+              onChange={(event) => onAccessTokenChange(event.target.value)}
+              placeholder="Home Assistant token"
+              autoComplete="off"
+              disabled={saving}
+            />
+          </label>
+        </FormSection>
+
+        <FormSection title="Storage">
+          <label>
+            <span>Pod storage document</span>
+            <input
+              type="text"
+              value={storageDocumentUrl}
+              onChange={(event) =>
+                onStorageDocumentUrlChange(event.target.value)
+              }
+              placeholder="connections/homeassistant-solid-sync.json"
+              disabled={saving}
+            />
+          </label>
+        </FormSection>
+
+        <FormSection title="Entities">
+          {loadingEntities ? (
+            <span className="data-connection-form__result">
+              Loading entities...
+            </span>
+          ) : null}
+
+          {entities.length > 0 ? (
+            <div className="data-connection-entities">
+              <div className="data-connection-entities__head">
+                <span>{selectedEntities.length} selected</span>
+              </div>
+
+              <div className="data-connection-entities__filters">
+                <input
+                  type="search"
+                  value={entitySearch}
+                  onChange={(event) => onEntitySearchChange(event.target.value)}
+                  placeholder="Search entities"
+                  disabled={saving}
+                />
+                <select
+                  value={domainFilter}
+                  onChange={(event) => onDomainFilterChange(event.target.value)}
+                  disabled={saving}
+                >
+                  <option value="all">All domains</option>
+                  {domains.map((domain) => (
+                    <option key={domain} value={domain}>
+                      {domain}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="data-connection-entities__actions">
+                <button
+                  type="button"
+                  className="data-connection-miniBtn"
+                  onClick={() =>
+                    onSelectEntities([
+                      ...selectedEntities,
+                      ...filteredEntities.map((entity) => entity.entityId),
+                    ])
+                  }
+                  disabled={saving || filteredEntities.length === 0}
+                >
+                  Select visible
+                </button>
+                <button
+                  type="button"
+                  className="data-connection-miniBtn"
+                  onClick={onClearSelection}
+                  disabled={saving || selectedEntities.length === 0}
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div className="data-connection-entities__list">
+                {filteredEntities.length > 0 ? (
+                  filteredEntities.map((entity) => (
+                    <label
+                      key={entity.entityId}
+                      className="data-connection-entity"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedSet.has(entity.entityId)}
+                        onChange={() => onToggleEntity(entity.entityId)}
+                        disabled={saving}
+                      />
+                      <span className="data-connection-entity__main">
+                        <span className="data-connection-entity__name">
+                          {entity.friendlyName}
+                        </span>
+                        <code>{entity.entityId}</code>
+                      </span>
+                      <span className="data-connection-entity__state">
+                        {entity.state}
+                        {entity.unit ? ` ${entity.unit}` : ""}
+                      </span>
+                    </label>
+                  ))
+                ) : (
+                  <div className="data-connection-entities__empty">
+                    No entities match the current filter.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </FormSection>
 
         {error ? <div className="data-connection-form__error">{error}</div> : null}
 
@@ -502,8 +522,9 @@ function CustomConnectionModal({
   values,
   saving,
   error,
-  syncWorkerHealth,
+  showTypeSelector,
   onChange,
+  onTypeChange,
   onClose,
   onSubmit,
 }) {
@@ -523,22 +544,36 @@ function CustomConnectionModal({
   if (!open) return null;
 
   const update = (key, value) => onChange({ ...values, [key]: value });
-  const syncWorkerOnline = syncWorkerHealth === SYNC_WORKER_HEALTH.ONLINE;
-  const syncWorkerLabel = syncWorkerOnline
-    ? "Background sync worker is reachable"
-    : syncWorkerHealth === SYNC_WORKER_HEALTH.CHECKING
-      ? "Checking background sync worker"
-      : "Background sync worker is not reachable";
+  const updateUrl = (value) => {
+    const nextValues = { ...values, url: getCustomBaseUrl(value) || value };
+    const endpointPath = getCustomSourceEndpointPath(value);
+    if (
+      endpointPath &&
+      endpointPath !== "/" &&
+      (!values.sourceEndpoint || values.sourceEndpoint === "/")
+    ) {
+      nextValues.sourceEndpoint = endpointPath;
+    }
+    onChange(nextValues);
+  };
 
   return (
     <ModalFrame
-      title={values.id ? "Edit Custom API" : "Custom API"}
+      title={showTypeSelector ? "Add Data Connection" : "Edit Custom API"}
       icon={faSliders}
       onClose={onClose}
       saving={saving}
     >
       <form className="data-connection-form" onSubmit={onSubmit}>
-        <div className="data-connection-form__split">
+        {showTypeSelector ? (
+          <ConnectionTypeSelector
+            value="custom"
+            onChange={onTypeChange}
+            disabled={saving}
+          />
+        ) : null}
+
+        <FormSection title="Connection">
           <label>
             <span>Name</span>
             <input
@@ -551,69 +586,66 @@ function CustomConnectionModal({
             />
           </label>
 
-          <label>
-            <span>Default method</span>
-            <select
-              value={values.method}
-              onChange={(event) => update("method", event.target.value)}
-              disabled={saving}
-            >
-              <option value="GET">GET</option>
-              <option value="POST">POST</option>
-              <option value="PUT">PUT</option>
-              <option value="PATCH">PATCH</option>
-              <option value="DELETE">DELETE</option>
-            </select>
-          </label>
-        </div>
+          <div className="data-connection-form__split">
+            <label>
+              <span>URL</span>
+              <input
+                type="text"
+                value={values.url}
+                onChange={(event) => updateUrl(event.target.value)}
+                placeholder="https://api.example.org or 192.168.1.20"
+                autoComplete="url"
+                disabled={saving}
+              />
+            </label>
 
-        <label>
-          <span>URL</span>
-          <input
-            type="text"
-            value={values.url}
-            onChange={(event) => update("url", event.target.value)}
-            placeholder="https://api.example.org/data or 192.168.1.20:8080"
-            autoComplete="url"
-            disabled={saving}
-          />
-        </label>
-
-        <div className="data-connection-form__split data-connection-form__split--wide">
-          <label>
-            <span>Pod storage document</span>
-            <input
-              type="text"
-              value={values.storageDocumentUrl}
-              onChange={(event) =>
-                update("storageDocumentUrl", event.target.value)
-              }
-              placeholder="connections/custom-api-sync.json"
-              disabled={saving}
-            />
-          </label>
-          <div
-            className={`data-connection-form__managedSync data-connection-form__managedSync--${syncWorkerOnline ? "online" : "offline"}`}
-          >
-            <span>Background sync</span>
-            <strong title={syncWorkerLabel} aria-label={syncWorkerLabel}>
-              <FontAwesomeIcon icon={syncWorkerOnline ? faCheck : faXmark} />
-            </strong>
+            <label>
+              <span>Port</span>
+              <input
+                type="number"
+                min="1"
+                max="65535"
+                value={values.port}
+                onChange={(event) => update("port", event.target.value)}
+                placeholder="443"
+                disabled={saving}
+              />
+            </label>
           </div>
-        </div>
 
-        <label>
-          <span>Description</span>
-          <textarea
-            value={values.description}
-            onChange={(event) => update("description", event.target.value)}
-            placeholder="Optional note for this connection"
-            rows={3}
-            disabled={saving}
-          />
-        </label>
+        </FormSection>
 
-        <div className="data-connection-form__split">
+        <FormSection title="Source request">
+          <div className="data-connection-form__split data-connection-form__split--sourceRequest">
+            <label>
+              <span>Request method</span>
+              <select
+                value={values.method}
+                onChange={(event) => update("method", event.target.value)}
+                disabled={saving}
+              >
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Source endpoint</span>
+              <input
+                type="text"
+                value={values.sourceEndpoint || ""}
+                onChange={(event) => update("sourceEndpoint", event.target.value)}
+                placeholder="/data"
+                disabled={saving}
+              />
+            </label>
+          </div>
+        </FormSection>
+
+        <FormSection title="Authentication">
           <label>
             <span>Authentication</span>
             <select
@@ -639,32 +671,47 @@ function CustomConnectionModal({
               />
             </label>
           ) : null}
-        </div>
 
-        {values.authType !== "none" ? (
+          {values.authType !== "none" ? (
+            <label>
+              <span>{values.authType === "bearer" ? "Token" : "API key"}</span>
+              <input
+                type="password"
+                value={values.authSecret}
+                onChange={(event) => update("authSecret", event.target.value)}
+                placeholder="Secret"
+                autoComplete="off"
+                disabled={saving}
+              />
+            </label>
+          ) : null}
+
           <label>
-            <span>{values.authType === "bearer" ? "Token" : "API key"}</span>
-            <input
-              type="password"
-              value={values.authSecret}
-              onChange={(event) => update("authSecret", event.target.value)}
-              placeholder="Secret"
-              autoComplete="off"
+            <span>Additional headers JSON</span>
+            <textarea
+              value={values.headersJson}
+              onChange={(event) => update("headersJson", event.target.value)}
+              placeholder='{"Accept": "application/json"}'
+              rows={4}
               disabled={saving}
             />
           </label>
-        ) : null}
+        </FormSection>
 
-        <label>
-          <span>Additional headers JSON</span>
-          <textarea
-            value={values.headersJson}
-            onChange={(event) => update("headersJson", event.target.value)}
-            placeholder='{"Accept": "application/json"}'
-            rows={4}
-            disabled={saving}
-          />
-        </label>
+        <FormSection title="Storage">
+          <label>
+            <span>Pod storage document</span>
+            <input
+              type="text"
+              value={values.storageDocumentUrl}
+              onChange={(event) =>
+                update("storageDocumentUrl", event.target.value)
+              }
+              placeholder="connections/custom-api-sync.json"
+              disabled={saving}
+            />
+          </label>
+        </FormSection>
 
         {error ? <div className="data-connection-form__error">{error}</div> : null}
 
@@ -693,13 +740,25 @@ function CustomConnectionModal({
   );
 }
 
+function FormSection({ title, aside, children }) {
+  return (
+    <section className="data-connection-formSection">
+      <div className="data-connection-formSection__head">
+        <h3>{title}</h3>
+        {aside || null}
+      </div>
+      <div className="data-connection-formSection__body">{children}</div>
+    </section>
+  );
+}
+
 function DeleteConnectionModal({ target, saving, onCancel, onConfirm }) {
   if (!target) return null;
 
   const connection = target.connection || {};
   const isHomeAssistant = target.type === "home-assistant";
   const label = isHomeAssistant
-    ? "Home Assistant"
+    ? connection.name || "Home Assistant"
     : connection.name || connection.id || "Custom API";
   const detail = isHomeAssistant
     ? connection.endpoint || connection.storageDocumentUrl || connection.id
@@ -749,17 +808,16 @@ function DeleteConnectionModal({ target, saving, onCancel, onConfirm }) {
 }
 
 function DataConnection({ webId }) {
-  const syncWorkerConfig = getSyncWorkerConfig();
-  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [newConnectionType, setNewConnectionType] = useState("home-assistant");
   const [homeAssistantOpen, setHomeAssistantOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  const [homeAssistantName, setHomeAssistantName] = useState("");
   const [url, setUrl] = useState("");
   const [port, setPort] = useState("443");
   const [accessToken, setAccessToken] = useState("");
   const [storageDocumentUrl, setStorageDocumentUrl] = useState("");
-  const [dataModel, setDataModel] = useState("sdm-entity-snapshot");
   const [homeAssistantConnections, setHomeAssistantConnections] = useState([]);
   const [activeHomeAssistantId, setActiveHomeAssistantId] = useState("");
   const [entities, setEntities] = useState([]);
@@ -770,16 +828,9 @@ function DataConnection({ webId }) {
   const [customValues, setCustomValues] = useState(emptyCustomConnection());
 
   const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
   const [loadingEntities, setLoadingEntities] = useState(false);
   const [error, setError] = useState("");
-  const [testResult, setTestResult] = useState("");
   const [lastSyncByConnection, setLastSyncByConnection] = useState({});
-  const [syncWorkerHealth, setSyncWorkerHealth] = useState(
-    syncWorkerConfig.enabled
-      ? SYNC_WORKER_HEALTH.CHECKING
-      : SYNC_WORKER_HEALTH.OFFLINE
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -796,11 +847,11 @@ function DataConnection({ webId }) {
         if (!cancelled) {
           setHomeAssistantConnections(loadedHomeAssistantConnections);
           setActiveHomeAssistantId("");
+          setHomeAssistantName("");
           setUrl("");
           setPort("443");
           setAccessToken("");
           setStorageDocumentUrl("");
-          setDataModel("sdm-entity-snapshot");
           setSelectedEntities([]);
           setCustomConnections(loadedCustom);
           setEntities([]);
@@ -831,34 +882,6 @@ function DataConnection({ webId }) {
       cancelled = true;
     };
   }, [webId]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
-
-    if (!syncWorkerConfig.enabled || !syncWorkerConfig.apiUrl) {
-      setSyncWorkerHealth(SYNC_WORKER_HEALTH.OFFLINE);
-      return undefined;
-    }
-
-    setSyncWorkerHealth(SYNC_WORKER_HEALTH.CHECKING);
-    loadSyncWorkerHealth(syncWorkerConfig, controller.signal)
-      .then((status) => {
-        if (!cancelled) {
-          setSyncWorkerHealth(status);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled && err?.name !== "AbortError") {
-          setSyncWorkerHealth(SYNC_WORKER_HEALTH.OFFLINE);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [syncWorkerConfig]);
 
   useEffect(() => {
     let cancelled = false;
@@ -911,35 +934,56 @@ function DataConnection({ webId }) {
 
   const resetHomeAssistantForm = () => {
     setActiveHomeAssistantId("");
+    setHomeAssistantName("");
     setUrl("");
     setPort("443");
     setAccessToken("");
     setStorageDocumentUrl("");
-    setDataModel("sdm-entity-snapshot");
     setEntities([]);
     setSelectedEntities([]);
     setEntitySearch("");
     setDomainFilter("all");
   };
 
-  const openNewHomeAssistant = () => {
-    setAddModalOpen(false);
+  const openAddConnection = () => {
     setError("");
-    setTestResult("");
+    setNewConnectionType("home-assistant");
     resetHomeAssistantForm();
+    setCustomValues(emptyCustomConnection());
+    setCustomOpen(false);
     setHomeAssistantOpen(true);
   };
 
-  const openExistingHomeAssistant = (connection) => {
-    setAddModalOpen(false);
+  const switchNewConnectionType = (type) => {
+    if (saving || type === newConnectionType) return;
+    setNewConnectionType(type);
     setError("");
-    setTestResult("");
+    if (type === "home-assistant") {
+      setCustomOpen(false);
+      setHomeAssistantOpen(true);
+    } else {
+      setHomeAssistantOpen(false);
+      setCustomOpen(true);
+    }
+  };
+
+  const openExistingHomeAssistant = (connection) => {
+    setError("");
+    setNewConnectionType("home-assistant");
+    setCustomOpen(false);
     setActiveHomeAssistantId(connection.id || "");
+    setHomeAssistantName(connection.name || "Home Assistant");
     setUrl(connection.url || "");
     setPort(connection.port || "443");
     setAccessToken(connection.accessToken || "");
-    setStorageDocumentUrl(connection.storageDocumentUrl || "");
-    setDataModel(connection.dataModel || "sdm-entity-snapshot");
+    const storageUrl =
+      connection.dataModel === HOME_ASSISTANT_DATA_MODEL &&
+      connection.storageDocumentUrl
+        ? connection.storageDocumentUrl
+        : getHomeAssistantSolidSyncDocumentUrl(webId, connection.id || "");
+    setStorageDocumentUrl(
+      toPodRelativeDocumentUrl(webId, storageUrl)
+    );
     setSelectedEntities(connection.selectedEntities || []);
     setEntities([]);
     setEntitySearch("");
@@ -947,21 +991,24 @@ function DataConnection({ webId }) {
     setHomeAssistantOpen(true);
   };
 
-  const openNewCustom = () => {
-    setAddModalOpen(false);
-    setError("");
-    setCustomValues(emptyCustomConnection());
-    setCustomOpen(true);
-  };
-
   const openExistingCustom = (connection) => {
     setError("");
+    setNewConnectionType("custom");
+    setHomeAssistantOpen(false);
     setCustomValues({
       id: connection.id,
       name: connection.name || "",
       description: connection.description || "",
-      url: connection.url || "",
-      storageDocumentUrl: connection.storageDocumentUrl || "",
+      url: getCustomBaseUrl(connection.url || connection.endpoint || ""),
+      port: connection.port || "443",
+      sourceEndpoint:
+        connection.sourceEndpoint ||
+        getCustomSourceEndpointPath(connection.endpoint || connection.url) ||
+        "/",
+      storageDocumentUrl: toPodRelativeDocumentUrl(
+        webId,
+        connection.storageDocumentUrl
+      ),
       method: connection.method || "GET",
       authType: connection.authType || "none",
       authSecret: connection.authSecret || "",
@@ -975,7 +1022,6 @@ function DataConnection({ webId }) {
     if (saving) return;
     setHomeAssistantOpen(false);
     setError("");
-    setTestResult("");
   };
 
   const closeCustom = () => {
@@ -984,74 +1030,47 @@ function DataConnection({ webId }) {
     setError("");
   };
 
-  const handleDataModelChange = (nextDataModel) => {
-    setDataModel(nextDataModel);
-    if (!webId || !activeHomeAssistantId) return;
+  useEffect(() => {
+    if (!homeAssistantOpen || saving) return undefined;
 
-    const ttlDocumentUrl = getHomeAssistantEntitiesDocumentUrl(
-      webId,
-      activeHomeAssistantId
-    );
-    const solidSyncDocumentUrl = getHomeAssistantSolidSyncDocumentUrl(
-      webId,
-      activeHomeAssistantId
-    );
-
-    if (
-      isSolidSyncJsonDataModel(nextDataModel) &&
-      (!storageDocumentUrl || storageDocumentUrl === ttlDocumentUrl)
-    ) {
-      setStorageDocumentUrl(solidSyncDocumentUrl);
-      return;
-    }
-
-    if (
-      !isSolidSyncJsonDataModel(nextDataModel) &&
-      storageDocumentUrl === solidSyncDocumentUrl
-    ) {
-      setStorageDocumentUrl(ttlDocumentUrl);
-    }
-  };
-
-  const handleTestHomeAssistant = async () => {
-    setError("");
-    setTestResult("");
-
-    try {
-      setTesting(true);
-      const result = await testHomeAssistantConnection({
-        url,
-        port,
-        accessToken,
-      });
-      setTestResult(`Connection OK via ${result.endpoint}.`);
-    } catch (err) {
-      setError(err?.message || "Home Assistant connection test failed.");
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const handleLoadHomeAssistantEntities = async () => {
-    setError("");
-    setTestResult("");
-
-    try {
-      setLoadingEntities(true);
-      const loadedEntities = await loadHomeAssistantEntities({
-        url,
-        port,
-        accessToken,
-      });
-      setEntities(loadedEntities);
-      setTestResult(`${loadedEntities.length} entities loaded.`);
-    } catch (err) {
+    const hasConnectionInput = url.trim() && String(port).trim() && accessToken.trim();
+    if (!hasConnectionInput) {
       setEntities([]);
-      setError(err?.message || "Home Assistant entities could not be loaded.");
-    } finally {
       setLoadingEntities(false);
+      return undefined;
     }
-  };
+
+    let cancelled = false;
+    const timeoutId = window.setTimeout(async () => {
+      setError("");
+      setLoadingEntities(true);
+
+      try {
+        const loadedEntities = await loadHomeAssistantEntities({
+          url,
+          port,
+          accessToken,
+        });
+        if (cancelled) return;
+
+        setEntities(loadedEntities);
+      } catch (err) {
+        if (cancelled) return;
+
+        setEntities([]);
+        setError(err?.message || "Home Assistant entities could not be loaded.");
+      } finally {
+        if (!cancelled) {
+          setLoadingEntities(false);
+        }
+      }
+    }, 450);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [accessToken, homeAssistantOpen, port, saving, url]);
 
   const toggleEntity = (entityId) => {
     setSelectedEntities((current) => {
@@ -1081,11 +1100,12 @@ function DataConnection({ webId }) {
       setSaving(true);
       const connection = await saveHomeAssistantConnection(webId, session.fetch, {
         id: activeHomeAssistantId,
+        name: homeAssistantName,
         url,
         port,
         accessToken,
         storageDocumentUrl,
-        dataModel,
+        dataModel: HOME_ASSISTANT_DATA_MODEL,
         syncIntervalMinutes: WORKER_SYNC_INTERVAL_MINUTES,
         selectedEntities,
       });
@@ -1093,7 +1113,9 @@ function DataConnection({ webId }) {
       await registerSyncWorkerParticipant({
         webId,
         credentialToken,
-        storageDocumentUrl: connection?.storageDocumentUrl || storageDocumentUrl,
+        storageDocumentUrl:
+          connection?.storageDocumentUrl ||
+          toAbsolutePodDocumentUrl(webId, storageDocumentUrl),
         solidFetch: session.fetch,
       });
       if (
@@ -1112,11 +1134,17 @@ function DataConnection({ webId }) {
         });
       });
       setActiveHomeAssistantId(connection.id);
+      setHomeAssistantName(connection?.name || homeAssistantName);
       setUrl(connection?.url || url);
       setPort(connection?.port || port);
       setAccessToken(connection?.accessToken || accessToken);
-      setStorageDocumentUrl(connection?.storageDocumentUrl || storageDocumentUrl);
-      setDataModel(connection?.dataModel || dataModel);
+      setStorageDocumentUrl(
+        toPodRelativeDocumentUrl(
+          webId,
+          connection?.storageDocumentUrl ||
+            toAbsolutePodDocumentUrl(webId, storageDocumentUrl)
+        )
+      );
       setSelectedEntities(connection?.selectedEntities || selectedEntities);
       setHomeAssistantOpen(false);
     } catch (err) {
@@ -1138,7 +1166,8 @@ function DataConnection({ webId }) {
         webId,
         credentialToken,
         storageDocumentUrl:
-          saved?.storageDocumentUrl || customValues.storageDocumentUrl,
+          saved?.storageDocumentUrl ||
+          toAbsolutePodDocumentUrl(webId, customValues.storageDocumentUrl),
         solidFetch: session.fetch,
       });
       setCustomConnections((current) => {
@@ -1241,8 +1270,13 @@ function DataConnection({ webId }) {
                   <img src={HOME_ASSISTANT_LOGO} alt="Home Assistant logo" />
                 </span>
                 <span className="data-connection-card__copy">
-                  <strong>Home Assistant</strong>
-                  <span>{connection.selectedEntities.length} selected entities</span>
+                  <strong>{connection.name || "Home Assistant"}</strong>
+                  <span className="data-connection-card__endpoint">
+                    {connection.endpoint || connection.url}
+                  </span>
+                  <span className="data-connection-card__badges">
+                    <span>{connection.selectedEntities.length} entities</span>
+                  </span>
                   <span className="data-connection-card__lastUpdate">
                     {formatLastUpdate(
                       lastSyncByConnection[
@@ -1257,7 +1291,7 @@ function DataConnection({ webId }) {
                 className="data-connection-card__delete"
                 onClick={() => handleDeleteHomeAssistant(connection)}
                 title="Delete Home Assistant connection"
-                aria-label="Delete Home Assistant connection"
+                aria-label={`Delete ${connection.name || "Home Assistant"}`}
                 disabled={saving}
               >
                 <FontAwesomeIcon icon={faTrash} />
@@ -1278,7 +1312,13 @@ function DataConnection({ webId }) {
                 </span>
                 <span className="data-connection-card__copy">
                   <strong>{connection.name}</strong>
-                  <span>{connection.authType === "none" ? "No auth" : connection.authType}</span>
+                  <span className="data-connection-card__endpoint">
+                    {connection.endpoint || connection.url}
+                  </span>
+                  <span className="data-connection-card__badges">
+                    <span>{connection.method || "GET"}</span>
+                    <span>{formatAuthType(connection.authType)}</span>
+                  </span>
                   <span className="data-connection-card__lastUpdate">
                     {formatLastUpdate(
                       lastSyncByConnection[
@@ -1306,7 +1346,7 @@ function DataConnection({ webId }) {
             className={`data-connection-card data-connection-card--add${
               hasConnections ? "" : " data-connection-card--empty"
             }`}
-            onClick={() => setAddModalOpen(true)}
+            onClick={openAddConnection}
             title="Add data connection"
           >
             <span className="data-connection-card__icon">
@@ -1320,42 +1360,34 @@ function DataConnection({ webId }) {
         </div>
       </div>
 
-      <AddConnectionModal
-        open={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        onHomeAssistant={openNewHomeAssistant}
-        onCustom={openNewCustom}
-      />
-
       <HomeAssistantModal
         open={homeAssistantOpen}
+        name={homeAssistantName}
         url={url}
         port={port}
         accessToken={accessToken}
         storageDocumentUrl={storageDocumentUrl}
-        dataModel={dataModel}
         entities={entities}
         selectedEntities={selectedEntities}
         entitySearch={entitySearch}
         domainFilter={domainFilter}
         saving={saving}
-        testing={testing}
         loadingEntities={loadingEntities}
         error={error}
-        testResult={testResult}
-        syncWorkerHealth={syncWorkerHealth}
+        showTypeSelector={!activeHomeAssistantId}
+        onTypeChange={switchNewConnectionType}
+        onNameChange={setHomeAssistantName}
         onUrlChange={setUrl}
         onPortChange={setPort}
         onAccessTokenChange={setAccessToken}
-        onStorageDocumentUrlChange={setStorageDocumentUrl}
-        onDataModelChange={handleDataModelChange}
+        onStorageDocumentUrlChange={(value) =>
+          setStorageDocumentUrl(toPodRelativeDocumentUrl(webId, value))
+        }
         onEntitySearchChange={setEntitySearch}
         onDomainFilterChange={setDomainFilter}
         onToggleEntity={toggleEntity}
         onSelectEntities={selectEntities}
         onClearSelection={() => setSelectedEntities([])}
-        onTest={handleTestHomeAssistant}
-        onLoadEntities={handleLoadHomeAssistantEntities}
         onClose={closeHomeAssistant}
         onSubmit={handleSaveHomeAssistant}
       />
@@ -1365,8 +1397,17 @@ function DataConnection({ webId }) {
         values={customValues}
         saving={saving}
         error={error}
-        syncWorkerHealth={syncWorkerHealth}
-        onChange={setCustomValues}
+        showTypeSelector={!customValues.id}
+        onChange={(values) =>
+          setCustomValues({
+            ...values,
+            storageDocumentUrl: toPodRelativeDocumentUrl(
+              webId,
+              values.storageDocumentUrl
+            ),
+          })
+        }
+        onTypeChange={switchNewConnectionType}
         onClose={closeCustom}
         onSubmit={handleSaveCustom}
       />

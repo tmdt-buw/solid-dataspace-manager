@@ -25,7 +25,7 @@ const fallbackConfig = {
     {
       id: "tmdt-solid",
       label: "TMDT Solid",
-      issuer: "https://tmdt-solid-community-server.de",
+      issuer: "https://solid-community-server.tmdt.info",
       note: "Recommended",
       enabled: true,
       recommended: true,
@@ -50,7 +50,7 @@ const fallbackConfig = {
     enabled: true,
     apiUrl: "/sync-worker",
     serviceWebId: "",
-    intervalMinutes: 5,
+    intervalMinutes: 10,
   },
 };
 
@@ -165,7 +165,7 @@ function normalizeFundingLogo(logo, index) {
 }
 
 function normalizeSyncWorker(syncWorker) {
-  const intervalMinutes = Number(syncWorker?.intervalMinutes ?? 5);
+  const intervalMinutes = Number(syncWorker?.intervalMinutes ?? 10);
   return {
     enabled: syncWorker?.enabled !== false,
     apiUrl: syncWorker?.apiUrl || "/sync-worker",
@@ -173,7 +173,7 @@ function normalizeSyncWorker(syncWorker) {
     intervalMinutes:
       Number.isInteger(intervalMinutes) && intervalMinutes > 0
         ? intervalMinutes
-        : 5,
+        : 10,
   };
 }
 

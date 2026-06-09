@@ -35,7 +35,7 @@ window.__APP_CONFIG__ = {
     {
       "id": "tmdt-solid",
       "label": "TMDT Solid Server",
-      "issuer": "https://tmdt-solid-community-server.de",
+      "issuer": "https://solid-community-server.tmdt.info",
       "note": "Recommended",
       "enabled": true,
       "recommended": true
@@ -61,7 +61,7 @@ window.__APP_CONFIG__ = {
   "syncWorker": {
     "enabled": true,
     "apiUrl": "/sync-worker",
-    "serviceWebId": "https://tmdt-solid-community-server.de/solidserviceworker/profile/card#me",
-    "intervalMinutes": 5
+    "serviceWebId": "https://solid-community-server.tmdt.info/solidserviceworker/profile/card#me",
+    "intervalMinutes": 10
   }
 };

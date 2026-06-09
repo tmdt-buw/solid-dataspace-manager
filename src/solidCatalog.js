@@ -40,7 +40,7 @@ const SDM_REGISTRY = `${SDM_NS}registry`;
 const SDM_PRIVATE_REGISTRY = `${SDM_NS}privateRegistry`;
 
 export const DEFAULT_RESEARCH_REGISTRY_URL =
-  "https://tmdt-solid-community-server.de/semanticdatacatalog/public/stadt-wuppertal";
+  "https://solid-community-server.tmdt.info/semanticdatacatalog/public/stadt-wuppertal";
 export const DEFAULT_RESEARCH_REGISTRIES = [DEFAULT_RESEARCH_REGISTRY_URL];
 
 export const REGISTRY_PRESETS = [
@@ -53,19 +53,19 @@ export const REGISTRY_PRESETS = [
   {
     id: "dace",
     label: "DACE",
-    url: "https://tmdt-solid-community-server.de/semanticdatacatalog/public/dace",
+    url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/dace",
     logo: "/DACE_Logo_grün.png",
   },
   {
     id: "timberconnect",
     label: "TimberConnect",
-    url: "https://tmdt-solid-community-server.de/semanticdatacatalog/public/timberconnect",
+    url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/timberconnect",
     logo: "/TimberConnect_Logo2.png",
   },
   {
     id: "test",
     label: "Test",
-    url: "https://tmdt-solid-community-server.de/semanticdatacatalog/public/test",
+    url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/test",
     icon: "flask",
   },
 ];

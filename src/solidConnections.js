@@ -75,12 +75,13 @@ const HOME_ASSISTANT_SECRET_NAME = "homeassistant";
 const HOME_ASSISTANT_LEGACY_ID = "homeassistant";
 const CUSTOM_SECRET_PREFIX = "custom-connection";
 const DEMO_ENCRYPTION_ALGORITHM = "demo-xor-v1";
-const DEFAULT_HOME_ASSISTANT_DATA_MODEL = "sdm-entity-snapshot";
+const SDM_ENTITY_SNAPSHOT_DATA_MODEL = "sdm-entity-snapshot";
 const SOLID_SYNC_JSON_DATA_MODEL = "solid-sync-json";
+const DEFAULT_HOME_ASSISTANT_DATA_MODEL = SOLID_SYNC_JSON_DATA_MODEL;
 
 export const HOME_ASSISTANT_DATA_MODELS = [
   {
-    id: DEFAULT_HOME_ASSISTANT_DATA_MODEL,
+    id: SDM_ENTITY_SNAPSHOT_DATA_MODEL,
     label: "SDM Entity Snapshot",
   },
   {
@@ -238,6 +239,22 @@ const normalizeUrl = (value, defaultProtocol = "http") => {
   return `${parsed.protocol}//${parsed.host}${pathname}`;
 };
 
+const normalizeSourceEndpointPath = (value, fallback = "/") => {
+  const raw = String(value || "").trim();
+  const fallbackValue = String(fallback || "/").trim() || "/";
+  const source = raw || fallbackValue;
+
+  try {
+    const parsed = hasProtocol(source)
+      ? new URL(source)
+      : new URL(source.startsWith("/") ? source : `/${source}`, "http://local");
+    const pathname = parsed.pathname && parsed.pathname !== "/" ? parsed.pathname : "/";
+    return `${pathname}${parsed.search || ""}`;
+  } catch {
+    throw new Error("Enter a valid source endpoint.");
+  }
+};
+
 const normalizePort = (value) => {
   const trimmed = String(value || "").trim();
   const port = Number(trimmed);
@@ -252,6 +269,25 @@ const buildEndpoint = (url, port) => {
   parsed.port = port;
   const pathname = parsed.pathname && parsed.pathname !== "/" ? parsed.pathname : "";
   return `${parsed.origin}${pathname}`;
+};
+
+const buildCustomEndpoint = (url, port, sourceEndpoint) => {
+  const parsed = new URL(url);
+  parsed.port = port;
+  const endpointPath = normalizeSourceEndpointPath(sourceEndpoint);
+  const endpoint = new URL(endpointPath, parsed.origin);
+  return `${parsed.origin}${endpoint.pathname}${endpoint.search || ""}`;
+};
+
+const getDefaultPortForParsedUrl = (parsedUrl) =>
+  parsedUrl.port || (parsedUrl.protocol === "https:" ? "443" : "80");
+
+const inferPortFromUrl = (value) => {
+  try {
+    return getDefaultPortForParsedUrl(new URL(prepareUrl(value)));
+  } catch {
+    return "";
+  }
 };
 
 const normalizeDataModel = (value) => {
@@ -538,7 +574,11 @@ export async function loadConnectionLastSync(storageDocumentUrl, fetch) {
   if (documentUrl.toLowerCase().endsWith(".json")) {
     const response = await fetch(documentUrl, {
       method: "GET",
-      headers: { Accept: "application/json" },
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        "Cache-Control": "no-cache",
+      },
     });
 
     if (response.status === 404 || response.status === 204) return null;
@@ -579,6 +619,7 @@ const getResourcePathForDocument = (webId, documentUrl) => {
 export const normalizeHomeAssistantConnection = ({
   id,
   webId,
+  name,
   url,
   port,
   accessToken,
@@ -611,6 +652,7 @@ export const normalizeHomeAssistantConnection = ({
   const normalizedId = id
     ? normalizeHomeAssistantConnectionId(id)
     : createConnectionId("homeassistant");
+  const normalizedName = String(name || "").trim() || "Home Assistant";
   const normalizedDataModel = normalizeDataModel(dataModel);
   const defaultStorageDocumentUrl =
     normalizedDataModel === SOLID_SYNC_JSON_DATA_MODEL
@@ -619,7 +661,7 @@ export const normalizeHomeAssistantConnection = ({
 
   return {
     id: normalizedId,
-    name: "Home Assistant",
+    name: normalizedName,
     url: normalizedUrl,
     port: normalizedPort,
     endpoint: buildEndpoint(normalizedUrl, normalizedPort),
@@ -640,6 +682,8 @@ export const normalizeCustomConnection = ({
   name,
   description,
   url,
+  port,
+  sourceEndpoint,
   method = "GET",
   authType = "none",
   authSecret = "",
@@ -657,12 +701,38 @@ export const normalizeCustomConnection = ({
     throw new Error("URL is required.");
   }
 
+  let parsedUrl;
   let normalizedUrl;
   try {
-    normalizedUrl = normalizeUrl(rawUrl);
+    parsedUrl = new URL(prepareUrl(rawUrl));
   } catch {
     throw new Error("Enter a valid URL.");
   }
+
+  const defaultPort =
+    parsedUrl.port || (!hasProtocol(rawUrl) ? "443" : getDefaultPortForParsedUrl(parsedUrl));
+  const normalizedPort = normalizePort(port || defaultPort);
+  const inferredProtocol =
+    !hasProtocol(rawUrl) && normalizedPort === "443" ? "https" : "http";
+  try {
+    normalizedUrl = normalizeUrl(rawUrl, inferredProtocol);
+  } catch {
+    throw new Error("Enter a valid URL.");
+  }
+  const normalizedSourceEndpoint = normalizeSourceEndpointPath(
+    sourceEndpoint,
+    `${parsedUrl.pathname && parsedUrl.pathname !== "/" ? parsedUrl.pathname : "/"}${parsedUrl.search || ""}`
+  );
+  const baseUrl = new URL(normalizedUrl);
+  baseUrl.pathname = "";
+  baseUrl.search = "";
+  baseUrl.hash = "";
+  normalizedUrl = `${baseUrl.protocol}//${baseUrl.host}`;
+  const normalizedEndpoint = buildCustomEndpoint(
+    normalizedUrl,
+    normalizedPort,
+    normalizedSourceEndpoint
+  );
 
   const normalizedAuthType = normalizeAuthType(authType);
   const normalizedAuthSecret = String(authSecret || "").trim();
@@ -687,7 +757,9 @@ export const normalizeCustomConnection = ({
     name: normalizedName,
     description: String(description || "").trim(),
     url: normalizedUrl,
-    endpoint: normalizedUrl,
+    port: normalizedPort,
+    sourceEndpoint: normalizedSourceEndpoint,
+    endpoint: normalizedEndpoint,
     method: normalizeHttpMethod(method),
     authType: normalizedAuthType,
     authSecret: normalizedAuthSecret,
@@ -969,14 +1041,21 @@ const customConnectionFromThing = (thing, webId, documentUrl) => {
   const authType = normalizeAuthType(
     getStringNoLocale(thing, SDM_CONNECTION_AUTH_TYPE) || "none"
   );
+  const url = getUrl(thing, SDM_CONNECTION_URL) || "";
+  const endpoint = getUrl(thing, SDM_CONNECTION_ENDPOINT) || url;
+  const port =
+    getStringNoLocale(thing, SDM_CONNECTION_PORT) ||
+    inferPortFromUrl(endpoint || url);
 
   return {
     id,
     kind: "custom",
     name: getStringNoLocale(thing, SDM_CONNECTION_NAME) || "Custom connection",
     description: getStringNoLocale(thing, SDM_CONNECTION_DESCRIPTION) || "",
-    url: getUrl(thing, SDM_CONNECTION_URL) || "",
-    endpoint: getUrl(thing, SDM_CONNECTION_ENDPOINT) || "",
+    url,
+    endpoint,
+    port,
+    sourceEndpoint: normalizeSourceEndpointPath(endpoint || url),
     storageDocumentUrl:
       getUrl(thing, SDM_CONNECTION_STORAGE_DOCUMENT) ||
       normalizeCustomStorageDocumentUrl(webId, "", id),
@@ -1077,6 +1156,7 @@ export async function saveCustomConnection(webId, fetch, values) {
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_NAME);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_DESCRIPTION);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_URL);
+  connectionThing = removeAll(connectionThing, SDM_CONNECTION_PORT);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_ENDPOINT);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_STORAGE_DOCUMENT);
   connectionThing = removeAll(connectionThing, SDM_CONNECTION_METHOD);
@@ -1107,6 +1187,11 @@ export async function saveCustomConnection(webId, fetch, values) {
     );
   }
   connectionThing = setUrl(connectionThing, SDM_CONNECTION_URL, normalized.url);
+  connectionThing = setStringNoLocale(
+    connectionThing,
+    SDM_CONNECTION_PORT,
+    normalized.port
+  );
   connectionThing = setUrl(
     connectionThing,
     SDM_CONNECTION_ENDPOINT,
