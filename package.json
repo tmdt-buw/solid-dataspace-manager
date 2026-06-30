@@ -1,6 +1,6 @@
 {
   "name": "pod_browser",
-  "version": "0.3.42",
+  "version": "0.3.43",
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
@@ -40,6 +40,7 @@
     "prestart": "node scripts/write-runtime-config.js",
     "prebuild": "node scripts/write-runtime-config.js",
     "start": "react-scripts start",
+    "start:local-packages": "node scripts/start-local-package-watch.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
