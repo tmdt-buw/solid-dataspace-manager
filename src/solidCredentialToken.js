@@ -27,6 +27,8 @@ const RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 const DCTERMS_CREATED = "http://purl.org/dc/terms/created";
 const DCTERMS_MODIFIED = "http://purl.org/dc/terms/modified";
 const DEMO_ENCRYPTION_ALGORITHM = "demo-xor-v1";
+const DEMO_ENCRYPTION_PREFIX = `${DEMO_ENCRYPTION_ALGORITHM}:`;
+const CREDENTIAL_TOKEN_SECRET_PATTERN = /^(?:[a-f0-9]{2}){32,}$/i;
 
 const getPodRoot = (webId) => {
   const url = new URL(webId);
@@ -58,7 +60,7 @@ const deriveDemoKey = (webId, name) =>
   `${webId || ""}|${name || "solid-dataspace"}|solid-dataspace-manager-demo`;
 
 const encodeText = (value) => new TextEncoder().encode(value || "");
-const decodeText = (bytes) => new TextDecoder().decode(bytes);
+const decodeText = (bytes) => new TextDecoder("utf-8", { fatal: true }).decode(bytes);
 
 const bytesToBase64 = (bytes) => {
   let binary = "";
@@ -70,6 +72,85 @@ const bytesToBase64 = (bytes) => {
 
 const base64ToBytes = (value) =>
   Uint8Array.from(atob(value || ""), (character) => character.charCodeAt(0));
+
+const isReadableSecret = (value) => {
+  if (typeof value !== "string" || value.length === 0) return false;
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || (code >= 0x7f && code <= 0x9f) || code === 0xfffd) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const isCredentialTokenSecret = (value) =>
+  isReadableSecret(value) && CREDENTIAL_TOKEN_SECRET_PATTERN.test(value);
+
+const stripEncryptionPrefix = (value) => {
+  const raw = String(value || "");
+  return raw.startsWith(DEMO_ENCRYPTION_PREFIX)
+    ? { value: raw.slice(DEMO_ENCRYPTION_PREFIX.length), prefixed: true }
+    : { value: raw, prefixed: false };
+};
+
+const decryptCredentialSecretCandidate = (
+  encryptedSecret,
+  webId,
+  name = "solid-dataspace",
+  validate = isReadableSecret
+) => {
+  try {
+    const { value } = stripEncryptionPrefix(encryptedSecret);
+    const encryptedBytes = base64ToBytes(value);
+    const keyBytes = encodeText(deriveDemoKey(webId, name));
+    const decrypted = encryptedBytes.map(
+      (byte, index) => byte ^ keyBytes[index % keyBytes.length]
+    );
+    const secret = decodeText(decrypted);
+    return validate(secret) ? secret : "";
+  } catch {
+    return "";
+  }
+};
+
+const uniqueSecretCandidates = (candidates) => {
+  const seen = new Set();
+  return candidates.filter(({ webId, name }) => {
+    const key = `${webId || ""}|${name || "solid-dataspace"}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return Boolean(webId);
+  });
+};
+
+const decryptCredentialTokenSecret = (
+  encryptedSecret,
+  candidates,
+  { allowPlaintextFallback = false } = {}
+) => {
+  const { prefixed } = stripEncryptionPrefix(encryptedSecret);
+  const validCandidates = uniqueSecretCandidates(candidates);
+
+  for (const candidate of validCandidates) {
+    const secret = decryptCredentialSecretCandidate(
+      encryptedSecret,
+      candidate.webId,
+      candidate.name,
+      isCredentialTokenSecret
+    );
+    if (secret) return secret;
+  }
+
+  if (!prefixed && allowPlaintextFallback && isCredentialTokenSecret(encryptedSecret)) {
+    return encryptedSecret;
+  }
+
+  throw new Error("Credential token secret could not be decoded.");
+};
+
+export const isCredentialTokenDecodeError = (error) =>
+  error?.message === "Credential token secret could not be decoded.";
 
 const isAbsoluteUrl = (value) => {
   try {
@@ -86,17 +167,19 @@ export function encryptCredentialSecret(secret, webId, name = "solid-dataspace")
   const encrypted = secretBytes.map(
     (byte, index) => byte ^ keyBytes[index % keyBytes.length]
   );
-  return bytesToBase64(encrypted);
+  return `${DEMO_ENCRYPTION_PREFIX}${bytesToBase64(encrypted)}`;
 }
 
 export function decryptCredentialSecret(encryptedSecret, webId, name = "solid-dataspace") {
   if (!encryptedSecret) return "";
-  const encryptedBytes = base64ToBytes(encryptedSecret);
-  const keyBytes = encodeText(deriveDemoKey(webId, name));
-  const decrypted = encryptedBytes.map(
-    (byte, index) => byte ^ keyBytes[index % keyBytes.length]
+  return (
+    decryptCredentialSecretCandidate(encryptedSecret, webId, name) ||
+    (stripEncryptionPrefix(encryptedSecret).prefixed
+      ? ""
+      : isReadableSecret(encryptedSecret)
+        ? encryptedSecret
+        : "")
   );
-  return decodeText(decrypted);
 }
 
 const ensureCredentialTokenContainer = async (webId, fetch) => {
@@ -135,23 +218,37 @@ export async function loadCredentialToken(webId, fetch, name = "solid-dataspace"
     const tokenThing = getThing(dataset, thingUrl);
     if (!tokenThing) return null;
 
+    const storedName = getStringNoLocale(tokenThing, SDM_TOKEN_NAME) || name;
+    const tokenWebId = getUrl(tokenThing, SDM_TOKEN_WEBID) || webId;
+    const algorithm =
+      getStringNoLocale(tokenThing, SDM_TOKEN_ALGORITHM) ||
+      (String(getStringNoLocale(tokenThing, SDM_TOKEN_SECRET) || "").startsWith(
+        DEMO_ENCRYPTION_PREFIX
+      )
+        ? DEMO_ENCRYPTION_ALGORITHM
+        : "");
     const id = getStringNoLocale(tokenThing, SDM_TOKEN_IDENTIFIER) || "";
     const encryptedSecret = getStringNoLocale(tokenThing, SDM_TOKEN_SECRET) || "";
     if (!id || !encryptedSecret) return null;
 
     return {
-      name: getStringNoLocale(tokenThing, SDM_TOKEN_NAME) || name,
+      name: storedName,
       id,
-      secret: decryptCredentialSecret(encryptedSecret, webId, name),
+      secret: decryptCredentialTokenSecret(
+        encryptedSecret,
+        [
+          { webId: tokenWebId, name: storedName },
+          { webId, name },
+        ],
+        { allowPlaintextFallback: true }
+      ),
       encryptedSecret,
-      webId: getUrl(tokenThing, SDM_TOKEN_WEBID) || webId,
+      webId: tokenWebId,
       resource:
         getUrl(tokenThing, SDM_TOKEN_RESOURCE) ||
         getStringNoLocale(tokenThing, SDM_TOKEN_RESOURCE) ||
         "",
-      algorithm:
-        getStringNoLocale(tokenThing, SDM_TOKEN_ALGORITHM) ||
-        DEMO_ENCRYPTION_ALGORITHM,
+      algorithm: algorithm || DEMO_ENCRYPTION_ALGORITHM,
       documentUrl,
       createdAt: getDatetime(tokenThing, DCTERMS_CREATED),
       modifiedAt: getDatetime(tokenThing, DCTERMS_MODIFIED),

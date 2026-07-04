@@ -45,7 +45,11 @@ import {
   readStoredAccountToken,
   resolveClientCredentialsUrl,
 } from "../cssAccountApi";
-import { loadCredentialToken, saveCredentialToken } from "../solidCredentialToken";
+import {
+  isCredentialTokenDecodeError,
+  loadCredentialToken,
+  saveCredentialToken,
+} from "../solidCredentialToken";
 import {
   registerSyncWorkerParticipant,
   resolveOidcIssuer,
@@ -270,7 +274,11 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
           DATASPACE_TOKEN_NAME
         );
       } catch (err) {
-        console.warn("Failed to load credential token from pod:", err);
+        if (isCredentialTokenDecodeError(err)) {
+          console.info("Stored credential token is invalid; setup will recreate it.");
+        } else {
+          console.warn("Failed to load credential token from pod:", err);
+        }
       }
       setCredentialTokenAcknowledged(Boolean(storedCredential));
 
@@ -508,11 +516,19 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
     if (!webId) return;
 
     const accountIndexUrl = credentialAccountIndexUrl || getAccountIndexUrl(webId);
-    const storedCredential = await loadCredentialToken(
-      webId,
-      session.fetch,
-      DATASPACE_TOKEN_NAME
-    );
+    let storedCredential = null;
+    try {
+      storedCredential = await loadCredentialToken(
+        webId,
+        session.fetch,
+        DATASPACE_TOKEN_NAME
+      );
+    } catch (err) {
+      if (!isCredentialTokenDecodeError(err)) {
+        throw err;
+      }
+      console.info("Stored credential token is invalid and will be replaced.");
+    }
 
     if (storedCredential) {
       return storedCredential;
