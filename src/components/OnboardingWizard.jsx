@@ -114,6 +114,36 @@ const containerExists = async (url) => {
   }
 };
 
+const isCredentialNameConflict = (error) =>
+  /\b409\b|conflict|already exists|duplicate/i.test(error?.message || "");
+
+const createDataspaceCredential = async (
+  clientCredentialsUrl,
+  { webId, accountToken }
+) => {
+  try {
+    return await createClientCredential(
+      clientCredentialsUrl,
+      {
+        name: DATASPACE_TOKEN_NAME,
+        webId,
+      },
+      accountToken
+    );
+  } catch (error) {
+    if (!isCredentialNameConflict(error)) throw error;
+    const uniqueName = `${DATASPACE_TOKEN_NAME}-${Date.now().toString(36)}`;
+    return createClientCredential(
+      clientCredentialsUrl,
+      {
+        name: uniqueName,
+        webId,
+      },
+      accountToken
+    );
+  }
+};
+
 export default function OnboardingWizard({ webId, onComplete, onCancel }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -551,14 +581,10 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
       throw new Error("This provider does not expose credential token creation.");
     }
 
-    const credential = await createClientCredential(
-      clientCredentialsUrl,
-      {
-        name: DATASPACE_TOKEN_NAME,
-        webId,
-      },
-      accountToken
-    );
+    const credential = await createDataspaceCredential(clientCredentialsUrl, {
+      webId,
+      accountToken,
+    });
 
     const stored = await saveCredentialToken(webId, session.fetch, {
       name: DATASPACE_TOKEN_NAME,
@@ -594,16 +620,25 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
         await configureCatalog();
         await configureConnections();
         const credentialToken = await configureCredentialToken();
-        await registerSyncWorkerParticipant({
-          webId,
-          oidcIssuer: resolveOidcIssuer({
-            accountIndexUrl: credentialAccountIndexUrl,
+        try {
+          const workerRegistration = await registerSyncWorkerParticipant({
             webId,
-          }),
-          accountIndexUrl: credentialAccountIndexUrl,
-          credentialToken,
-          solidFetch: session.fetch,
-        });
+            oidcIssuer: resolveOidcIssuer({
+              accountIndexUrl: credentialAccountIndexUrl,
+              webId,
+            }),
+            accountIndexUrl: credentialAccountIndexUrl,
+            credentialToken,
+            solidFetch: session.fetch,
+          });
+          if (workerRegistration?.registered === false) {
+            console.info(
+              `Sync worker registration skipped: ${workerRegistration.reason}.`
+            );
+          }
+        } catch (workerError) {
+          console.warn("Sync worker registration failed; setup will continue.", workerError);
+        }
         onComplete();
       }
     } catch (err) {

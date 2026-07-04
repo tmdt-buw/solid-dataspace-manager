@@ -21,6 +21,7 @@ const WORKER_ACCESS = {
   write: true,
   control: false,
 };
+const DEFAULT_REGISTRATION_TIMEOUT_MS = 8000;
 
 const getErrorStatus = (error) =>
   error?.statusCode || error?.response?.status || error?.status;
@@ -29,6 +30,28 @@ function normalizeApiUrl(apiUrl) {
   const value = String(apiUrl || "").trim();
   if (!value) return "";
   return value.replace(/\/+$/, "");
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_REGISTRATION_TIMEOUT_MS) {
+  if (typeof AbortController === "undefined" || !timeoutMs) {
+    return window.fetch(url, options);
+  }
+
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await window.fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Sync worker registration timed out.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }
 
 function normalizeResourceUrl(value) {
@@ -203,6 +226,7 @@ export async function registerSyncWorkerParticipant({
   credentialToken,
   storageDocumentUrl,
   solidFetch,
+  timeoutMs = DEFAULT_REGISTRATION_TIMEOUT_MS,
 }) {
   const config = getSyncWorkerConfig();
   const apiUrl = normalizeApiUrl(config.apiUrl);
@@ -210,28 +234,35 @@ export async function registerSyncWorkerParticipant({
   if (!config.enabled || !apiUrl) {
     return { registered: false, reason: "not-configured" };
   }
+  if (!config.serviceWebId) {
+    return { registered: false, reason: "service-webid-missing" };
+  }
 
   const access = await grantSyncWorkerAccess(webId, solidFetch, {
     storageDocumentUrl,
   });
   const issuer = resolveOidcIssuer({ oidcIssuer, accountIndexUrl, webId });
 
-  const response = await window.fetch(`${apiUrl}/participants`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
+  const response = await fetchWithTimeout(
+    `${apiUrl}/participants`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        webId,
+        oidcIssuer: issuer,
+        credentialId: credentialToken?.id || "",
+        credentialSecret: credentialToken?.secret || "",
+        credentialResource: credentialToken?.resource || "",
+        connectionsContainerUrl: getConnectionsContainerUrl(webId),
+        enabled: true,
+      }),
     },
-    body: JSON.stringify({
-      webId,
-      oidcIssuer: issuer,
-      credentialId: credentialToken?.id || "",
-      credentialSecret: credentialToken?.secret || "",
-      credentialResource: credentialToken?.resource || "",
-      connectionsContainerUrl: getConnectionsContainerUrl(webId),
-      enabled: true,
-    }),
-  });
+    timeoutMs
+  );
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
