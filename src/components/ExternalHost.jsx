@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { externalLinks } from "../externalLinks";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -11,11 +11,14 @@ import {
   faHeartPulse,
 } from "@fortawesome/free-solid-svg-icons";
 import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
+import { LANGUAGE_MESSAGE_TYPE, useI18n } from "../i18n";
 import "./ExternalHost.css";
 
 export default function ExternalHost() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const iframeRef = useRef(null);
+  const { language, t } = useI18n();
   const activeLink = externalLinks.find((link) => link.slug === slug);
   const [loaded, setLoaded] = useState(false);
 
@@ -38,21 +41,51 @@ export default function ExternalHost() {
     }
   }, [activeLink]);
 
+  const targetUrl = useMemo(() => {
+    if (!activeLink?.url) return "";
+    try {
+      const url = new URL(activeLink.url, window.location.origin);
+      url.searchParams.set("lang", language);
+      return url.toString();
+    } catch {
+      return activeLink.url;
+    }
+  }, [activeLink, language]);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [targetUrl]);
+
+  useEffect(() => {
+    const frameWindow = iframeRef.current?.contentWindow;
+    if (!frameWindow) return;
+    let targetOrigin = "*";
+    try {
+      targetOrigin = new URL(targetUrl, window.location.origin).origin;
+    } catch {
+      targetOrigin = "*";
+    }
+    frameWindow.postMessage(
+      { type: LANGUAGE_MESSAGE_TYPE, language },
+      targetOrigin
+    );
+  }, [language, targetUrl]);
+
   if (!activeLink) {
     return (
       <div className="container">
         <div className="toolbar">
           <div className="crumb">
-            <span>Not found</span>
+            <span>{t("Not found")}</span>
           </div>
           <div className="primary-actions">
             <button className="pill-btn" onClick={() => navigate(-1)}>
               <FontAwesomeIcon icon={faArrowLeft} />
-              <span>Back</span>
+              <span>{t("Back")}</span>
             </button>
           </div>
         </div>
-        <p>Unknown external link.</p>
+        <p>{t("Unknown external link.")}</p>
       </div>
     );
   }
@@ -78,12 +111,12 @@ export default function ExternalHost() {
           {!activeLink.hideOpenButton ? (
             <a
               className="pill-btn"
-              href={activeLink.url}
+              href={targetUrl}
               target="_blank"
               rel="noreferrer"
             >
               <FontAwesomeIcon icon={faUpRightFromSquare} />
-              <span>Open</span>
+              <span>{t("Open")}</span>
             </a>
           ) : null}
         </div>
@@ -103,10 +136,11 @@ export default function ExternalHost() {
           </div>
         ) : (
           <>
-            {!loaded && <p className="external-host-loading">Loading...</p>}
+            {!loaded && <p className="external-host-loading">{t("Loading...")}</p>}
             <div className="external-host-frame">
               <iframe
-                src={activeLink.url}
+                ref={iframeRef}
+                src={targetUrl}
                 title={activeLink.title}
                 onLoad={() => setLoaded(true)}
                 style={{ width: "100%", height: "100%", border: 0 }}

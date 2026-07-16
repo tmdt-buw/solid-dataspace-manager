@@ -62,7 +62,7 @@ const appIconMap = {
   rocketchat: faRocketchat,
 };
 
-function Sidebar({ webId, collapsed = false, onToggle }) {
+function Sidebar({ webId, collapsed = false, onToggle, statisticsAdmin = false }) {
   const { pathname } = useLocation();
   const isActive = (to) => pathname === to || (to !== "/" && pathname.startsWith(`${to}/`));
   const [unreadRequests, setUnreadRequests] = useState(0);
@@ -319,6 +319,20 @@ function Sidebar({ webId, collapsed = false, onToggle }) {
                 </a>
               );
             })}
+          </>
+        )}
+
+        {statisticsAdmin && (
+          <>
+            <div className="sb-section">Administration</div>
+            <Link
+              to="/statistics"
+              className={"sb-link" + (isActive("/statistics") ? " active" : "")}
+              title="Statistics Dashboard"
+            >
+              <FontAwesomeIcon icon={faChartLine} />
+              <span>Statistics Dashboard</span>
+            </Link>
           </>
         )}
 

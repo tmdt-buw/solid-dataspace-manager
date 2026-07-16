@@ -52,6 +52,19 @@ const fallbackConfig = {
     serviceWebId: "",
     intervalMinutes: 10,
   },
+  statistics: {
+    enabled: false,
+    adminWebIds: [
+      "https://solid-community-server.tmdt.info/solidtestpod/profile/card#me",
+    ],
+    workerWebId:
+      "https://solid-community-server.tmdt.info/solidserviceworker/profile/card#me",
+    podBaseUrl:
+      "https://solid-community-server.tmdt.info/solidtestpod/statistics/",
+    eventsUrl: "",
+    timezone: "Europe/Berlin",
+    activityResourcePath: "private/solid-dataspace/statistics/activity.ttl",
+  },
 };
 
 function getWindowConfig() {
@@ -177,6 +190,134 @@ function normalizeSyncWorker(syncWorker) {
   };
 }
 
+function normalizeWebIdList(value) {
+  if (!Array.isArray(value)) return [];
+
+  return Array.from(
+    new Set(
+      value
+        .filter((entry) => typeof entry === "string")
+        .map((entry) => entry.trim())
+        .filter((entry) => {
+          if (!entry) return false;
+          try {
+            const url = new URL(entry);
+            return url.protocol === "https:";
+          } catch {
+            return false;
+          }
+        })
+    )
+  );
+}
+
+function normalizeContainerUrl(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    if (url.protocol !== "https:") return "";
+    url.hash = "";
+    url.search = "";
+    return url.href.endsWith("/") ? url.href : `${url.href}/`;
+  } catch {
+    return "";
+  }
+}
+
+export function normalizeRelativeResourcePath(value) {
+  const raw = String(value || "").trim();
+  if (
+    !raw ||
+    raw.startsWith("/") ||
+    raw.includes("\\") ||
+    raw.includes("?") ||
+    raw.includes("#")
+  ) {
+    return "";
+  }
+
+  const segments = raw.split("/");
+  if (segments.some((segment) => !segment)) return "";
+
+  for (const segment of segments) {
+    let decoded;
+    try {
+      decoded = decodeURIComponent(segment);
+    } catch {
+      return "";
+    }
+    if (
+      !decoded ||
+      decoded === "." ||
+      decoded === ".." ||
+      decoded.includes("/") ||
+      decoded.includes("\\")
+    ) {
+      return "";
+    }
+  }
+
+  try {
+    const probe = new URL(raw, "https://example.invalid/");
+    if (
+      probe.origin !== "https://example.invalid" ||
+      probe.pathname.startsWith("//")
+    ) {
+      return "";
+    }
+  } catch {
+    return "";
+  }
+
+  return segments.join("/");
+}
+
+function normalizeActivityResourcePath(value) {
+  return (
+    normalizeRelativeResourcePath(value) ||
+    "private/solid-dataspace/statistics/activity.ttl"
+  );
+}
+
+function normalizeTimezone(value) {
+  const timezone = String(value || "").trim() || "Europe/Berlin";
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: timezone }).format();
+    return timezone;
+  } catch {
+    return "Europe/Berlin";
+  }
+}
+
+function normalizeBooleanFlag(value) {
+  if (value === true) return true;
+  if (typeof value !== "string") return false;
+  return ["true", "1", "yes", "on"].includes(value.trim().toLowerCase());
+}
+
+export function normalizeStatisticsConfig(statistics) {
+  const podBaseUrl = normalizeContainerUrl(statistics?.podBaseUrl);
+  const explicitEventsUrl = normalizeContainerUrl(statistics?.eventsUrl);
+  const adminWebIds = normalizeWebIdList(statistics?.adminWebIds);
+  const workerWebIds = normalizeWebIdList([statistics?.workerWebId]);
+
+  return {
+    enabled: normalizeBooleanFlag(statistics?.enabled) && Boolean(podBaseUrl),
+    adminWebIds,
+    workerWebId: workerWebIds[0] || "",
+    podBaseUrl,
+    activityResourcePath: normalizeActivityResourcePath(
+      statistics?.activityResourcePath
+    ),
+    eventsUrl:
+      explicitEventsUrl ||
+      (podBaseUrl ? new URL("events/downloads/", podBaseUrl).href : ""),
+    timezone: normalizeTimezone(statistics?.timezone),
+    currentSnapshotUrl: podBaseUrl
+      ? new URL("snapshots/current.json", podBaseUrl).href
+      : "",
+  };
+}
+
 const runtimeConfig = getWindowConfig();
 
 const appsSource =
@@ -214,6 +355,11 @@ export const appConfig = {
   syncWorker: normalizeSyncWorker(
     runtimeConfig.syncWorker || fallbackConfig.syncWorker
   ),
+  statistics: normalizeStatisticsConfig(
+    Object.prototype.hasOwnProperty.call(runtimeConfig, "statistics")
+      ? runtimeConfig.statistics
+      : fallbackConfig.statistics
+  ),
 };
 
 export function getAppsBySection(section) {
@@ -247,4 +393,15 @@ export function getFundingGrantNumber() {
 
 export function getSyncWorkerConfig() {
   return appConfig.syncWorker;
+}
+
+export function getStatisticsConfig() {
+  return appConfig.statistics;
+}
+
+export function isStatisticsAdmin(webId) {
+  return (
+    typeof webId === "string" &&
+    appConfig.statistics.adminWebIds.some((adminWebId) => adminWebId === webId)
+  );
 }

@@ -8,7 +8,9 @@ import {
   faUserPlus,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import { LanguageSelect } from "../i18n";
 import "../LoginScreen.css";
+import "./LanguageSelect.css";
 import LoginParticleCloud from "./LoginParticleCloud";
 import { getBranding, getEnabledProviders } from "../config/runtimeConfig";
 import {
@@ -426,6 +428,7 @@ export default function LoginScreen({ onLogin }) {
           </div>
 
           <div className="login-footer">
+            <LanguageSelect className="login-language-select" />
             <button
               type="button"
               className="login-secondary"

@@ -63,5 +63,16 @@ window.__APP_CONFIG__ = {
     "apiUrl": "/sync-worker",
     "serviceWebId": "https://solid-community-server.tmdt.info/solidserviceworker/profile/card#me",
     "intervalMinutes": 10
+  },
+  "statistics": {
+    "enabled": true,
+    "adminWebIds": [
+      "https://solid-community-server.tmdt.info/solidtestpod/profile/card#me"
+    ],
+    "workerWebId": "https://solid-community-server.tmdt.info/solidserviceworker/profile/card#me",
+    "podBaseUrl": "https://solid-community-server.tmdt.info/solidtestpod/statistics-local/",
+    "eventsUrl": "",
+    "timezone": "Europe/Berlin",
+    "activityResourcePath": "private/solid-dataspace/statistics/activity.ttl"
   }
 };

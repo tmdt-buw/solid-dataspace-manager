@@ -5,6 +5,27 @@
   padding:16px 0;
 }
 
+.login-language-select{
+  flex:0 0 auto;
+  margin-right:auto;
+  padding:0;
+  color:#0f172a;
+}
+
+.login-language-select select{
+  border-color:#dbe8ff;
+  border-radius:8px;
+  background:#f8fbff;
+}
+
+@media (max-width: 560px){
+  .login-language-select{
+    width:100%;
+    margin-right:0;
+    justify-content:space-between;
+  }
+}
+
 .login-wrap{
   width:min(980px, 100%);
   max-width: 980px;

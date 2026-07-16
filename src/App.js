@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import session from "./solidSession";
 import "@hoelk-f/solid-data-manager/embed.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -40,7 +40,17 @@ import OnboardingWizard from "./components/OnboardingWizard";
 import SolidPodProvider from "./components/SolidPodProvider";
 import DataConnection from "./components/DataConnection";
 import LoadingParticleCloud from "./components/LoadingParticleCloud";
+import StatisticsDashboard from "./components/StatisticsDashboard";
+import StatisticsRouteGuard from "./components/StatisticsRouteGuard";
 import { appVersion } from "./versions";
+import {
+  dispatchLanguageChange,
+  I18nProvider,
+  normalizeLanguage,
+  resolveInitialLanguageSource,
+  writeStoredLanguage,
+} from "./i18n";
+import { loadProfileLanguage, saveProfileLanguage } from "./i18nProfile";
 import {
   buildDefaultPrivateRegistry,
   loadRegistryConfig,
@@ -49,11 +59,23 @@ import {
 } from "./solidCatalog";
 import { connectionContainerExists } from "./solidConnections";
 import { loadCredentialToken } from "./solidCredentialToken";
-import { getFundingGrantNumber, getFundingLogos } from "./config/runtimeConfig";
+import {
+  getFundingGrantNumber,
+  getFundingLogos,
+  getStatisticsConfig,
+  isStatisticsAdmin,
+} from "./config/runtimeConfig";
+import { startStatisticsActivityHeartbeat } from "./statisticsActivity";
 
 const AUTH_BRIDGE_KEY = "__SOLID_DATASPACE_AUTH__";
+const statisticsConfig = getStatisticsConfig();
 
 const App = () => {
+  const initialLanguageRef = useRef(resolveInitialLanguageSource());
+  const [language, setLanguageState] = useState(initialLanguageRef.current.language);
+  const languageRef = useRef(language);
+  const languageListenersRef = useRef(new Set());
+  const profileLanguageResolvedRef = useRef(false);
   const [webId, setWebId] = useState(session.info.webId || "");
   const [sessionActive, setSessionActive] = useState(
     Boolean(session.info.isLoggedIn && session.info.webId)
@@ -90,12 +112,88 @@ const App = () => {
     setWebId("");
     setSessionActive(false);
     setOnboardingRequired(false);
+    profileLanguageResolvedRef.current = false;
   }, []);
+
+  const persistProfileLanguage = useCallback(
+    async (nextLanguage) => {
+      if (!sessionActive || !webId) return;
+      await saveProfileLanguage(webId, session.fetch, nextLanguage);
+    },
+    [sessionActive, webId]
+  );
+
+  const handleLanguageChange = useCallback(
+    async (nextLanguage) => {
+      const normalized = normalizeLanguage(nextLanguage);
+      setLanguageState(normalized);
+      await persistProfileLanguage(normalized);
+    },
+    [persistProfileLanguage]
+  );
 
   useEffect(() => {
     document.title = "Solid Dataspace";
     syncLocalStateFromSession();
   }, [syncLocalStateFromSession]);
+
+  useEffect(() => {
+    languageRef.current = language;
+    writeStoredLanguage(language);
+    dispatchLanguageChange(language);
+    languageListenersRef.current.forEach((callback) => {
+      try {
+        callback(language);
+      } catch (err) {
+        console.error("Language listener failed:", err);
+      }
+    });
+  }, [language]);
+
+  useEffect(() => {
+    profileLanguageResolvedRef.current = false;
+  }, [webId]);
+
+  useEffect(() => {
+    if (!sessionActive || !webId || !statisticsConfig.enabled) return undefined;
+
+    return startStatisticsActivityHeartbeat({
+      webId,
+      fetch: session.fetch,
+      config: statisticsConfig,
+      onError: () => {
+        console.warn("Statistics activity heartbeat failed.");
+      },
+    });
+  }, [sessionActive, webId]);
+
+  useEffect(() => {
+    if (!sessionActive || !webId || profileLanguageResolvedRef.current) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const profileLanguage = await loadProfileLanguage(webId, session.fetch);
+        if (cancelled) return;
+
+        if (profileLanguage && initialLanguageRef.current.source === "default") {
+          setLanguageState(profileLanguage);
+          writeStoredLanguage(profileLanguage);
+          dispatchLanguageChange(profileLanguage);
+        } else {
+          await saveProfileLanguage(webId, session.fetch, languageRef.current);
+        }
+      } catch (err) {
+        console.warn("Failed to sync language preference with profile:", err);
+      } finally {
+        if (!cancelled) profileLanguageResolvedRef.current = true;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionActive, webId]);
 
   useEffect(() => {
     setDataManagerSession(session);
@@ -118,6 +216,18 @@ const App = () => {
 
       getFetch: () => session.fetch.bind(session),
 
+      getLanguage: () => languageRef.current,
+
+      setLanguage: async (nextLanguage) => {
+        const normalized = normalizeLanguage(nextLanguage);
+        setLanguageState(normalized);
+        writeStoredLanguage(normalized);
+        dispatchLanguageChange(normalized);
+        if (session.info.isLoggedIn && session.info.webId) {
+          await saveProfileLanguage(session.info.webId, session.fetch, normalized);
+        }
+      },
+
       login: async (issuer) => {
         await loginToSolid(issuer);
       },
@@ -129,6 +239,11 @@ const App = () => {
       subscribe: (callback) => {
         listeners.add(callback);
         return () => listeners.delete(callback);
+      },
+
+      subscribeLanguage: (callback) => {
+        languageListenersRef.current.add(callback);
+        return () => languageListenersRef.current.delete(callback);
       },
 
       notify: () => {
@@ -306,8 +421,14 @@ const App = () => {
     checkProfileCompleteness();
   }, [sessionActive, webId]);
 
+  const renderWithI18n = (content) => (
+    <I18nProvider language={language} onLanguageChange={handleLanguageChange}>
+      {content}
+    </I18nProvider>
+  );
+
   if (!sessionActive) {
-    return (
+    return renderWithI18n(
       <div className="container">
         <LoginScreen onLogin={loginToSolid} />
       </div>
@@ -315,7 +436,7 @@ const App = () => {
   }
 
   if (checkingProfile) {
-    return (
+    return renderWithI18n(
       <div className="container">
         <div className="loading-screen">
           <div className="loading-card">
@@ -334,7 +455,7 @@ const App = () => {
   }
 
   if (onboardingRequired) {
-    return (
+    return renderWithI18n(
       <div className="container">
         <OnboardingWizard
           webId={webId}
@@ -349,7 +470,7 @@ const App = () => {
 
   const DataManagerPage = () => (
     <div className="data-manager-embed">
-      <DataManagerEmbed webId={webId} />
+      <DataManagerEmbed webId={webId} language={language} />
     </div>
   );
 
@@ -362,7 +483,14 @@ const App = () => {
         </div>
         <span className="integrated-version">{catalogVersion}</span>
       </div>
-      <SemanticDataCatalogEmbed webId={webId} />
+      <SemanticDataCatalogEmbed
+        webId={webId}
+        language={language}
+        statisticsConfig={{
+          enabled: statisticsConfig.enabled,
+          eventsUrl: statisticsConfig.eventsUrl,
+        }}
+      />
     </div>
   );
 
@@ -375,7 +503,7 @@ const App = () => {
         </div>
         <span className="integrated-version">{chatbotVersion}</span>
       </div>
-      <ChatbotEmbed webId={webId} session={session} />
+      <ChatbotEmbed webId={webId} session={session} language={language} />
     </div>
   );
 
@@ -388,20 +516,22 @@ const App = () => {
         </div>
         <span className="integrated-version">{healthAppVersion}</span>
       </div>
-      <HealthAppEmbed webId={webId} />
+      <HealthAppEmbed webId={webId} language={language} />
     </div>
   );
 
   const fundingLogos = getFundingLogos();
   const fundingGrantNumber = getFundingGrantNumber();
+  const statisticsAdmin = isStatisticsAdmin(webId);
 
-  return (
+  return renderWithI18n(
     <BrowserRouter>
       <div className={`layout${sidebarCollapsed ? " layout--sidebar-collapsed" : ""}`}>
         <Sidebar
           webId={webId}
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed((value) => !value)}
+          statisticsAdmin={statisticsAdmin}
         />
         <div className="main">
           <div className="container">
@@ -415,6 +545,18 @@ const App = () => {
               <Route path="/profile" element={<ProfilePage webId={webId} />} />
               <Route path="/pod-provider" element={<SolidPodProvider webId={webId} />} />
               <Route path="/info" element={<Info />} />
+              <Route
+                path="/statistics"
+                element={
+                  <StatisticsRouteGuard webId={webId}>
+                    <StatisticsDashboard
+                      webId={webId}
+                      solidFetch={session.fetch}
+                      config={statisticsConfig}
+                    />
+                  </StatisticsRouteGuard>
+                }
+              />
               <Route path="/web/solid-health-app" element={<HealthAppPage />} />
               <Route path="/web/solid-chatbot" element={<ChatbotPage />} />
               <Route path="/web/:slug" element={<ExternalHost />} />

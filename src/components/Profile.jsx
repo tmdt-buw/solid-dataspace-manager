@@ -35,7 +35,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUserCircle, faPen, faPlus, faTrash,
   faEnvelope, faInbox, faBookOpen, faSitemap, faFlask, faDatabase,
-  faKey, faEye, faEyeSlash
+  faKey, faEye, faEyeSlash, faGlobe
 } from "@fortawesome/free-solid-svg-icons";
 import {
   buildDefaultPrivateRegistry,
@@ -51,6 +51,8 @@ import {
   syncRegistryMembership,
 } from "../solidCatalog";
 import { loadCredentialToken } from "../solidCredentialToken";
+import { LanguageSelect, useI18n } from "../i18n";
+import "./LanguageSelect.css";
 
 const VCARD_TYPE = "http://www.w3.org/2006/vcard/ns#type";
 const DATASPACE_TOKEN_NAME = "solid-dataspace";
@@ -173,6 +175,7 @@ const ListEditor = memo(function ListEditor({ values, setValues, readOnly, profi
 });
 
 export default function Profile({ webId }) {
+  const { syncError, t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
@@ -671,6 +674,23 @@ export default function Profile({ webId }) {
       <form className="pf-wrap" onSubmit={onSave}>
       <div className="pf-head">
         <h2>Your Profile</h2>
+      </div>
+
+      <div className="pf-card">
+        <div className="pf-card__head">
+          <div className="pf-card__title">
+            <FontAwesomeIcon icon={faGlobe} className="pf-card__titleIcon" />
+            <span>{t("Language Preference")}</span>
+          </div>
+        </div>
+        <div className="pf-card__body">
+          <LanguageSelect />
+          {syncError ? (
+            <div className="pf-muted" style={{ marginTop: 8 }}>
+              {t(syncError)}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div className="pf-card">

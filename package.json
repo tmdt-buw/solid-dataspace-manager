@@ -1,6 +1,6 @@
 {
   "name": "pod_browser",
-  "version": "0.3.45",
+  "version": "0.3.47",
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
@@ -47,8 +47,18 @@
   },
   "eslintConfig": {
     "extends": [
-      "react-app",
-      "react-app/jest"
+      "react-app"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "**/__tests__/**/*",
+          "**/*.{spec,test}.*"
+        ],
+        "env": {
+          "jest": true
+        }
+      }
     ]
   },
   "browserslist": {
