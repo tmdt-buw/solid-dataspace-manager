@@ -175,6 +175,11 @@ test("renders the complete snapshot with the compact dashboard labels", async ()
   expect(
     screen.queryByText("Downloads by catalog instance")
   ).not.toBeInTheDocument();
+  expect(screen.queryByText("Dataset access clicks")).not.toBeInTheDocument();
+  expect(screen.queryByText("Access clicks")).not.toBeInTheDocument();
+  expect(
+    screen.getByText("Catalog downloads").closest(".statistics-metric")
+  ).toHaveTextContent("5");
   expect(screen.queryByText("Partial errors")).not.toBeInTheDocument();
   expect(solidFetch).toHaveBeenCalledWith(config.currentSnapshotUrl, {
     method: "GET",
@@ -230,21 +235,44 @@ test("renders catalog-instance downloads without replacing aggregate downloads",
   expect(rows).toHaveLength(2);
   expect(rows[0]).toHaveTextContent("TMDT Test");
   expect(rows[0]).toHaveTextContent("test");
-  expect(rows[0]).toHaveTextContent("5");
+  expect(rows[0]).toHaveTextContent("4");
   expect(rows[0]).toHaveTextContent("3");
   expect(rows[1]).toHaveTextContent("DACE");
   expect(rows[1]).toHaveTextContent("dace");
+  expect(rows[1]).toHaveTextContent("1");
   expect(screen.getByText("Air quality")).toBeInTheDocument();
   expect(
-    screen.getByText("Catalog actions").closest(".statistics-metric")
-  ).toHaveTextContent("8");
+    screen.getByText("Catalog downloads").closest(".statistics-metric")
+  ).toHaveTextContent("5");
+  expect(screen.queryByText("Access clicks")).not.toBeInTheDocument();
 });
 
-test("normalizes catalog-instance downloads additively and supports legacy snapshots", () => {
+test("normalizes legacy snapshots using only the two download event types", () => {
   const normalized = normalizeStatisticsSnapshot({
     downloads: {
       total: 8,
-      byType: { dataset_download: 4 },
+      byType: { dataset_download: 4, dataset_access: 3 },
+      monthly: [{
+        month: "2026-07",
+        total: 8,
+        byType: {
+          dataset_download: 4,
+          dataset_access: 3,
+          semantic_model_download: 1,
+        },
+      }],
+      datasets: [
+        {
+          datasetUrl: "https://catalog.example/kept.ttl",
+          total: 4,
+          byType: { dataset_download: 2, dataset_access: 2 },
+        },
+        {
+          datasetUrl: "https://catalog.example/access-only.ttl",
+          total: 3,
+          byType: { dataset_access: 3 },
+        },
+      ],
       byCatalogInstance: [
         {
           id: "test",
@@ -259,16 +287,32 @@ test("normalizes catalog-instance downloads additively and supports legacy snaps
     },
   });
 
-  expect(normalized.downloads.total).toBe(8);
+  expect(normalized.downloads.total).toBe(4);
   expect(normalized.downloads.byType.dataset_download).toBe(4);
+  expect(normalized.downloads.byType).toEqual({
+    dataset_download: 4,
+    semantic_model_download: 0,
+  });
+  expect(normalized.downloads.datasets).toHaveLength(1);
+  expect(normalized.downloads.datasets[0]).toMatchObject({
+    datasetUrl: "https://catalog.example/kept.ttl",
+    total: 2,
+  });
+  expect(normalized.downloads.monthly[0]).toEqual({
+    month: "2026-07",
+    total: 5,
+    byType: {
+      dataset_download: 4,
+      semantic_model_download: 1,
+    },
+  });
   expect(normalized.downloads.byCatalogInstance).toEqual([
     {
       id: "test",
       label: "TMDT Test",
-      total: 5,
+      total: 3,
       byType: {
         dataset_download: 3,
-        dataset_access: 1,
         semantic_model_download: 0,
       },
     },
@@ -285,7 +329,8 @@ test("normalizes catalog-instance downloads additively and supports legacy snaps
         },
       },
     }).downloads.byCatalogInstance[0]
-  ).toMatchObject({ id: "timberconnect", label: "TimberConnect", total: 2 });
+  ).toMatchObject({ id: "timberconnect", label: "TimberConnect", total: 0 });
+  expect(JSON.stringify(normalized.downloads)).not.toContain("dataset_access");
 });
 
 test("hides initialization for existing statistics storage", async () => {

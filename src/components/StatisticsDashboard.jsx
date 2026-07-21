@@ -18,7 +18,6 @@ import "./StatisticsDashboard.css";
 
 const DOWNLOAD_TYPES = [
   ["dataset_download", "Dataset downloads"],
-  ["dataset_access", "Dataset access clicks"],
   ["semantic_model_download", "Semantic model downloads"],
 ];
 
@@ -41,6 +40,12 @@ function normalizeDownloadTypes(byType = {}) {
   );
 }
 
+const downloadTotal = (byType = {}) =>
+  DOWNLOAD_TYPES.reduce(
+    (total, [type]) => total + numberOrZero(byType?.[type]),
+    0
+  );
+
 function normalizeCatalogInstanceDownloads(value) {
   const entries = Array.isArray(value)
     ? value.map((instance) => ["", instance])
@@ -57,12 +62,13 @@ function normalizeCatalogInstanceDownloads(value) {
       instance.id || fallbackId || instance.label || `catalog-${index + 1}`
     );
     const label = String(instance.label || id);
+    const byType = normalizeDownloadTypes(instance.byType);
     return [
       {
         id,
         label,
-        total: numberOrZero(instance.total),
-        byType: normalizeDownloadTypes(instance.byType),
+        total: downloadTotal(byType),
+        byType,
       },
     ];
   });
@@ -71,6 +77,7 @@ function normalizeCatalogInstanceDownloads(value) {
 export function normalizeStatisticsSnapshot(raw = {}) {
   const downloads = raw.downloads || {};
   const catalog = raw.catalog || {};
+  const downloadsByType = normalizeDownloadTypes(downloads.byType);
   return {
     schemaVersion: numberOrZero(raw.schemaVersion),
     generatedAt: raw.generatedAt || "",
@@ -107,20 +114,32 @@ export function normalizeStatisticsSnapshot(raw = {}) {
         .slice(-24),
     },
     downloads: {
-      total: numberOrZero(downloads.total),
-      byType: normalizeDownloadTypes(downloads.byType),
+      total: downloadTotal(downloadsByType),
+      byType: downloadsByType,
       byCatalogInstance: normalizeCatalogInstanceDownloads(
         downloads.byCatalogInstance
       ),
       datasets: arrayOrEmpty(downloads.datasets)
-        .map((dataset) => ({
-          datasetUrl: dataset?.datasetUrl || "",
-          title: dataset?.title || dataset?.datasetUrl || "Unknown dataset",
-          total: numberOrZero(dataset?.total),
-          byType: normalizeDownloadTypes(dataset?.byType),
-        }))
+        .flatMap((dataset) => {
+          const byType = normalizeDownloadTypes(dataset?.byType);
+          const total = downloadTotal(byType);
+          if (!total) return [];
+          return [{
+            datasetUrl: dataset?.datasetUrl || "",
+            title: dataset?.title || dataset?.datasetUrl || "Unknown dataset",
+            total,
+            byType,
+          }];
+        })
         .sort((a, b) => b.total - a.total),
-      monthly: arrayOrEmpty(downloads.monthly),
+      monthly: arrayOrEmpty(downloads.monthly).map((month) => {
+        const byType = normalizeDownloadTypes(month?.byType);
+        return {
+          ...month,
+          total: downloadTotal(byType),
+          byType,
+        };
+      }),
     },
     catalog: {
       datasets: normalizeCatalogEntity(catalog.datasets),
@@ -569,7 +588,7 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
             />
             <MetricCard
               icon={faDownload}
-              label={t("Catalog actions")}
+              label={t("Catalog downloads")}
               value={formatNumber(snapshot.downloads.total, language)}
             />
             <MetricCard
@@ -660,7 +679,7 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
           <article className="statistics-panel">
             <div className="statistics-panel__header">
               <div>
-                <h2>{t("Downloads and access clicks")}</h2>
+                <h2>{t("Downloads")}</h2>
               </div>
             </div>
             <div className="statistics-download-types">
@@ -681,7 +700,6 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
                         <th>{t("Catalog instance")}</th>
                         <th>{t("Total")}</th>
                         <th>{t("Downloads")}</th>
-                        <th>{t("Access clicks")}</th>
                         <th>{t("Models")}</th>
                       </tr>
                     </thead>
@@ -699,12 +717,6 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
                             <td>
                               {formatNumber(
                                 instance.byType.dataset_download,
-                                language
-                              )}
-                            </td>
-                            <td>
-                              {formatNumber(
-                                instance.byType.dataset_access,
                                 language
                               )}
                             </td>
@@ -729,7 +741,6 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
                     <th>{t("Dataset")}</th>
                     <th>{t("Total")}</th>
                     <th>{t("Downloads")}</th>
-                    <th>{t("Access clicks")}</th>
                     <th>{t("Models")}</th>
                   </tr>
                 </thead>
@@ -743,7 +754,6 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
                         </td>
                         <td>{formatNumber(dataset.total, language)}</td>
                         <td>{formatNumber(dataset.byType.dataset_download, language)}</td>
-                        <td>{formatNumber(dataset.byType.dataset_access, language)}</td>
                         <td>
                           {formatNumber(dataset.byType.semantic_model_download, language)}
                         </td>
@@ -751,8 +761,8 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="statistics-empty">
-                        {t("No catalog actions available yet.")}
+                      <td colSpan="4" className="statistics-empty">
+                        {t("No downloads available yet.")}
                       </td>
                     </tr>
                   )}
