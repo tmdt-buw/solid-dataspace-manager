@@ -87,7 +87,7 @@ describe("statistics runtime config", () => {
       podBaseUrl: "https://pod.example/statistics/",
       eventsUrl: "https://events.example/downloads/",
       timezone: "Europe/Berlin",
-      activityResourcePath: "private/solid-dataspace/statistics/activity.ttl",
+      activityResourcePath: "statistics/activity/activity.ttl",
     });
   });
 
@@ -108,9 +108,9 @@ describe("statistics runtime config", () => {
   test("accepts only safe relative activity resource segments", () => {
     expect(
       normalizeRelativeResourcePath(
-        "private/solid-dataspace/statistics/activity.ttl"
+        "statistics/activity/activity.ttl"
       )
-    ).toBe("private/solid-dataspace/statistics/activity.ttl");
+    ).toBe("statistics/activity/activity.ttl");
 
     for (const unsafe of [
       "%2e%2e/%2e%2e/profile/card",

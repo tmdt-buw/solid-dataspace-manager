@@ -70,9 +70,9 @@ window.__APP_CONFIG__ = {
       "https://solid-community-server.tmdt.info/solidtestpod/profile/card#me"
     ],
     "workerWebId": "https://solid-community-server.tmdt.info/solidserviceworker/profile/card#me",
-    "podBaseUrl": "https://solid-community-server.tmdt.info/solidtestpod/statistics-local/",
-    "eventsUrl": "",
+    "podBaseUrl": "https://solid-community-server.tmdt.info/solidtestpod/statistics/",
+    "eventsUrl": "https://solid-community-server.tmdt.info/solidtestpod/statistics/events/catalog-instances/test/downloads/",
     "timezone": "Europe/Berlin",
-    "activityResourcePath": "private/solid-dataspace/statistics/activity.ttl"
+    "activityResourcePath": "statistics/activity/activity.ttl"
   }
 };

@@ -13,6 +13,8 @@ const mockCreateContainerAt = jest.fn();
 const mockGetPodUrlAll = jest.fn();
 const mockGetSolidDatasetWithAcl = jest.fn();
 const mockSaveAclFor = jest.fn();
+const mockSetAgentResourceAccess = jest.fn((acl) => acl);
+const mockSetAgentDefaultAccess = jest.fn((acl) => acl);
 
 jest.mock("@inrupt/solid-client", () => ({
   createAcl: jest.fn(() => ({ acl: true })),
@@ -21,8 +23,8 @@ jest.mock("@inrupt/solid-client", () => ({
   getSolidDatasetWithAcl: (...args) => mockGetSolidDatasetWithAcl(...args),
   hasAccessibleAcl: () => true,
   saveAclFor: (...args) => mockSaveAclFor(...args),
-  setAgentResourceAccess: jest.fn((acl) => acl),
-  setAgentDefaultAccess: jest.fn((acl) => acl),
+  setAgentResourceAccess: (...args) => mockSetAgentResourceAccess(...args),
+  setAgentDefaultAccess: (...args) => mockSetAgentDefaultAccess(...args),
   setPublicDefaultAccess: jest.fn((acl) => acl),
   setPublicResourceAccess: jest.fn((acl) => acl),
 }));
@@ -30,8 +32,15 @@ jest.mock("@inrupt/solid-client", () => ({
 const config = {
   enabled: true,
   workerWebId: "https://worker.example/profile/card#me",
-  activityResourcePath: "private/solid-dataspace/statistics/activity.ttl",
+  activityResourcePath: "statistics/activity/activity.ttl",
   timezone: "Europe/Berlin",
+};
+const ownerWebId = "https://pod.example/alice/profile/card#me";
+const secondaryAdminWebId = "https://pod.example/admin/profile/card#me";
+const centralConfig = {
+  ...config,
+  podBaseUrl: "https://pod.example/alice/statistics/",
+  adminWebIds: [ownerWebId, secondaryAdminWebId],
 };
 
 function response(status, { body = "", etag = "" } = {}) {
@@ -68,10 +77,10 @@ describe("statistics activity", () => {
     expect(
       resolveActivityResourceUrl(
         "https://pod.example/alice",
-        "private/solid-dataspace/statistics/activity.ttl"
+        "statistics/activity/activity.ttl"
       )
     ).toBe(
-      "https://pod.example/alice/private/solid-dataspace/statistics/activity.ttl"
+      "https://pod.example/alice/statistics/activity/activity.ttl"
     );
   });
 
@@ -124,7 +133,7 @@ describe("statistics activity", () => {
     expect(() =>
       resolveActivityResourceUrl(
         "http://pod.example/alice/",
-        "private/solid-dataspace/statistics/activity.ttl"
+        "statistics/activity/activity.ttl"
       )
     ).toThrow(/Invalid Solid storage URL/);
   });
@@ -155,6 +164,113 @@ describe("statistics activity", () => {
       false
     );
     expect(mockSaveAclFor).toHaveBeenCalledTimes(2);
+    expect(mockGetSolidDatasetWithAcl.mock.calls.map(([url]) => url)).toEqual([
+      "https://pod.example/alice/statistics/activity/",
+      "https://pod.example/alice/statistics/activity/activity.ttl",
+    ]);
+    const workerContainerAccess = mockSetAgentResourceAccess.mock.calls.find(
+      ([, agent, access]) => agent === config.workerWebId && access?.control
+    );
+    expect(workerContainerAccess?.slice(1)).toEqual([
+      config.workerWebId,
+      { read: true, append: false, write: false, control: true },
+    ]);
+  });
+
+  test("uses the dedicated activity ACL when the central statistics root is forbidden", async () => {
+    const now = new Date("2026-07-14T12:00:00.000Z");
+    const existing = buildActivityTurtle(now, config.timezone);
+    const fetcher = jest.fn(async (url) => {
+      if (url === "https://pod.example/alice/statistics/") {
+        return response(403);
+      }
+      if (url.endsWith("activity.ttl")) {
+        return response(200, { body: existing, etag: '"same-day"' });
+      }
+      return response(200);
+    });
+
+    await expect(
+      recordStatisticsActivity({
+        webId: ownerWebId,
+        fetch: fetcher,
+        config: centralConfig,
+        now,
+      })
+    ).resolves.toMatchObject({ recorded: false, reason: "already-recorded" });
+
+    expect(mockGetSolidDatasetWithAcl.mock.calls.map(([url]) => url)).toEqual([
+      "https://pod.example/alice/statistics/activity/",
+      "https://pod.example/alice/statistics/activity/activity.ttl",
+    ]);
+    expect(
+      mockSetAgentResourceAccess.mock.calls.some(
+        ([, agent, access]) =>
+          agent === secondaryAdminWebId && access?.write && access?.control
+      )
+    ).toBe(true);
+  });
+
+  test("gives the worker bootstrap access when creating a fresh central statistics root", async () => {
+    const now = new Date("2026-07-14T12:00:00.000Z");
+    const existing = buildActivityTurtle(now, config.timezone);
+    const fetcher = jest.fn(async (url) => {
+      if (url === "https://pod.example/alice/statistics/" || url.endsWith("activity/")) {
+        return response(404);
+      }
+      if (url.endsWith("activity.ttl")) {
+        return response(200, { body: existing, etag: '"same-day"' });
+      }
+      return response(200);
+    });
+
+    await recordStatisticsActivity({
+      webId: ownerWebId,
+      fetch: fetcher,
+      config: centralConfig,
+      now,
+    });
+
+    expect(mockCreateContainerAt.mock.calls.map(([url]) => url)).toEqual([
+      "https://pod.example/alice/statistics/",
+      "https://pod.example/alice/statistics/activity/",
+    ]);
+    const workerRootAccess = mockSetAgentResourceAccess.mock.calls.find(
+      ([, agent, access]) =>
+        agent === config.workerWebId && access?.write && access?.control
+    );
+    const workerRootDefault = mockSetAgentDefaultAccess.mock.calls.find(
+      ([, agent, access]) =>
+        agent === config.workerWebId && access?.write && access?.control
+    );
+    expect(workerRootAccess).toBeDefined();
+    expect(workerRootDefault).toBeDefined();
+  });
+
+  test("does not grant central statistics admins access to a member Pod container", async () => {
+    const now = new Date("2026-07-14T12:00:00.000Z");
+    const existing = buildActivityTurtle(now, config.timezone);
+    const fetcher = jest.fn(async (url) =>
+      url.endsWith("activity.ttl")
+        ? response(200, { body: existing, etag: '"same-day"' })
+        : response(200)
+    );
+
+    await recordStatisticsActivity({
+      webId: ownerWebId,
+      fetch: fetcher,
+      config: {
+        ...centralConfig,
+        podBaseUrl: "https://pod.example/admin/statistics/",
+      },
+      now,
+    });
+
+    expect(
+      mockSetAgentResourceAccess.mock.calls.some(
+        ([, agent]) => agent === secondaryAdminWebId
+      )
+    ).toBe(false);
   });
 
   test("retries an ETag conflict and writes at most with If-Match", async () => {

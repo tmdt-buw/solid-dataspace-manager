@@ -74,6 +74,17 @@ describe("i18n language resolution", () => {
     expect(translateText("Dataset metadata quality", "de")).toBe(
       "Dataset-Metadatenqualität"
     );
+    expect(translateText("Usage Statistics", "de")).toBe(
+      "Nutzungsstatistiken"
+    );
+    expect(
+      translateText(
+        "I agree that finishing will create and update my usage statistics in my pod.",
+        "de"
+      )
+    ).toBe(
+      "Ich stimme zu, dass beim Abschließen meine Nutzungsstatistiken in meinem Pod erstellt und aktualisiert werden."
+    );
     expect(
       translateText(
         "The statistics snapshot could not be loaded (503).",

@@ -3,6 +3,7 @@ import { createContainerAt } from "@inrupt/solid-client";
 const ACL = "http://www.w3.org/ns/auth/acl#";
 const RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const FULL_MODES = ["Read", "Append", "Write", "Control"];
+const ACTIVITY_WORKER_MODES = ["Read", "Control"];
 const ADMIN_SNAPSHOT_MODES = ["Read"];
 
 function escapeTurtleUrl(value) {
@@ -36,6 +37,8 @@ export function buildStatisticsContainerAcl({
   targetUrl,
   adminWebIds,
   workerWebId,
+  workerModes = FULL_MODES,
+  workerDefaults = true,
   adminModes = [],
   authenticatedAppend = false,
 }) {
@@ -54,7 +57,8 @@ export function buildStatisticsContainerAcl({
       id: "worker",
       targetUrl,
       agent: workerWebId,
-      modes: FULL_MODES,
+      modes: workerModes,
+      defaults: workerDefaults,
     }),
   ];
 
@@ -83,6 +87,13 @@ export function getStatisticsContainerDefinitions(podBaseUrl) {
   const baseUrl = new URL(podBaseUrl).href;
   return [
     { key: "base", url: baseUrl, adminModes: [] },
+    {
+      key: "activity",
+      url: new URL("activity/", baseUrl).href,
+      adminModes: FULL_MODES,
+      workerModes: ACTIVITY_WORKER_MODES,
+      workerDefaults: false,
+    },
     {
       key: "events",
       url: new URL("events/", baseUrl).href,
@@ -179,6 +190,8 @@ async function putAcl(
       targetUrl: definition.url,
       adminWebIds,
       workerWebId,
+      workerModes: definition.workerModes,
+      workerDefaults: definition.workerDefaults,
       adminModes: temporary ? FULL_MODES : definition.adminModes,
       authenticatedAppend: temporary ? false : definition.authenticatedAppend,
     }),

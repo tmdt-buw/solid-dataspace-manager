@@ -136,6 +136,19 @@ describe("statistics Pod setup", () => {
     expect(eventsAcl).toContain("AuthenticatedAgent");
     expect(eventsAcl).not.toContain("<#admin-1>");
 
+    const activityAcl = finalAclWrites.find(([url]) =>
+      url.endsWith("activity/.acl")
+    )[1].body;
+    const activityWorkerRule = getAuthorizationBlock(activityAcl, "worker");
+    expect(activityWorkerRule).toContain("acl:mode acl:Read, acl:Control .");
+    expect(activityWorkerRule).not.toContain("acl:Append");
+    expect(activityWorkerRule).not.toContain("acl:Write");
+    expect(activityWorkerRule).not.toContain("acl:default");
+    const activityAdminRule = getAuthorizationBlock(activityAcl, "admin-1");
+    expect(activityAdminRule).toContain(
+      "acl:mode acl:Read, acl:Append, acl:Write, acl:Control ."
+    );
+
     const snapshotsAcl = finalAclWrites.find(([url]) =>
       url.endsWith("snapshots/.acl")
     )[1].body;

@@ -60,6 +60,11 @@ import {
   getConnectionsContainerUrl,
 } from "../solidConnections";
 import { ensurePodStorageLink } from "../solidStorage";
+import { recordStatisticsActivity } from "../statisticsActivity";
+import {
+  hasStatisticsConsent,
+  saveStatisticsConsent,
+} from "../statisticsConsent";
 import "./OnboardingWizard.css";
 
 const VCARD_TYPE = "http://www.w3.org/2006/vcard/ns#type";
@@ -145,7 +150,12 @@ const createDataspaceCredential = async (
   }
 };
 
-export default function OnboardingWizard({ webId, onComplete, onCancel }) {
+export default function OnboardingWizard({
+  webId,
+  statisticsConfig,
+  onComplete,
+  onCancel,
+}) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState(1);
@@ -174,6 +184,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
   const [credentialAccountIndexUrl, setCredentialAccountIndexUrl] = useState("");
   const [credentialTokenAcknowledged, setCredentialTokenAcknowledged] = useState(false);
   const [connectionsAcknowledged, setConnectionsAcknowledged] = useState(false);
+  const [statisticsAcknowledged, setStatisticsAcknowledged] = useState(false);
 
   const steps = useMemo(
     () => [
@@ -186,6 +197,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
 
   const basicsComplete = Boolean(name.trim() && org.trim() && role.trim());
   const emailsComplete = normalizeEmails(emails).length > 0;
+  const statisticsEnabled = Boolean(statisticsConfig?.enabled);
   const defaultPrivateRegistry = buildDefaultPrivateRegistry(webId);
   const registrySelectionsComplete = registrySelections.length > 0;
   const getRegistryConfig = () => ({
@@ -215,9 +227,11 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
         getStringNoLocale(me, VCARD.fn) ||
         getStringNoLocale(me, FOAF.name) ||
         `${getStringNoLocale(me, VCARD.given_name) || ""} ${getStringNoLocale(me, VCARD.family_name) || ""}`.trim();
+      const loadedOrg = getStringNoLocale(me, VCARD.organization_name) || "";
+      const loadedRole = getStringNoLocale(me, VCARD.role) || "";
       setName(nm || "");
-      setOrg(getStringNoLocale(me, VCARD.organization_name) || "");
-      setRole(getStringNoLocale(me, VCARD.role) || "");
+      setOrg(loadedOrg);
+      setRole(loadedRole);
 
       const emailUris = getUrlAll(me, VCARD.hasEmail) || [];
       const collected = [];
@@ -246,6 +260,9 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
       setInboxAcknowledged(hasInboxContainer);
       const photo = getUrl(me, VCARD.hasPhoto) || getUrl(me, FOAF.img) || "";
       setPhotoIri(photo);
+      const statisticsConsentGranted =
+        !statisticsEnabled || hasStatisticsConsent(me);
+      setStatisticsAcknowledged(statisticsConsentGranted);
 
       const profileCatalog = getUrl(me, SDP_CATALOG) || "";
       let catalogResolved = profileCatalog;
@@ -319,7 +336,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
       );
       setConnectionsAcknowledged(hasConnectionsContainer);
 
-      const missingBasics = !(nm && org && role);
+      const missingBasics = !(nm && loadedOrg && loadedRole);
       const missingEmail = allEmails.length === 0;
       const missingInbox = !inbox;
       const missingCatalog = !hasCatalog;
@@ -328,6 +345,8 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
         (registryConfig.mode !== "private" && !(registryConfig.registries || []).length);
       const missingCredentialToken = !storedCredential;
       const missingConnectionsContainer = !hasConnectionsContainer;
+      const missingStatisticsConsent =
+        statisticsEnabled && !statisticsConsentGranted;
 
       if (
         !missingBasics &&
@@ -336,7 +355,8 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
         !missingCatalog &&
         !registryMissing &&
         !missingCredentialToken &&
-        !missingConnectionsContainer
+        !missingConnectionsContainer &&
+        !missingStatisticsConsent
       ) {
         onComplete();
         return;
@@ -618,10 +638,21 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
         await saveEmails();
         setStep(3);
       } else if (step === 3) {
+        if (statisticsEnabled && !statisticsAcknowledged) {
+          throw new Error("Usage statistics consent is required.");
+        }
         await configureInbox();
         await configureCatalog();
         await configureConnections();
         const credentialToken = await configureCredentialToken();
+        if (statisticsEnabled) {
+          await recordStatisticsActivity({
+            webId,
+            fetch: session.fetch,
+            config: statisticsConfig,
+          });
+          await saveStatisticsConsent(webId, session.fetch);
+        }
         try {
           const workerRegistration = await registerSyncWorkerParticipant({
             webId,
@@ -801,11 +832,15 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
 
         {step === 3 && (
           <div className="onboarding-section">
-            <h3>Inbox, Catalog, Registry, Connections & Token</h3>
+            <h3>
+              {statisticsEnabled
+                ? "Inbox, Catalog, Registry, Connections, Statistics & Token"
+                : "Inbox, Catalog, Registry, Connections & Token"}
+            </h3>
             <p>
-              Configure your Solid inbox, catalog, registry settings, connections folder,
-              and a credential token so access requests, metadata, connections, and
-              automated access can work with your pod.
+              {statisticsEnabled
+                ? "Configure your Solid inbox, catalog, registry settings, connections folder, usage statistics, and a credential token so access requests, metadata, connections, and automated access can work with your pod."
+                : "Configure your Solid inbox, catalog, registry settings, connections folder, and a credential token so access requests, metadata, connections, and automated access can work with your pod."}
             </p>
             <div className="onboarding-inbox">
               <div className="onboarding-inbox__label">Inbox URL</div>
@@ -951,6 +986,30 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
               </label>
             </div>
 
+            {statisticsEnabled && (
+              <div className="onboarding-inbox" style={{ marginTop: 18 }}>
+                <div className="onboarding-inbox__label">Usage Statistics</div>
+                <div className="onboarding-inbox__value">
+                  {`${getPodRoot(webId)}${statisticsConfig.activityResourcePath}`}
+                </div>
+                <div className="onboarding-inbox__hint">
+                  The Manager stores your last activity time and active calendar month
+                  in this file. The statistics worker receives read-only access.
+                </div>
+                <label className="onboarding-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={statisticsAcknowledged}
+                    onChange={(e) => setStatisticsAcknowledged(e.target.checked)}
+                  />
+                  <span>
+                    I agree that finishing will create and update my usage statistics
+                    in my pod.
+                  </span>
+                </label>
+              </div>
+            )}
+
             <div className="onboarding-inbox" style={{ marginTop: 18 }}>
               <div className="onboarding-inbox__label">Credential Token</div>
               <div className="onboarding-inbox__value">{DATASPACE_TOKEN_NAME}</div>
@@ -996,6 +1055,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
                   !catalogAcknowledged ||
                   !privateRegistryAcknowledged ||
                   !connectionsAcknowledged ||
+                  (statisticsEnabled && !statisticsAcknowledged) ||
                   !credentialTokenAcknowledged ||
                   (registryMode === "research" &&
                     (!researchRegistryAcknowledged || !registrySelectionsComplete))))

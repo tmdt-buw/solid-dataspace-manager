@@ -63,7 +63,7 @@ const fallbackConfig = {
       "https://solid-community-server.tmdt.info/solidtestpod/statistics/",
     eventsUrl: "",
     timezone: "Europe/Berlin",
-    activityResourcePath: "private/solid-dataspace/statistics/activity.ttl",
+    activityResourcePath: "statistics/activity/activity.ttl",
   },
 };
 
@@ -274,7 +274,7 @@ export function normalizeRelativeResourcePath(value) {
 function normalizeActivityResourcePath(value) {
   return (
     normalizeRelativeResourcePath(value) ||
-    "private/solid-dataspace/statistics/activity.ttl"
+    "statistics/activity/activity.ttl"
   );
 }
 

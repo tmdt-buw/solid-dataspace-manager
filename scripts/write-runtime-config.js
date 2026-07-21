@@ -68,7 +68,7 @@ const config = {
     timezone: process.env.APP_STATISTICS_TIMEZONE || "Europe/Berlin",
     activityResourcePath:
       process.env.APP_STATISTICS_ACTIVITY_RESOURCE_PATH ||
-      "private/solid-dataspace/statistics/activity.ttl",
+      "statistics/activity/activity.ttl",
   },
 };
 

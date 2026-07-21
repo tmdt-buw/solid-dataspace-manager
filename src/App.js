@@ -67,6 +67,7 @@ import {
   isStatisticsAdmin,
 } from "./config/runtimeConfig";
 import { startStatisticsActivityHeartbeat } from "./statisticsActivity";
+import { hasStatisticsConsent } from "./statisticsConsent";
 
 const AUTH_BRIDGE_KEY = "__SOLID_DATASPACE_AUTH__";
 const statisticsConfig = getStatisticsConfig();
@@ -84,6 +85,7 @@ const App = () => {
   const [onboardingRequired, setOnboardingRequired] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [statisticsConsentWebId, setStatisticsConsentWebId] = useState("");
 
   const getAuthState = useCallback(() => {
     return {
@@ -113,6 +115,7 @@ const App = () => {
     setWebId("");
     setSessionActive(false);
     setOnboardingRequired(false);
+    setStatisticsConsentWebId("");
     profileLanguageResolvedRef.current = false;
   }, []);
 
@@ -156,7 +159,14 @@ const App = () => {
   }, [webId]);
 
   useEffect(() => {
-    if (!sessionActive || !webId || !statisticsConfig.enabled) return undefined;
+    if (
+      !sessionActive ||
+      !webId ||
+      !statisticsConfig.enabled ||
+      statisticsConsentWebId !== webId
+    ) {
+      return undefined;
+    }
 
     return startStatisticsActivityHeartbeat({
       webId,
@@ -169,7 +179,7 @@ const App = () => {
         );
       },
     });
-  }, [sessionActive, webId]);
+  }, [sessionActive, statisticsConsentWebId, webId]);
 
   useEffect(() => {
     if (!sessionActive || !webId) return undefined;
@@ -303,9 +313,13 @@ const App = () => {
   }, [webId, sessionActive]);
 
   useEffect(() => {
-    const checkProfileCompleteness = async () => {
-      if (!sessionActive || !webId) return;
+    if (!sessionActive || !webId) {
+      setStatisticsConsentWebId("");
+      return undefined;
+    }
 
+    let cancelled = false;
+    const checkProfileCompleteness = async () => {
       setCheckingProfile(true);
       try {
         const {
@@ -320,13 +334,20 @@ const App = () => {
 
         const profileDocUrl = webId.split("#")[0];
         const ds = await getSolidDataset(profileDocUrl, { fetch: session.fetch });
+        if (cancelled) return;
 
         let me = getThing(ds, webId) || getThingAll(ds).find((t) => t.url === webId);
 
         if (!me) {
-          setOnboardingRequired(true);
+          if (!cancelled) {
+            setStatisticsConsentWebId("");
+            setOnboardingRequired(true);
+          }
           return;
         }
+
+        const statisticsConsentGranted =
+          !statisticsConfig.enabled || hasStatisticsConsent(me);
 
         const name =
           getStringNoLocale(me, VCARD.fn) ||
@@ -422,6 +443,13 @@ const App = () => {
           missingConnectionsContainer = true;
         }
 
+        const missingStatisticsConsent =
+          statisticsConfig.enabled && !statisticsConsentGranted;
+
+        if (cancelled) return;
+        setStatisticsConsentWebId(
+          statisticsConfig.enabled && statisticsConsentGranted ? webId : ""
+        );
         setOnboardingRequired(
           missingBasics ||
             missingEmail ||
@@ -429,17 +457,24 @@ const App = () => {
             missingCatalog ||
             missingRegistry ||
             missingCredentialToken ||
-            missingConnectionsContainer
+            missingConnectionsContainer ||
+            missingStatisticsConsent
         );
       } catch (err) {
-        console.error("Profile completeness check failed:", err);
-        setOnboardingRequired(true);
+        if (!cancelled) {
+          console.error("Profile completeness check failed:", err);
+          setStatisticsConsentWebId("");
+          setOnboardingRequired(true);
+        }
       } finally {
-        setCheckingProfile(false);
+        if (!cancelled) setCheckingProfile(false);
       }
     };
 
     checkProfileCompleteness();
+    return () => {
+      cancelled = true;
+    };
   }, [sessionActive, webId]);
 
   const renderWithI18n = (content) => (
@@ -480,7 +515,13 @@ const App = () => {
       <div className="container">
         <OnboardingWizard
           webId={webId}
-          onComplete={() => setOnboardingRequired(false)}
+          statisticsConfig={statisticsConfig}
+          onComplete={() => {
+            setStatisticsConsentWebId(
+              statisticsConfig.enabled ? webId : ""
+            );
+            setOnboardingRequired(false);
+          }}
           onCancel={async () => {
             await logoutFromSolid();
           }}

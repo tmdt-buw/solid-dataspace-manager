@@ -423,8 +423,12 @@ Object.assign(enToDe, {
   "Please provide your profile basics.": "Bitte gib deine grundlegenden Profildaten an.",
   "Inbox, Catalog, Registry, Connections & Token":
     "Inbox, Katalog, Registry, Verbindungen und Token",
+  "Inbox, Catalog, Registry, Connections, Statistics & Token":
+    "Inbox, Katalog, Registry, Verbindungen, Statistik und Token",
   "Configure your Solid inbox, catalog, registry settings, connections folder, and a credential token so access requests, metadata, connections, and automated access can work with your pod.":
     "Richte deine Solid-Inbox, deinen Katalog, Registry-Einstellungen, den Verbindungsordner und ein Anmeldetoken ein, damit Zugriffsanfragen, Metadaten, Verbindungen und automatisierter Zugriff mit deinem Pod funktionieren.",
+  "Configure your Solid inbox, catalog, registry settings, connections folder, usage statistics, and a credential token so access requests, metadata, connections, and automated access can work with your pod.":
+    "Richte deine Solid-Inbox, deinen Katalog, Registry-Einstellungen, den Verbindungsordner, Nutzungsstatistiken und ein Anmeldetoken ein, damit Zugriffsanfragen, Metadaten, Verbindungen und automatisierter Zugriff mit deinem Pod funktionieren.",
   "I understand that finishing will create and configure my inbox.":
     "Ich verstehe, dass beim Abschließen meine Inbox erstellt und konfiguriert wird.",
   "I understand that finishing will create and configure my catalog.":
@@ -433,6 +437,13 @@ Object.assign(enToDe, {
     "Ich verstehe, dass beim Abschließen meine Registry erstellt und konfiguriert wird.",
   "I understand that finishing will create my connections folder.":
     "Ich verstehe, dass beim Abschließen mein Verbindungsordner erstellt wird.",
+  "Usage Statistics": "Nutzungsstatistiken",
+  "The Manager stores your last activity time and active calendar month in this file. The statistics worker receives read-only access.":
+    "Der Manager speichert den Zeitpunkt deiner letzten Aktivität und den aktiven Kalendermonat in dieser Datei. Der Statistik-Worker erhält Lesezugriff.",
+  "I agree that finishing will create and update my usage statistics in my pod.":
+    "Ich stimme zu, dass beim Abschließen meine Nutzungsstatistiken in meinem Pod erstellt und aktualisiert werden.",
+  "Usage statistics consent is required.":
+    "Die Zustimmung zu den Nutzungsstatistiken ist erforderlich.",
   "I understand that finishing will create and store the solid-dataspace credential token in my pod.":
     "Ich verstehe, dass beim Abschließen das solid-dataspace-Anmeldetoken in meinem Pod erstellt und gespeichert wird.",
   "I understand that finishing will register me in the selected registries.":

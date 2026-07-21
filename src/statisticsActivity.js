@@ -29,6 +29,10 @@ const WORKER_READ_ACCESS = {
   write: false,
   control: false,
 };
+const WORKER_CONTAINER_ACCESS = {
+  ...WORKER_READ_ACCESS,
+  control: true,
+};
 const NO_ACCESS = {
   read: false,
   append: false,
@@ -141,7 +145,17 @@ export async function resolveStatisticsPodUrl(webId, solidFetch) {
   throw new Error("No Solid storage was found for the current WebID.");
 }
 
-async function securePrivateContainer(containerUrl, webId, solidFetch) {
+async function securePrivateContainer(
+  containerUrl,
+  webId,
+  workerWebId,
+  solidFetch,
+  {
+    additionalOwnerWebIds = [],
+    workerAccess = WORKER_CONTAINER_ACCESS,
+    workerDefaultAccess = null,
+  } = {}
+) {
   const resource = await getSolidDatasetWithAcl(containerUrl, {
     fetch: solidFetch,
   });
@@ -152,18 +166,41 @@ async function securePrivateContainer(containerUrl, webId, solidFetch) {
   let acl = createAcl(resource);
   acl = setPublicResourceAccess(acl, NO_ACCESS);
   acl = setPublicDefaultAccess(acl, NO_ACCESS);
-  acl = setAgentResourceAccess(acl, webId, OWNER_ACCESS);
-  acl = setAgentDefaultAccess(acl, webId, OWNER_ACCESS);
+  const owners = Array.from(
+    new Set([webId, ...additionalOwnerWebIds].filter(Boolean))
+  );
+  owners.forEach((ownerWebId) => {
+    acl = setAgentResourceAccess(acl, ownerWebId, OWNER_ACCESS);
+    acl = setAgentDefaultAccess(acl, ownerWebId, OWNER_ACCESS);
+  });
+  if (workerWebId && !owners.includes(workerWebId)) {
+    acl = setAgentResourceAccess(acl, workerWebId, workerAccess);
+    if (workerDefaultAccess) {
+      acl = setAgentDefaultAccess(acl, workerWebId, workerDefaultAccess);
+    }
+  }
   await saveAclFor(resource, acl, { fetch: solidFetch });
 }
 
-async function ensureContainer(containerUrl, webId, solidFetch) {
+async function ensureContainer(
+  containerUrl,
+  webId,
+  solidFetch,
+  {
+    allowForbidden = false,
+    workerWebId = "",
+    additionalOwnerWebIds = [],
+    workerAccess = WORKER_CONTAINER_ACCESS,
+    workerDefaultAccess = null,
+  } = {}
+) {
   const response = await solidFetch(containerUrl, {
     method: "GET",
     headers: { Accept: "text/turtle" },
     cache: "no-store",
   });
-  if (response.ok) return false;
+  if (response.ok) return "existing";
+  if (allowForbidden && response.status === 403) return "forbidden";
   if (response.status !== 404) {
     throw new Error(
       `Statistics activity container is not accessible (${response.status}).`
@@ -175,22 +212,64 @@ async function ensureContainer(containerUrl, webId, solidFetch) {
   } catch (error) {
     if (![409, 412].includes(getErrorStatus(error))) throw error;
   }
-  await securePrivateContainer(containerUrl, webId, solidFetch);
-  return true;
+  await securePrivateContainer(containerUrl, webId, workerWebId, solidFetch, {
+    additionalOwnerWebIds,
+    workerAccess,
+    workerDefaultAccess,
+  });
+  return "created";
 }
 
-async function ensureContainerHierarchy(podUrl, resourceUrl, webId, solidFetch) {
+async function ensureContainerHierarchy(
+  podUrl,
+  resourceUrl,
+  webId,
+  config,
+  solidFetch
+) {
   const pod = new URL(podUrl);
   const resource = new URL(resourceUrl);
   const relativePath = resource.pathname.slice(pod.pathname.length);
   const segments = relativePath.split("/").filter(Boolean).slice(0, -1);
   let currentUrl = pod.href.endsWith("/") ? pod.href : `${pod.href}/`;
+  let centralBaseUrl = "";
+  let centralActivity = false;
+  try {
+    const centralBase = new URL(config.podBaseUrl);
+    if (!centralBase.pathname.endsWith("/")) centralBase.pathname += "/";
+    centralBaseUrl = centralBase.href;
+    centralActivity =
+      resource.origin === centralBase.origin &&
+      resource.pathname.startsWith(centralBase.pathname);
+  } catch {
+    // Runtime configuration validation reports invalid central URLs separately.
+  }
+  const centralAdmins = centralActivity ? config.adminWebIds || [] : [];
 
   for (const [index, segment] of segments.entries()) {
     currentUrl = new URL(`${encodeURIComponent(segment)}/`, currentUrl).href;
-    const created = await ensureContainer(currentUrl, webId, solidFetch);
-    if (!created && index === segments.length - 1) {
-      await securePrivateContainer(currentUrl, webId, solidFetch);
+    const finalContainer = index === segments.length - 1;
+    const centralRoot = centralActivity && currentUrl === centralBaseUrl;
+    const status = await ensureContainer(currentUrl, webId, solidFetch, {
+      allowForbidden: !finalContainer,
+      workerWebId: finalContainer || centralRoot ? config.workerWebId : "",
+      additionalOwnerWebIds:
+        finalContainer || centralRoot ? centralAdmins : [],
+      workerAccess: centralRoot ? OWNER_ACCESS : WORKER_CONTAINER_ACCESS,
+      workerDefaultAccess: centralRoot ? OWNER_ACCESS : null,
+    });
+    if (status === "existing" && (finalContainer || centralRoot)) {
+      await securePrivateContainer(
+        currentUrl,
+        webId,
+        config.workerWebId,
+        solidFetch,
+        {
+          additionalOwnerWebIds: centralAdmins,
+          workerAccess: centralRoot ? OWNER_ACCESS : WORKER_CONTAINER_ACCESS,
+          workerDefaultAccess: centralRoot ? OWNER_ACCESS : null,
+        }
+      );
     }
   }
 }
@@ -241,7 +320,13 @@ export async function recordStatisticsActivity({
     podUrl,
     config.activityResourcePath
   );
-  await ensureContainerHierarchy(podUrl, resourceUrl, webId, solidFetch);
+  await ensureContainerHierarchy(
+    podUrl,
+    resourceUrl,
+    webId,
+    config,
+    solidFetch
+  );
 
   const currentPeriod = getActivityPeriod(now, config.timezone);
   const body = buildActivityTurtle(now, config.timezone);
