@@ -344,7 +344,7 @@
 
 .statistics-download-types {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 16px;
 }
@@ -410,6 +410,10 @@
   margin-top: 10px;
 }
 
+.statistics-semantic-model--spacer {
+  visibility: hidden;
+}
+
 .statistics-quality-metric strong,
 .statistics-semantic-model strong {
   text-align: right;
@@ -447,5 +451,9 @@
   .statistics-actions .statistics-button,
   .statistics-actions .pill-btn {
     justify-content: center;
+  }
+
+  .statistics-semantic-model--spacer {
+    display: none;
   }
 }

@@ -22,6 +22,7 @@ const DOWNLOAD_TYPES = [
 ];
 
 const ACCOUNTS_PAGE_SIZE = 10;
+const DATASETS_PAGE_SIZE = 10;
 
 const numberOrZero = (value) => {
   const number = Number(value);
@@ -305,6 +306,15 @@ function QualityPanel({ title, entity, showSemanticModel = false }) {
           </strong>
         </div>
       )}
+      {!showSemanticModel && (
+        <div
+          className="statistics-semantic-model statistics-semantic-model--spacer"
+          aria-hidden="true"
+        >
+          <span>{t("With semantic model")}</span>
+          <strong>0 / 0 (0 %)</strong>
+        </div>
+      )}
       {entity.quality.fields.length > 0 ? (
         <div className="statistics-table-wrap">
           <table className="statistics-table statistics-table--compact">
@@ -375,6 +385,7 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
   const [setup, setSetup] = useState({ status: "idle", message: "" });
   const [storageState, setStorageState] = useState("checking");
   const [accountsPage, setAccountsPage] = useState(1);
+  const [datasetsPage, setDatasetsPage] = useState(1);
 
   const detectStorageState = useCallback(async () => {
     try {
@@ -413,6 +424,7 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
       const { nextSnapshot } = snapshotResult;
       setSnapshot(nextSnapshot);
       setAccountsPage(1);
+      setDatasetsPage(1);
     } else {
       const { loadError } = snapshotResult;
       setSnapshot(null);
@@ -482,10 +494,24 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
     (safeAccountsPage - 1) * ACCOUNTS_PAGE_SIZE,
     safeAccountsPage * ACCOUNTS_PAGE_SIZE
   );
+  const datasets = snapshot?.downloads?.datasets || [];
+  const datasetsPageCount = Math.max(
+    1,
+    Math.ceil(datasets.length / DATASETS_PAGE_SIZE)
+  );
+  const safeDatasetsPage = Math.min(datasetsPage, datasetsPageCount);
+  const visibleDatasets = datasets.slice(
+    (safeDatasetsPage - 1) * DATASETS_PAGE_SIZE,
+    safeDatasetsPage * DATASETS_PAGE_SIZE
+  );
 
   useEffect(() => {
     setAccountsPage((page) => Math.min(page, accountsPageCount));
   }, [accountsPageCount]);
+
+  useEffect(() => {
+    setDatasetsPage((page) => Math.min(page, datasetsPageCount));
+  }, [datasetsPageCount]);
 
   return (
     <section className="statistics-dashboard">
@@ -698,9 +724,9 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
                     <thead>
                       <tr>
                         <th>{t("Catalog instance")}</th>
-                        <th>{t("Total")}</th>
-                        <th>{t("Downloads")}</th>
-                        <th>{t("Models")}</th>
+                        <th>{t("Total Downloads")}</th>
+                        <th>{t("Dataset Downloads")}</th>
+                        <th>{t("Semantic Model Downloads")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -739,14 +765,14 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
                 <thead>
                   <tr>
                     <th>{t("Dataset")}</th>
-                    <th>{t("Total")}</th>
-                    <th>{t("Downloads")}</th>
-                    <th>{t("Models")}</th>
+                    <th>{t("Total Downloads")}</th>
+                    <th>{t("Dataset Downloads")}</th>
+                    <th>{t("Semantic Model Downloads")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {snapshot.downloads.datasets.length ? (
-                    snapshot.downloads.datasets.map((dataset) => (
+                  {datasets.length ? (
+                    visibleDatasets.map((dataset) => (
                       <tr key={dataset.datasetUrl || dataset.title}>
                         <td>
                           <strong>{dataset.title}</strong>
@@ -769,6 +795,35 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
                 </tbody>
               </table>
             </div>
+            {datasets.length > DATASETS_PAGE_SIZE && (
+              <div className="statistics-pagination">
+                <button
+                  type="button"
+                  className="pill-btn"
+                  disabled={safeDatasetsPage <= 1}
+                  onClick={() =>
+                    setDatasetsPage((page) => Math.max(1, page - 1))
+                  }
+                >
+                  {t("Prev")}
+                </button>
+                <span className="statistics-pagination__page">
+                  {t(`Page ${safeDatasetsPage} of ${datasetsPageCount}`)}
+                </span>
+                <button
+                  type="button"
+                  className="pill-btn"
+                  disabled={safeDatasetsPage >= datasetsPageCount}
+                  onClick={() =>
+                    setDatasetsPage((page) =>
+                      Math.min(datasetsPageCount, page + 1)
+                    )
+                  }
+                >
+                  {t("Next")}
+                </button>
+              </div>
+            )}
           </article>
 
           <section className="statistics-quality-grid">

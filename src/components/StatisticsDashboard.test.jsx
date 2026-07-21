@@ -180,6 +180,21 @@ test("renders the complete snapshot with the compact dashboard labels", async ()
   expect(
     screen.getByText("Catalog downloads").closest(".statistics-metric")
   ).toHaveTextContent("5");
+  expect(
+    document.querySelector(".statistics-download-types").children
+  ).toHaveLength(2);
+  expect(
+    screen
+      .getByText("Dataset metadata quality")
+      .closest(".statistics-quality")
+      .querySelector(".statistics-semantic-model--spacer")
+  ).toBeNull();
+  expect(
+    screen
+      .getByText("Series metadata quality")
+      .closest(".statistics-quality")
+      .querySelector(".statistics-semantic-model--spacer")
+  ).toHaveAttribute("aria-hidden", "true");
   expect(screen.queryByText("Partial errors")).not.toBeInTheDocument();
   expect(solidFetch).toHaveBeenCalledWith(config.currentSnapshotUrl, {
     method: "GET",
@@ -232,6 +247,25 @@ test("renders catalog-instance downloads without replacing aggregate downloads",
 
   const heading = await screen.findByText("Downloads by catalog instance");
   const rows = heading.closest("section").querySelectorAll("tbody tr");
+  const instanceHeaders = Array.from(
+    heading.closest("section").querySelectorAll("thead th")
+  ).map((header) => header.textContent);
+  const datasetHeaders = Array.from(
+    heading.closest(".statistics-panel").querySelectorAll("table")[1]
+      .querySelectorAll("thead th")
+  ).map((header) => header.textContent);
+  expect(instanceHeaders).toEqual([
+    "Catalog instance",
+    "Total Downloads",
+    "Dataset Downloads",
+    "Semantic Model Downloads",
+  ]);
+  expect(datasetHeaders).toEqual([
+    "Dataset",
+    "Total Downloads",
+    "Dataset Downloads",
+    "Semantic Model Downloads",
+  ]);
   expect(rows).toHaveLength(2);
   expect(rows[0]).toHaveTextContent("TMDT Test");
   expect(rows[0]).toHaveTextContent("test");
@@ -508,6 +542,85 @@ test("paginates the aggregated account list in pages of ten", async () => {
   expect(screen.queryByText("v1:account-01")).not.toBeInTheDocument();
   expect(screen.getByText("v1:account-11")).toBeInTheDocument();
   expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
+});
+
+test("paginates downloaded datasets in pages of ten", async () => {
+  const datasets = Array.from({ length: 11 }, (_, index) => ({
+    datasetUrl: `https://catalog.example/datasets/${index + 1}.ttl`,
+    title: `Dataset ${String(index + 1).padStart(2, "0")}`,
+    byType: {
+      dataset_download: 1,
+      semantic_model_download: 0,
+    },
+  }));
+  const solidFetch = jest.fn(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      ...snapshot,
+      downloads: {
+        ...snapshot.downloads,
+        datasets,
+      },
+    }),
+  }));
+
+  render(
+    <StatisticsDashboard
+      webId={config.adminWebIds[0]}
+      solidFetch={solidFetch}
+      config={config}
+    />
+  );
+
+  expect(await screen.findByText("Dataset 01")).toBeInTheDocument();
+  expect(screen.getByText("Dataset 10")).toBeInTheDocument();
+  expect(screen.queryByText("Dataset 11")).not.toBeInTheDocument();
+  expect(screen.getByText("Page 1 of 2")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+  expect(screen.queryByText("Dataset 01")).not.toBeInTheDocument();
+  expect(screen.getByText("Dataset 11")).toBeInTheDocument();
+  expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
+});
+
+test("does not show dataset pagination for exactly ten datasets", async () => {
+  const datasets = Array.from({ length: 10 }, (_, index) => ({
+    datasetUrl: `https://catalog.example/datasets/${index + 1}.ttl`,
+    title: `Dataset ${String(index + 1).padStart(2, "0")}`,
+    byType: {
+      dataset_download: 1,
+      semantic_model_download: 0,
+    },
+  }));
+  const solidFetch = jest.fn(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      ...snapshot,
+      downloads: {
+        ...snapshot.downloads,
+        datasets,
+      },
+    }),
+  }));
+
+  render(
+    <StatisticsDashboard
+      webId={config.adminWebIds[0]}
+      solidFetch={solidFetch}
+      config={config}
+    />
+  );
+
+  await screen.findByText("Dataset 10");
+  const downloadsPanel = screen
+    .getByRole("heading", { name: "Downloads" })
+    .closest(".statistics-panel");
+  expect(
+    downloadsPanel.querySelector(".statistics-pagination")
+  ).not.toBeInTheDocument();
 });
 
 test("keeps only the latest 24 monthly values", () => {
