@@ -2,7 +2,7 @@ import {
   createAcl,
   createContainerAt,
   getPodUrlAll,
-  getSolidDatasetWithAcl,
+  getSolidDataset,
   hasAccessibleAcl,
   saveAclFor,
   setAgentDefaultAccess,
@@ -156,7 +156,7 @@ async function securePrivateContainer(
     workerDefaultAccess = null,
   } = {}
 ) {
-  const resource = await getSolidDatasetWithAcl(containerUrl, {
+  const resource = await getSolidDataset(containerUrl, {
     fetch: solidFetch,
   });
   if (!hasAccessibleAcl(resource)) {
@@ -188,17 +188,20 @@ async function ensureContainer(
   solidFetch,
   {
     allowForbidden = false,
+    initialResponse = null,
     workerWebId = "",
     additionalOwnerWebIds = [],
     workerAccess = WORKER_CONTAINER_ACCESS,
     workerDefaultAccess = null,
   } = {}
 ) {
-  const response = await solidFetch(containerUrl, {
-    method: "GET",
-    headers: { Accept: "text/turtle" },
-    cache: "no-store",
-  });
+  const response =
+    initialResponse ||
+    (await solidFetch(containerUrl, {
+      method: "GET",
+      headers: { Accept: "text/turtle" },
+      cache: "no-store",
+    }));
   if (response.ok) return "existing";
   if (allowForbidden && response.status === 403) return "forbidden";
   if (response.status !== 404) {
@@ -246,12 +249,49 @@ async function ensureContainerHierarchy(
   }
   const centralAdmins = centralActivity ? config.adminWebIds || [] : [];
 
-  for (const [index, segment] of segments.entries()) {
-    currentUrl = new URL(`${encodeURIComponent(segment)}/`, currentUrl).href;
-    const finalContainer = index === segments.length - 1;
+  const containerUrls = [];
+  let nextUrl = currentUrl;
+  for (const segment of segments) {
+    nextUrl = new URL(`${encodeURIComponent(segment)}/`, nextUrl).href;
+    containerUrls.push(nextUrl);
+  }
+
+  const finalContainerUrl = containerUrls[containerUrls.length - 1] || "";
+  let initialFinalResponse = null;
+  let firstContainerIndex = 0;
+
+  // The central statistics root deliberately cannot be listed by browser admins.
+  // Probe the dedicated activity container first so an existing setup never sends
+  // an expected-but-noisy request to that restricted parent. A missing activity
+  // container still falls back to the full hierarchy bootstrap below.
+  if (
+    centralActivity &&
+    finalContainerUrl &&
+    finalContainerUrl !== centralBaseUrl
+  ) {
+    initialFinalResponse = await solidFetch(finalContainerUrl, {
+      method: "GET",
+      headers: { Accept: "text/turtle" },
+      cache: "no-store",
+    });
+    if (initialFinalResponse.ok) {
+      firstContainerIndex = containerUrls.length - 1;
+    }
+    if (!initialFinalResponse.ok && initialFinalResponse.status !== 404) {
+      throw new Error(
+        `Statistics activity container is not accessible (${initialFinalResponse.status}).`
+      );
+    }
+  }
+
+  for (const [index, containerUrl] of containerUrls.entries()) {
+    if (index < firstContainerIndex) continue;
+    const finalContainer = index === containerUrls.length - 1;
+    currentUrl = containerUrl;
     const centralRoot = centralActivity && currentUrl === centralBaseUrl;
     const status = await ensureContainer(currentUrl, webId, solidFetch, {
       allowForbidden: !finalContainer,
+      initialResponse: finalContainer ? initialFinalResponse : null,
       workerWebId: finalContainer || centralRoot ? config.workerWebId : "",
       additionalOwnerWebIds:
         finalContainer || centralRoot ? centralAdmins : [],
@@ -284,7 +324,7 @@ export async function ensureActivityAcl({
     throw new Error("Statistics worker WebID is not configured.");
   }
 
-  const resource = await getSolidDatasetWithAcl(resourceUrl, {
+  const resource = await getSolidDataset(resourceUrl, {
     fetch: solidFetch,
   });
   if (!hasAccessibleAcl(resource)) {

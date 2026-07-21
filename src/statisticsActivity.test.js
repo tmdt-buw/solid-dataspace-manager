@@ -11,7 +11,7 @@ import {
 
 const mockCreateContainerAt = jest.fn();
 const mockGetPodUrlAll = jest.fn();
-const mockGetSolidDatasetWithAcl = jest.fn();
+const mockGetSolidDataset = jest.fn();
 const mockSaveAclFor = jest.fn();
 const mockSetAgentResourceAccess = jest.fn((acl) => acl);
 const mockSetAgentDefaultAccess = jest.fn((acl) => acl);
@@ -20,7 +20,7 @@ jest.mock("@inrupt/solid-client", () => ({
   createAcl: jest.fn(() => ({ acl: true })),
   createContainerAt: (...args) => mockCreateContainerAt(...args),
   getPodUrlAll: (...args) => mockGetPodUrlAll(...args),
-  getSolidDatasetWithAcl: (...args) => mockGetSolidDatasetWithAcl(...args),
+  getSolidDataset: (...args) => mockGetSolidDataset(...args),
   hasAccessibleAcl: () => true,
   saveAclFor: (...args) => mockSaveAclFor(...args),
   setAgentResourceAccess: (...args) => mockSetAgentResourceAccess(...args),
@@ -56,7 +56,7 @@ describe("statistics activity", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetPodUrlAll.mockResolvedValue(["https://pod.example/alice/"]);
-    mockGetSolidDatasetWithAcl.mockResolvedValue({ resource: true });
+    mockGetSolidDataset.mockResolvedValue({ resource: true });
     mockSaveAclFor.mockResolvedValue({});
   });
 
@@ -164,7 +164,7 @@ describe("statistics activity", () => {
       false
     );
     expect(mockSaveAclFor).toHaveBeenCalledTimes(2);
-    expect(mockGetSolidDatasetWithAcl.mock.calls.map(([url]) => url)).toEqual([
+    expect(mockGetSolidDataset.mock.calls.map(([url]) => url)).toEqual([
       "https://pod.example/alice/statistics/activity/",
       "https://pod.example/alice/statistics/activity/activity.ttl",
     ]);
@@ -177,7 +177,7 @@ describe("statistics activity", () => {
     ]);
   });
 
-  test("uses the dedicated activity ACL when the central statistics root is forbidden", async () => {
+  test("does not probe the restricted central statistics root when the activity container exists", async () => {
     const now = new Date("2026-07-14T12:00:00.000Z");
     const existing = buildActivityTurtle(now, config.timezone);
     const fetcher = jest.fn(async (url) => {
@@ -199,7 +199,13 @@ describe("statistics activity", () => {
       })
     ).resolves.toMatchObject({ recorded: false, reason: "already-recorded" });
 
-    expect(mockGetSolidDatasetWithAcl.mock.calls.map(([url]) => url)).toEqual([
+    expect(
+      fetcher.mock.calls.some(
+        ([url]) => url === "https://pod.example/alice/statistics/"
+      )
+    ).toBe(false);
+
+    expect(mockGetSolidDataset.mock.calls.map(([url]) => url)).toEqual([
       "https://pod.example/alice/statistics/activity/",
       "https://pod.example/alice/statistics/activity/activity.ttl",
     ]);
@@ -245,6 +251,60 @@ describe("statistics activity", () => {
     );
     expect(workerRootAccess).toBeDefined();
     expect(workerRootDefault).toBeDefined();
+  });
+
+  test("creates a missing central activity container below a restricted existing root", async () => {
+    const now = new Date("2026-07-14T12:00:00.000Z");
+    const existing = buildActivityTurtle(now, config.timezone);
+    const activityContainerUrl =
+      "https://pod.example/alice/statistics/activity/";
+    const centralRootUrl = "https://pod.example/alice/statistics/";
+    const fetcher = jest.fn(async (url) => {
+      if (url === activityContainerUrl) return response(404);
+      if (url === centralRootUrl) return response(403);
+      if (url.endsWith("activity.ttl")) {
+        return response(200, { body: existing, etag: '"same-day"' });
+      }
+      return response(200);
+    });
+
+    await expect(
+      recordStatisticsActivity({
+        webId: ownerWebId,
+        fetch: fetcher,
+        config: centralConfig,
+        now,
+      })
+    ).resolves.toMatchObject({ recorded: false, reason: "already-recorded" });
+
+    expect(mockCreateContainerAt.mock.calls.map(([url]) => url)).toEqual([
+      activityContainerUrl,
+    ]);
+  });
+
+  test("fails on an inaccessible central activity container without probing the root", async () => {
+    const activityContainerUrl =
+      "https://pod.example/alice/statistics/activity/";
+    const centralRootUrl = "https://pod.example/alice/statistics/";
+    const fetcher = jest.fn(async (url) =>
+      response(url === activityContainerUrl ? 403 : 200)
+    );
+
+    await expect(
+      recordStatisticsActivity({
+        webId: ownerWebId,
+        fetch: fetcher,
+        config: centralConfig,
+        now: new Date("2026-07-14T12:00:00.000Z"),
+      })
+    ).rejects.toThrow(
+      "Statistics activity container is not accessible (403)."
+    );
+
+    expect(
+      fetcher.mock.calls.some(([url]) => url === centralRootUrl)
+    ).toBe(false);
+    expect(mockCreateContainerAt).not.toHaveBeenCalled();
   });
 
   test("does not grant central statistics admins access to a member Pod container", async () => {
