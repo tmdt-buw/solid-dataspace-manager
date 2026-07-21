@@ -26,6 +26,7 @@ import {
   deleteFile,
 } from "@inrupt/solid-client";
 import { DCAT, DCTERMS, FOAF, RDF } from "@inrupt/vocab-common-rdf";
+import { migrateLegacyTmdtUrl } from "./urlMigration";
 
 const CATALOG_CONTAINER = "catalog/";
 const DATASET_CONTAINER = "catalog/ds/";
@@ -87,7 +88,7 @@ export const buildDefaultPrivateRegistry = (webId) => {
 const normalizeContainerUrl = (value) => {
   if (!value) return "";
   try {
-    const url = new URL(value);
+    const url = new URL(migrateLegacyTmdtUrl(value));
     return url.href.endsWith("/") ? url.href : `${url.href}/`;
   } catch {
     return value.endsWith("/") ? value : `${value}/`;
@@ -172,9 +173,11 @@ export const loadRegistryConfig = async (webId, fetch) => {
     const mode = (getStringNoLocale(profileThing, SDM_REGISTRY_MODE) || "research").toLowerCase();
     const registries = (getUrlAll(profileThing, SDM_REGISTRY) || [])
       .filter(Boolean)
+      .map(migrateLegacyTmdtUrl)
       .map((url) => url.replace(/\/+$/, ""));
     const privateRegistry =
-      getUrl(profileThing, SDM_PRIVATE_REGISTRY) || buildDefaultPrivateRegistry(webId);
+      migrateLegacyTmdtUrl(getUrl(profileThing, SDM_PRIVATE_REGISTRY)) ||
+      buildDefaultPrivateRegistry(webId);
     return {
       mode: mode === "private" ? "private" : "research",
       registries,
@@ -202,8 +205,11 @@ export const saveRegistryConfig = async (webId, fetch, config) => {
   const mode = config?.mode === "private" ? "private" : "research";
   const registries = (config?.registries || [])
     .filter(Boolean)
+    .map(migrateLegacyTmdtUrl)
     .map((url) => url.replace(/\/+$/, ""));
-  const privateRegistry = config?.privateRegistry || buildDefaultPrivateRegistry(webId);
+  const privateRegistry =
+    migrateLegacyTmdtUrl(config?.privateRegistry) ||
+    buildDefaultPrivateRegistry(webId);
 
   profileThing = removeAll(profileThing, SDM_REGISTRY_MODE);
   profileThing = setStringNoLocale(profileThing, SDM_REGISTRY_MODE, mode);
@@ -324,6 +330,11 @@ const registerWebIdInRegistries = async (webId, fetch, registryConfig) => {
       );
     }
   }
+};
+
+export const ensureCurrentRegistryMembership = async (webId, fetch) => {
+  if (!webId || !fetch) return;
+  await registerWebIdInRegistries(webId, fetch);
 };
 
 const removeWebIdFromRegistryContainer = async (containerUrl, fetch, webId) => {

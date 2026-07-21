@@ -5,6 +5,7 @@ import {
   parseActivityTurtle,
   recordStatisticsActivity,
   resolveActivityResourceUrl,
+  resolveStatisticsPodUrl,
   startStatisticsActivityHeartbeat,
 } from "./statisticsActivity";
 
@@ -72,6 +73,37 @@ describe("statistics activity", () => {
     ).toBe(
       "https://pod.example/alice/private/solid-dataspace/statistics/activity.ttl"
     );
+  });
+
+  test("prefers an advertised pim:storage Pod URL", async () => {
+    mockGetPodUrlAll.mockResolvedValue(["https://storage.example/alice/"]);
+    await expect(
+      resolveStatisticsPodUrl(
+        "https://pod.example/alice/profile/card#me",
+        jest.fn()
+      )
+    ).resolves.toBe("https://storage.example/alice/");
+  });
+
+  test("falls back to the local CSS Pod root when pim:storage is missing", async () => {
+    mockGetPodUrlAll.mockResolvedValue([]);
+    await expect(
+      resolveStatisticsPodUrl(
+        "https://pod.example/alice/profile/card#me",
+        jest.fn()
+      )
+    ).resolves.toBe("https://pod.example/alice/");
+  });
+
+  test("does not hide profile discovery errors behind the local fallback", async () => {
+    const profileError = new Error("Profile forbidden");
+    mockGetPodUrlAll.mockRejectedValue(profileError);
+    await expect(
+      resolveStatisticsPodUrl(
+        "https://pod.example/alice/profile/card#me",
+        jest.fn()
+      )
+    ).rejects.toBe(profileError);
   });
 
   test.each([
@@ -180,6 +212,25 @@ describe("statistics activity", () => {
     await Promise.resolve();
     expect(recordActivity).toHaveBeenCalledTimes(2);
     jest.useRealTimers();
+  });
+
+  test("passes the original heartbeat error to onError", async () => {
+    const heartbeatError = new Error("ACL unavailable");
+    const onError = jest.fn();
+    const stop = startStatisticsActivityHeartbeat({
+      webId: "https://pod.example/alice/profile/card#me",
+      fetch: jest.fn(),
+      config,
+      onError,
+      recordActivity: jest.fn(async () => {
+        throw heartbeatError;
+      }),
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(onError).toHaveBeenCalledWith(heartbeatError);
+    stop();
   });
 
   test("secures a placeholder before writing the first timestamp", async () => {

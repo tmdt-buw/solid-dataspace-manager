@@ -52,6 +52,7 @@ import {
 } from "../solidCatalog";
 import { loadCredentialToken } from "../solidCredentialToken";
 import { LanguageSelect, useI18n } from "../i18n";
+import { ensurePodStorageLink } from "../solidStorage";
 import "./LanguageSelect.css";
 
 const VCARD_TYPE = "http://www.w3.org/2006/vcard/ns#type";
@@ -454,6 +455,7 @@ export default function Profile({ webId }) {
       me = removeAll(me, VCARD.role); if (role) me = setStringNoLocale(me, VCARD.role, role);
       me = removeAll(me, VCARD.hasPhoto);
       if (photoIri) me = setUrl(me, VCARD.hasPhoto, photoIri);
+      me = ensurePodStorageLink(me, webId);
 
       let ds = dataset;
       me = removeAll(me, VCARD.hasEmail);

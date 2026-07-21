@@ -53,6 +53,7 @@ import {
 import { loadProfileLanguage, saveProfileLanguage } from "./i18nProfile";
 import {
   buildDefaultPrivateRegistry,
+  ensureCurrentRegistryMembership,
   loadRegistryConfig,
   resolveCatalogUrl,
   SDP_CATALOG,
@@ -161,10 +162,30 @@ const App = () => {
       webId,
       fetch: session.fetch,
       config: statisticsConfig,
-      onError: () => {
-        console.warn("Statistics activity heartbeat failed.");
+      onError: (error) => {
+        console.warn(
+          "Statistics activity heartbeat failed.",
+          error instanceof Error ? error.message : error
+        );
       },
     });
+  }, [sessionActive, webId]);
+
+  useEffect(() => {
+    if (!sessionActive || !webId) return undefined;
+
+    let cancelled = false;
+    ensureCurrentRegistryMembership(webId, session.fetch).catch((error) => {
+      if (!cancelled) {
+        console.warn(
+          "Registry membership reconciliation failed.",
+          error instanceof Error ? error.message : error
+        );
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [sessionActive, webId]);
 
   useEffect(() => {

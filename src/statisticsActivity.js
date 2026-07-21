@@ -12,6 +12,7 @@ import {
 } from "@inrupt/solid-client";
 import { Parser } from "n3";
 import { normalizeRelativeResourcePath } from "./config/runtimeConfig";
+import { deriveLocalCssPodUrl } from "./solidStorage";
 
 export const STATISTICS_NAMESPACE =
   "https://w3id.org/solid-dataspace-manager/statistics#";
@@ -130,6 +131,16 @@ export function resolveActivityResourceUrl(podUrl, resourcePath) {
   return activityUrl.href;
 }
 
+export async function resolveStatisticsPodUrl(webId, solidFetch) {
+  const advertisedPodUrls = await getPodUrlAll(webId, { fetch: solidFetch });
+  if (advertisedPodUrls[0]) return advertisedPodUrls[0];
+
+  const fallbackPodUrl = deriveLocalCssPodUrl(webId);
+  if (fallbackPodUrl) return fallbackPodUrl;
+
+  throw new Error("No Solid storage was found for the current WebID.");
+}
+
 async function securePrivateContainer(containerUrl, webId, solidFetch) {
   const resource = await getSolidDatasetWithAcl(containerUrl, {
     fetch: solidFetch,
@@ -224,9 +235,7 @@ export async function recordStatisticsActivity({
     throw new Error("Statistics worker WebID is not configured.");
   }
 
-  const podUrls = await getPodUrlAll(webId, { fetch: solidFetch });
-  const podUrl = podUrls[0];
-  if (!podUrl) throw new Error("No Solid storage was found for the current WebID.");
+  const podUrl = await resolveStatisticsPodUrl(webId, solidFetch);
 
   const resourceUrl = resolveActivityResourceUrl(
     podUrl,
@@ -348,8 +357,8 @@ export function startStatisticsActivityHeartbeat({
     running = true;
     try {
       await recordActivity({ webId, fetch: solidFetch, config });
-    } catch {
-      if (!stopped) onError?.();
+    } catch (error) {
+      if (!stopped) onError?.(error);
     } finally {
       running = false;
     }

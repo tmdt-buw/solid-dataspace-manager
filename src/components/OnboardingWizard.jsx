@@ -59,6 +59,7 @@ import {
   ensureConnectionsContainer,
   getConnectionsContainerUrl,
 } from "../solidConnections";
+import { ensurePodStorageLink } from "../solidStorage";
 import "./OnboardingWizard.css";
 
 const VCARD_TYPE = "http://www.w3.org/2006/vcard/ns#type";
@@ -443,6 +444,7 @@ export default function OnboardingWizard({ webId, onComplete, onCancel }) {
     if (photoIri) {
       me = setUrl(me, VCARD.hasPhoto, photoIri);
     }
+    me = ensurePodStorageLink(me, webId);
 
     const updated = setThing(dataset, me);
     await saveSolidDatasetAt(profileDocUrl, updated, { fetch: session.fetch });
