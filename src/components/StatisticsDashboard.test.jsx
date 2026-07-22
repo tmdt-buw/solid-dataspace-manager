@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import StatisticsDashboard, {
   aggregateStatisticsAccounts,
   loadStatisticsSnapshot,
@@ -130,7 +130,7 @@ test("renders the complete snapshot with the compact dashboard labels", async ()
       .querySelector(".statistics-panel__total")
   ).toHaveTextContent("1");
   expect(screen.getByText("v1:012345")).toBeInTheDocument();
-  expect(screen.getByText("N/A")).toBeInTheDocument();
+  expect(screen.getAllByText("N/A").length).toBeGreaterThan(0);
   expect(screen.getByText("Air quality")).toBeInTheDocument();
   expect(screen.queryByText("Test Registry")).not.toBeInTheDocument();
   expect(screen.queryByText("https://registry.example/test/")).not.toBeInTheDocument();
@@ -365,6 +365,214 @@ test("normalizes legacy snapshots using only the two download event types", () =
     }).downloads.byCatalogInstance[0]
   ).toMatchObject({ id: "timberconnect", label: "TimberConnect", total: 0 });
   expect(JSON.stringify(normalized.downloads)).not.toContain("dataset_access");
+});
+
+test("normalizes the two survey questions with independent aggregates", () => {
+  const normalized = normalizeStatisticsSnapshot({
+    schemaVersion: 4,
+    survey: {
+      version: "catalog-usability-v1",
+      questions: {
+        system_comprehensibility: {
+          responseCount: "8",
+          positiveCount: "6",
+          positiveRate: 0.75,
+          ratings: { 1: 1, 2: 0, 3: 1, 4: 3, 5: 3 },
+          monthly: [
+            {
+              month: "2026-07",
+              responseCount: 8,
+              positiveCount: 6,
+              positiveRate: 0.75,
+              ratings: { 1: 1, 3: 1, 4: 3, 5: 3 },
+            },
+          ],
+          byCatalogInstance: {
+            test: {
+              label: "TMDT Test",
+              responseCount: 5,
+              positiveCount: 4,
+              positiveRate: 0.8,
+              ratings: { 1: 1, 4: 2, 5: 2 },
+              monthly: [],
+            },
+          },
+        },
+        dataset_findability: {
+          responseCount: 3,
+          positiveCount: 1,
+          ratings: { 1: 1, 2: 0, 3: 1, 4: 1, 5: 0 },
+        },
+      },
+    },
+  });
+
+  expect(normalized.schemaVersion).toBe(4);
+  expect(normalized.survey.version).toBe("catalog-usability-v1");
+  expect(normalized.survey.questions.system_comprehensibility).toMatchObject({
+    responseCount: 8,
+    positiveCount: 6,
+    positiveRate: 0.75,
+    ratings: { 1: 1, 2: 0, 3: 1, 4: 3, 5: 3 },
+  });
+  expect(
+    normalized.survey.questions.system_comprehensibility.monthly[0]
+  ).toMatchObject({
+    month: "2026-07",
+    responseCount: 8,
+    positiveCount: 6,
+  });
+  expect(
+    normalized.survey.questions.system_comprehensibility.byCatalogInstance[0]
+  ).toMatchObject({
+    id: "test",
+    label: "TMDT Test",
+    responseCount: 5,
+    positiveCount: 4,
+  });
+  expect(normalized.survey.questions.dataset_findability).toMatchObject({
+    responseCount: 3,
+    positiveCount: 1,
+    positiveRate: 1 / 3,
+    ratings: { 1: 1, 2: 0, 3: 1, 4: 1, 5: 0 },
+  });
+});
+
+test("uses independent zero aggregates for snapshots without survey data", () => {
+  const questions = normalizeStatisticsSnapshot({ schemaVersion: 3 }).survey
+    .questions;
+
+  expect(questions.system_comprehensibility).toEqual({
+    responseCount: 0,
+    positiveCount: 0,
+    positiveRate: 0,
+    ratings: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    monthly: [],
+    byCatalogInstance: [],
+  });
+  expect(questions.dataset_findability).toEqual(
+    questions.system_comprehensibility
+  );
+});
+
+test("renders both survey questions with separate totals and breakdowns", async () => {
+  const solidFetch = jest.fn(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      ...snapshot,
+      schemaVersion: 4,
+      survey: {
+        version: "catalog-usability-v1",
+        questions: {
+          system_comprehensibility: {
+            responseCount: 8,
+            positiveCount: 6,
+            positiveRate: 0.75,
+            ratings: { 1: 1, 2: 0, 3: 1, 4: 3, 5: 3 },
+            monthly: [
+              {
+                month: "2026-07",
+                responseCount: 8,
+                positiveCount: 6,
+                positiveRate: 0.75,
+              },
+            ],
+            byCatalogInstance: [
+              {
+                id: "test",
+                label: "TMDT Test",
+                responseCount: 5,
+                positiveCount: 4,
+                positiveRate: 0.8,
+              },
+            ],
+          },
+          dataset_findability: {
+            responseCount: 3,
+            positiveCount: 1,
+            positiveRate: 1 / 3,
+            ratings: { 1: 1, 2: 0, 3: 1, 4: 1, 5: 0 },
+            monthly: [
+              {
+                month: "2026-07",
+                responseCount: 3,
+                positiveCount: 1,
+                positiveRate: 1 / 3,
+              },
+            ],
+            byCatalogInstance: [
+              {
+                id: "dace",
+                label: "DACE",
+                responseCount: 3,
+                positiveCount: 1,
+                positiveRate: 1 / 3,
+              },
+            ],
+          },
+        },
+      },
+    }),
+  }));
+
+  render(
+    <StatisticsDashboard
+      webId={config.adminWebIds[0]}
+      solidFetch={solidFetch}
+      config={config}
+    />
+  );
+
+  const comprehensibilityCard = (
+    await screen.findByRole("heading", { name: "System comprehensibility" })
+  ).closest(".statistics-survey-card");
+  const findabilityCard = screen
+    .getByRole("heading", { name: "Dataset findability" })
+    .closest(".statistics-survey-card");
+
+  const comprehensibilitySummary = comprehensibilityCard.querySelector(
+    ".statistics-survey-summary"
+  ).children;
+  expect(comprehensibilitySummary[0]).toHaveTextContent("Responses8");
+  expect(comprehensibilitySummary[1]).toHaveTextContent("Positive responses6");
+  expect(comprehensibilitySummary[2]).toHaveTextContent("Positive rate75 %");
+  expect(
+    comprehensibilityCard.querySelectorAll(".statistics-survey-rating")[3]
+  ).toHaveTextContent("4 · Good3");
+  expect(within(comprehensibilityCard).getByText("TMDT Test")).toBeInTheDocument();
+
+  const findabilitySummary = findabilityCard.querySelector(
+    ".statistics-survey-summary"
+  ).children;
+  expect(findabilitySummary[0]).toHaveTextContent("Responses3");
+  expect(findabilitySummary[1]).toHaveTextContent("Positive responses1");
+  expect(findabilitySummary[2]).toHaveTextContent("Positive rate33.3 %");
+  expect(within(findabilityCard).getByText("DACE")).toBeInTheDocument();
+  expect(within(findabilityCard).queryByText("TMDT Test")).not.toBeInTheDocument();
+});
+
+test("shows N/A as the positive rate when a survey question has no responses", async () => {
+  const solidFetch = jest.fn(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => snapshot,
+  }));
+
+  render(
+    <StatisticsDashboard
+      webId={config.adminWebIds[0]}
+      solidFetch={solidFetch}
+      config={config}
+    />
+  );
+
+  const card = (
+    await screen.findByRole("heading", { name: "System comprehensibility" })
+  ).closest(".statistics-survey-card");
+  expect(card.querySelector(".statistics-survey-summary").children[2]).toHaveTextContent(
+    "Positive rateN/A"
+  );
 });
 
 test("hides initialization for existing statistics storage", async () => {

@@ -21,6 +21,19 @@ const DOWNLOAD_TYPES = [
   ["semantic_model_download", "Semantic model downloads"],
 ];
 
+const SURVEY_QUESTIONS = [
+  ["system_comprehensibility", "System comprehensibility"],
+  ["dataset_findability", "Dataset findability"],
+];
+
+const SURVEY_RATINGS = [
+  [1, "Very poor"],
+  [2, "Poor"],
+  [3, "Neutral"],
+  [4, "Good"],
+  [5, "Very good"],
+];
+
 const ACCOUNTS_PAGE_SIZE = 10;
 const DATASETS_PAGE_SIZE = 10;
 
@@ -73,6 +86,94 @@ function normalizeCatalogInstanceDownloads(value) {
       },
     ];
   });
+}
+
+function normalizeSurveyRatings(ratings = {}) {
+  return SURVEY_RATINGS.reduce(
+    (result, [rating]) => ({
+      ...result,
+      [rating]: numberOrZero(ratings?.[rating]),
+    }),
+    {}
+  );
+}
+
+function normalizeSurveyMetrics(value = {}) {
+  const responseCount = numberOrZero(value?.responseCount);
+  const positiveCount = numberOrZero(value?.positiveCount);
+  const explicitPositiveRate = Number(value?.positiveRate);
+  const positiveRate =
+    value?.positiveRate !== undefined && Number.isFinite(explicitPositiveRate)
+      ? explicitPositiveRate
+      : responseCount > 0
+      ? positiveCount / responseCount
+      : 0;
+
+  return {
+    responseCount,
+    positiveCount,
+    positiveRate,
+    ratings: normalizeSurveyRatings(value?.ratings),
+  };
+}
+
+function normalizeSurveyMonthly(value) {
+  return arrayOrEmpty(value)
+    .map((month) => ({
+      month: month?.month || "",
+      ...normalizeSurveyMetrics(month),
+    }))
+    .filter((month) => month.month)
+    .slice(-24);
+}
+
+function normalizeSurveyCatalogInstances(value) {
+  const entries = Array.isArray(value)
+    ? value.map((instance) => ["", instance])
+    : value && typeof value === "object"
+    ? Object.entries(value)
+    : [];
+
+  return entries.flatMap(([fallbackId, instance], index) => {
+    if (!instance || typeof instance !== "object" || Array.isArray(instance)) {
+      return [];
+    }
+
+    const id = String(
+      instance.id || fallbackId || instance.label || `catalog-${index + 1}`
+    );
+    return [
+      {
+        id,
+        label: String(instance.label || id),
+        ...normalizeSurveyMetrics(instance),
+        monthly: normalizeSurveyMonthly(instance.monthly),
+      },
+    ];
+  });
+}
+
+function normalizeSurveyQuestion(value = {}) {
+  return {
+    ...normalizeSurveyMetrics(value),
+    monthly: normalizeSurveyMonthly(value?.monthly),
+    byCatalogInstance: normalizeSurveyCatalogInstances(
+      value?.byCatalogInstance
+    ),
+  };
+}
+
+function normalizeSurvey(value = {}) {
+  return {
+    version: value?.version || "",
+    questions: SURVEY_QUESTIONS.reduce(
+      (questions, [questionId]) => ({
+        ...questions,
+        [questionId]: normalizeSurveyQuestion(value?.questions?.[questionId]),
+      }),
+      {}
+    ),
+  };
 }
 
 export function normalizeStatisticsSnapshot(raw = {}) {
@@ -146,6 +247,7 @@ export function normalizeStatisticsSnapshot(raw = {}) {
       datasets: normalizeCatalogEntity(catalog.datasets),
       series: normalizeCatalogEntity(catalog.series),
     },
+    survey: normalizeSurvey(raw.survey),
     partialErrors: arrayOrEmpty(raw.partialErrors),
     run: {
       startedAt: raw.run?.startedAt || "",
@@ -218,6 +320,12 @@ function formatPercent(value, language) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 1,
   }).format(percentValue(value))} %`;
+}
+
+function formatSurveyRate(value, language) {
+  return numberOrZero(value?.responseCount) > 0
+    ? formatPercent(value?.positiveRate, language)
+    : "N/A";
 }
 
 function formatDate(value, timezone = "Europe/Berlin", language = "en") {
@@ -374,6 +482,107 @@ function ActivityChart({ months }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function SurveyBreakdownTable({ title, rows, firstColumnLabel, firstColumn }) {
+  const { language, t } = useI18n();
+  if (!rows.length) return null;
+
+  return (
+    <section className="statistics-survey-breakdown">
+      <h4>{title}</h4>
+      <div className="statistics-table-wrap">
+        <table className="statistics-table statistics-table--compact">
+          <thead>
+            <tr>
+              <th>{firstColumnLabel}</th>
+              <th>{t("Responses")}</th>
+              <th>{t("Positive responses")}</th>
+              <th>{t("Positive rate")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${firstColumn(row)}-${index}`}>
+                <td>
+                  <strong>{firstColumn(row)}</strong>
+                  {row.id && row.id !== row.label && <small>{row.id}</small>}
+                </td>
+                <td>{formatNumber(row.responseCount, language)}</td>
+                <td>{formatNumber(row.positiveCount, language)}</td>
+                <td>{formatSurveyRate(row, language)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function SurveyQuestionCard({ title, question }) {
+  const { language, t } = useI18n();
+  const responseCount = numberOrZero(question?.responseCount);
+
+  return (
+    <article className="statistics-panel statistics-survey-card">
+      <div className="statistics-panel__header">
+        <div>
+          <h3>{title}</h3>
+          <p>{t("Ratings 4 and 5 are positive.")}</p>
+        </div>
+      </div>
+
+      <div className="statistics-survey-summary">
+        <div>
+          <span>{t("Responses")}</span>
+          <strong>{formatNumber(responseCount, language)}</strong>
+        </div>
+        <div>
+          <span>{t("Positive responses")}</span>
+          <strong>{formatNumber(question?.positiveCount, language)}</strong>
+        </div>
+        <div>
+          <span>{t("Positive rate")}</span>
+          <strong>{formatSurveyRate(question, language)}</strong>
+        </div>
+      </div>
+
+      <section className="statistics-survey-distribution">
+        <h4>{t("Rating distribution")}</h4>
+        <div className="statistics-survey-distribution__rows">
+          {SURVEY_RATINGS.map(([rating, label]) => {
+            const count = numberOrZero(question?.ratings?.[rating]);
+            const share = responseCount > 0 ? (count / responseCount) * 100 : 0;
+            return (
+              <div className="statistics-survey-rating" key={rating}>
+                <span className="statistics-survey-rating__label">
+                  {rating} · {t(label)}
+                </span>
+                <span className="statistics-survey-rating__track" aria-hidden="true">
+                  <span style={{ width: `${Math.min(100, Math.max(0, share))}%` }} />
+                </span>
+                <strong>{formatNumber(count, language)}</strong>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <SurveyBreakdownTable
+        title={t("Responses by month")}
+        rows={question?.monthly || []}
+        firstColumnLabel={t("Month")}
+        firstColumn={(row) => row.month}
+      />
+      <SurveyBreakdownTable
+        title={t("Responses by catalog instance")}
+        rows={question?.byCatalogInstance || []}
+        firstColumnLabel={t("Catalog instance")}
+        firstColumn={(row) => row.label}
+      />
+    </article>
   );
 }
 
@@ -825,6 +1034,21 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
               </div>
             )}
           </article>
+
+          <section className="statistics-survey">
+            <div className="statistics-survey__header">
+              <h2>{t("User survey")}</h2>
+            </div>
+            <div className="statistics-survey-grid">
+              {SURVEY_QUESTIONS.map(([questionId, label]) => (
+                <SurveyQuestionCard
+                  key={questionId}
+                  title={t(label)}
+                  question={snapshot.survey.questions[questionId]}
+                />
+              ))}
+            </div>
+          </section>
 
           <section className="statistics-quality-grid">
             <QualityPanel

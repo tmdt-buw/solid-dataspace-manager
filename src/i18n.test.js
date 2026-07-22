@@ -77,6 +77,14 @@ describe("i18n language resolution", () => {
     expect(translateText("Usage Statistics", "de")).toBe(
       "Nutzungsstatistiken"
     );
+    expect(translateText("User survey", "de")).toBe("Nutzerbefragung");
+    expect(translateText("System comprehensibility", "de")).toBe(
+      "Verst\u00e4ndlichkeit des Systems"
+    );
+    expect(translateText("Dataset findability", "de")).toBe(
+      "Auffindbarkeit relevanter Datens\u00e4tze"
+    );
+    expect(translateText("Positive rate", "de")).toBe("Positive Quote");
     expect(
       translateText(
         "I agree that finishing will create and update my usage statistics in my pod.",

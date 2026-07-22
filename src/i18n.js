@@ -661,6 +661,23 @@ Object.assign(enToDe, {
   Completed: "Ausgef\u00fcllt",
   Rate: "Quote",
   "No field rates available yet.": "Noch keine Feldquoten vorhanden.",
+  "User survey": "Nutzerbefragung",
+  "System comprehensibility": "Verst\u00e4ndlichkeit des Systems",
+  "Dataset findability": "Auffindbarkeit relevanter Datens\u00e4tze",
+  Responses: "Antworten",
+  "Positive responses": "Positive Antworten",
+  "Positive rate": "Positive Quote",
+  "Ratings 4 and 5 are positive.":
+    "Bewertungen 4 und 5 gelten als positiv.",
+  "Rating distribution": "Bewertungsverteilung",
+  "Very poor": "Sehr schlecht",
+  Poor: "Schlecht",
+  Neutral: "Neutral",
+  Good: "Gut",
+  "Very good": "Sehr gut",
+  "Responses by month": "Antworten pro Monat",
+  "Responses by catalog instance": "Antworten je Kataloginstanz",
+  Month: "Monat",
   Statistics: "Statistik",
 });
 
