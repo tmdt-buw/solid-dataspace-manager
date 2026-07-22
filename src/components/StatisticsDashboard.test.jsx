@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import StatisticsDashboard, {
   aggregateStatisticsAccounts,
   loadStatisticsSnapshot,
@@ -455,7 +455,7 @@ test("uses independent zero aggregates for snapshots without survey data", () =>
   );
 });
 
-test("renders both survey questions with separate totals and breakdowns", async () => {
+test("renders only the three independent summary values for each survey question", async () => {
   const solidFetch = jest.fn(async () => ({
     ok: true,
     status: 200,
@@ -537,10 +537,6 @@ test("renders both survey questions with separate totals and breakdowns", async 
   expect(comprehensibilitySummary[0]).toHaveTextContent("Responses8");
   expect(comprehensibilitySummary[1]).toHaveTextContent("Positive responses6");
   expect(comprehensibilitySummary[2]).toHaveTextContent("Positive rate75 %");
-  expect(
-    comprehensibilityCard.querySelectorAll(".statistics-survey-rating")[3]
-  ).toHaveTextContent("4 · Good3");
-  expect(within(comprehensibilityCard).getByText("TMDT Test")).toBeInTheDocument();
 
   const findabilitySummary = findabilityCard.querySelector(
     ".statistics-survey-summary"
@@ -548,8 +544,18 @@ test("renders both survey questions with separate totals and breakdowns", async 
   expect(findabilitySummary[0]).toHaveTextContent("Responses3");
   expect(findabilitySummary[1]).toHaveTextContent("Positive responses1");
   expect(findabilitySummary[2]).toHaveTextContent("Positive rate33.3 %");
-  expect(within(findabilityCard).getByText("DACE")).toBeInTheDocument();
-  expect(within(findabilityCard).queryByText("TMDT Test")).not.toBeInTheDocument();
+  expect(screen.queryByText("Ratings 4 and 5 are positive.")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "Rating distribution" })
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "Responses by month" })
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "Responses by catalog instance" })
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("TMDT Test")).not.toBeInTheDocument();
+  expect(screen.queryByText("DACE")).not.toBeInTheDocument();
 });
 
 test("shows N/A as the positive rate when a survey question has no responses", async () => {

@@ -447,57 +447,6 @@
   font-size: 1.2rem;
 }
 
-.statistics-survey-distribution,
-.statistics-survey-breakdown {
-  margin-top: 18px;
-}
-
-.statistics-survey-distribution h4,
-.statistics-survey-breakdown h4 {
-  margin: 0;
-  color: var(--text);
-  font-size: 0.84rem;
-}
-
-.statistics-survey-distribution__rows {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.statistics-survey-rating {
-  display: grid;
-  grid-template-columns: minmax(92px, 0.7fr) minmax(120px, 1fr) 36px;
-  align-items: center;
-  gap: 10px;
-  color: var(--muted);
-  font-size: 0.75rem;
-}
-
-.statistics-survey-rating__label {
-  white-space: nowrap;
-}
-
-.statistics-survey-rating__track {
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #e2e8f0;
-}
-
-.statistics-survey-rating__track > span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #60a5fa, #1d4ed8);
-}
-
-.statistics-survey-rating strong {
-  color: var(--text);
-  text-align: right;
-}
-
 .statistics-quality-metric,
 .statistics-semantic-model {
   display: flex;
@@ -547,10 +496,6 @@
 
   .statistics-survey-summary {
     grid-template-columns: 1fr;
-  }
-
-  .statistics-survey-rating {
-    grid-template-columns: minmax(88px, auto) minmax(80px, 1fr) 32px;
   }
 
   .statistics-actions,

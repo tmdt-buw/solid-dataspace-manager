@@ -26,13 +26,7 @@ const SURVEY_QUESTIONS = [
   ["dataset_findability", "Dataset findability"],
 ];
 
-const SURVEY_RATINGS = [
-  [1, "Very poor"],
-  [2, "Poor"],
-  [3, "Neutral"],
-  [4, "Good"],
-  [5, "Very good"],
-];
+const SURVEY_RATINGS = [1, 2, 3, 4, 5];
 
 const ACCOUNTS_PAGE_SIZE = 10;
 const DATASETS_PAGE_SIZE = 10;
@@ -90,7 +84,7 @@ function normalizeCatalogInstanceDownloads(value) {
 
 function normalizeSurveyRatings(ratings = {}) {
   return SURVEY_RATINGS.reduce(
-    (result, [rating]) => ({
+    (result, rating) => ({
       ...result,
       [rating]: numberOrZero(ratings?.[rating]),
     }),
@@ -485,42 +479,6 @@ function ActivityChart({ months }) {
   );
 }
 
-function SurveyBreakdownTable({ title, rows, firstColumnLabel, firstColumn }) {
-  const { language, t } = useI18n();
-  if (!rows.length) return null;
-
-  return (
-    <section className="statistics-survey-breakdown">
-      <h4>{title}</h4>
-      <div className="statistics-table-wrap">
-        <table className="statistics-table statistics-table--compact">
-          <thead>
-            <tr>
-              <th>{firstColumnLabel}</th>
-              <th>{t("Responses")}</th>
-              <th>{t("Positive responses")}</th>
-              <th>{t("Positive rate")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${firstColumn(row)}-${index}`}>
-                <td>
-                  <strong>{firstColumn(row)}</strong>
-                  {row.id && row.id !== row.label && <small>{row.id}</small>}
-                </td>
-                <td>{formatNumber(row.responseCount, language)}</td>
-                <td>{formatNumber(row.positiveCount, language)}</td>
-                <td>{formatSurveyRate(row, language)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
 function SurveyQuestionCard({ title, question }) {
   const { language, t } = useI18n();
   const responseCount = numberOrZero(question?.responseCount);
@@ -528,10 +486,7 @@ function SurveyQuestionCard({ title, question }) {
   return (
     <article className="statistics-panel statistics-survey-card">
       <div className="statistics-panel__header">
-        <div>
-          <h3>{title}</h3>
-          <p>{t("Ratings 4 and 5 are positive.")}</p>
-        </div>
+        <h3>{title}</h3>
       </div>
 
       <div className="statistics-survey-summary">
@@ -548,40 +503,6 @@ function SurveyQuestionCard({ title, question }) {
           <strong>{formatSurveyRate(question, language)}</strong>
         </div>
       </div>
-
-      <section className="statistics-survey-distribution">
-        <h4>{t("Rating distribution")}</h4>
-        <div className="statistics-survey-distribution__rows">
-          {SURVEY_RATINGS.map(([rating, label]) => {
-            const count = numberOrZero(question?.ratings?.[rating]);
-            const share = responseCount > 0 ? (count / responseCount) * 100 : 0;
-            return (
-              <div className="statistics-survey-rating" key={rating}>
-                <span className="statistics-survey-rating__label">
-                  {rating} · {t(label)}
-                </span>
-                <span className="statistics-survey-rating__track" aria-hidden="true">
-                  <span style={{ width: `${Math.min(100, Math.max(0, share))}%` }} />
-                </span>
-                <strong>{formatNumber(count, language)}</strong>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <SurveyBreakdownTable
-        title={t("Responses by month")}
-        rows={question?.monthly || []}
-        firstColumnLabel={t("Month")}
-        firstColumn={(row) => row.month}
-      />
-      <SurveyBreakdownTable
-        title={t("Responses by catalog instance")}
-        rows={question?.byCatalogInstance || []}
-        firstColumnLabel={t("Catalog instance")}
-        firstColumn={(row) => row.label}
-      />
     </article>
   );
 }
