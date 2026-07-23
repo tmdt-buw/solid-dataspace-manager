@@ -1,8 +1,10 @@
+import { getPlasmaUrl } from "./config/runtimeConfig";
+
 export const externalLinks = [
   {
     slug: "plasma",
     title: "PLASMA",
-    url: "http://plasma.uni-wuppertal.de/modelings",
+    url: getPlasmaUrl(),
     hideOpenButton: true,
   },
   {
@@ -22,7 +24,7 @@ export const externalLinks = [
     slug: "solid-health-app",
     title: "Solid Health App",
     url: "/solid-health-app/",
-    version: "0.1.19",
+    version: "0.1.20",
     hideOpenButton: true,
   },
   {

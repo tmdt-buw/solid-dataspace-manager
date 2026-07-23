@@ -1,4 +1,5 @@
 window.__APP_CONFIG__ = {
+  "plasmaUrl": "/plasma/modelings",
   "apps": [
     {
       "id": "environmental-monitoring",

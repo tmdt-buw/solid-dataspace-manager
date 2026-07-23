@@ -1,5 +1,6 @@
 import {
   isStatisticsAdmin,
+  normalizePlasmaUrl,
   normalizeRelativeResourcePath,
   normalizeStatisticsConfig,
 } from "./runtimeConfig";
@@ -8,6 +9,12 @@ const INITIAL_ADMIN =
   "https://solid-community-server.tmdt.info/solidtestpod/profile/card#me";
 
 describe("statistics runtime config", () => {
+  test("accepts a same-origin PLASMA path and rejects unsafe schemes", () => {
+    expect(normalizePlasmaUrl("/plasma/modelings")).toBe("/plasma/modelings");
+    expect(normalizePlasmaUrl("//example.org/plasma")).toBe("");
+    expect(normalizePlasmaUrl("javascript:alert(1)")).toBe("");
+  });
+
   test("uses an exact, case-sensitive admin WebID comparison", () => {
     expect(isStatisticsAdmin(INITIAL_ADMIN)).toBe(true);
     expect(isStatisticsAdmin(`${INITIAL_ADMIN}/`)).toBe(false);

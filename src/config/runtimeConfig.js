@@ -1,4 +1,5 @@
 const fallbackConfig = {
+  plasmaUrl: "http://plasma.uni-wuppertal.de/modelings",
   apps: [
     {
       id: "environmental-monitoring",
@@ -73,6 +74,21 @@ function getWindowConfig() {
   }
 
   return window.__APP_CONFIG__ || {};
+}
+
+export function normalizePlasmaUrl(value) {
+  const raw = typeof value === "string" ? value.trim() : "";
+
+  if (raw.startsWith("/") && !raw.startsWith("//")) {
+    return raw;
+  }
+
+  try {
+    const url = new URL(raw);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
 }
 
 function normalizeApp(app, index) {
@@ -341,6 +357,8 @@ const fundingLogosSource =
     : fallbackConfig.fundingLogos;
 
 export const appConfig = {
+  plasmaUrl:
+    normalizePlasmaUrl(runtimeConfig.plasmaUrl) || fallbackConfig.plasmaUrl,
   apps: appsSource.map(normalizeApp),
   providers: providersSource.map(normalizeProvider),
   branding: normalizeBranding(brandingSource),
@@ -361,6 +379,10 @@ export const appConfig = {
       : fallbackConfig.statistics
   ),
 };
+
+export function getPlasmaUrl() {
+  return appConfig.plasmaUrl;
+}
 
 export function getAppsBySection(section) {
   return appConfig.apps

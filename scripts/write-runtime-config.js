@@ -43,6 +43,9 @@ function parseBooleanEnv(name) {
 }
 
 const config = {
+  plasmaUrl:
+    process.env.APP_PLASMA_URL ||
+    "http://plasma.uni-wuppertal.de/modelings",
   apps: parseJsonEnv("APP_CONFIG_APPS_JSON", []),
   providers: parseJsonEnv("APP_CONFIG_PROVIDERS_JSON", []),
   branding: parseJsonEnv("APP_BRANDING_JSON", {}),
