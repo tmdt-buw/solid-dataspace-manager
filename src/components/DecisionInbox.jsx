@@ -6,37 +6,34 @@ import {
   getThing,
   getThingAll,
   getUrl,
-  getUrlAll,
-  getStringNoLocale,
-  getDatetime,
   deleteFile,
 } from "@inrupt/solid-client";
-import { LDP, RDF } from "@inrupt/vocab-common-rdf";
+import { LDP } from "@inrupt/vocab-common-rdf";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBell, faRotateRight, faTrash } from "@fortawesome/free-solid-svg-icons";
 import ConfirmModal from "./ConfirmModal";
+import { getSyncWorkerConfig } from "../config/runtimeConfig";
+import {
+  ENVIRONMENTAL_CONSENT,
+  ENVIRONMENTAL_REQUEST,
+  filterPreviousScenarioRuns,
+  isTrustedEnvironmentalRequest,
+  parseAccessDecisionThing,
+} from "../accessRequestModel";
+import { useI18n } from "../i18n";
 import "./Notifications.css";
 
-const SDM_NS = "https://w3id.org/solid-dataspace-manager#";
-const SDM = {
-  AccessDecision: `${SDM_NS}AccessDecision`,
-  decision: `${SDM_NS}decision`,
-  decidedAt: `${SDM_NS}decidedAt`,
-  requesterWebId: `${SDM_NS}requesterWebId`,
-  requesterName: `${SDM_NS}requesterName`,
-  requesterEmail: `${SDM_NS}requesterEmail`,
-  datasetIdentifier: `${SDM_NS}datasetIdentifier`,
-  datasetTitle: `${SDM_NS}datasetTitle`,
-  datasetAccessUrl: `${SDM_NS}datasetAccessUrl`,
-  datasetSemanticModelUrl: `${SDM_NS}datasetSemanticModelUrl`,
-  catalogUrl: `${SDM_NS}catalogUrl`,
-  decisionComment: `${SDM_NS}decisionComment`,
-  expiresAt: `${SDM_NS}expiresAt`,
-};
-
-const DCT_CREATED = "http://purl.org/dc/terms/created";
-const DCT_TITLE = "http://purl.org/dc/terms/title";
 const LAST_SEEN_DECISIONS_KEY = "sdm-last-seen-decisions";
+const CLOSED_DECISIONS = new Set(["revoked", "denied", "expired", "archived"]);
+
+const getDisplayDecision = (decision) => {
+  if (decision === "approved") return "Approved";
+  if (decision === "denied") return "Denied";
+  if (decision === "revoked") return "Revoked";
+  if (decision === "expired") return "Expired";
+  if (decision === "archived") return "Archived";
+  return decision || "Unknown";
+};
 
 const noCacheFetch = (input, init = {}) =>
   session.fetch(input, {
@@ -45,11 +42,12 @@ const noCacheFetch = (input, init = {}) =>
     headers: { ...(init.headers || {}), "Cache-Control": "no-cache" },
   });
 
-const formatDateTime = (value) => {
+const formatDateTime = (value, language) => {
   if (!value) return "N/A";
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString("de-DE", {
+  const locale = language === "de" ? "de-DE" : "en-US";
+  return date.toLocaleString(locale, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -92,11 +90,13 @@ const getProviderRoot = (item, webId) => {
 };
 
 const DecisionInbox = ({ webId }) => {
+  const { language, t } = useI18n();
   const [inboxUrl, setInboxUrl] = useState("");
   const [decisions, setDecisions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hideClosed, setHideClosed] = useState(true);
+  const [showPreviousRuns, setShowPreviousRuns] = useState(false);
   const [page, setPage] = useState(1);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
@@ -104,6 +104,7 @@ const DecisionInbox = ({ webId }) => {
   const [confirmAction, setConfirmAction] = useState("");
   const [confirmTargetId, setConfirmTargetId] = useState("");
   const pageSize = 5;
+  const serviceWebId = getSyncWorkerConfig().serviceWebId;
 
   const resolveInboxUrl = async () => {
     const profileDataset = await getSolidDataset(webId, { fetch: noCacheFetch });
@@ -117,37 +118,13 @@ const DecisionInbox = ({ webId }) => {
     return { dataset, thing };
   };
 
-  const parseDecision = (url, thing) => {
-    if (!thing) return null;
-    const types = getUrlAll(thing, RDF.type);
-    if (!types.includes(SDM.AccessDecision)) return null;
-
-    const timestampMatch = url.match(/(\d{10,})(?:\/)?$/);
-    const urlTime = timestampMatch ? Number(timestampMatch[1]) : 0;
-
-    return {
-      id: url,
-      decision: getStringNoLocale(thing, SDM.decision) || "",
-      decidedAt: getDatetime(thing, SDM.decidedAt) || getStringNoLocale(thing, SDM.decidedAt) || "",
-      requesterWebId: getUrl(thing, SDM.requesterWebId) || "",
-      requesterName: getStringNoLocale(thing, SDM.requesterName) || "",
-      requesterEmail: getStringNoLocale(thing, SDM.requesterEmail) || "",
-      datasetIdentifier: getStringNoLocale(thing, SDM.datasetIdentifier) || "",
-      datasetTitle:
-        getStringNoLocale(thing, SDM.datasetTitle) ||
-        getStringNoLocale(thing, DCT_TITLE) ||
-        "",
-      datasetAccessUrl: getUrl(thing, SDM.datasetAccessUrl) || "",
-      datasetSemanticModelUrl: getUrl(thing, SDM.datasetSemanticModelUrl) || "",
-      catalogUrl: getUrl(thing, SDM.catalogUrl) || "",
-      decisionComment: getStringNoLocale(thing, SDM.decisionComment) || "",
-      expiresAt: getStringNoLocale(thing, SDM.expiresAt) || "",
-      createdAt: getDatetime(thing, DCT_CREATED) || getStringNoLocale(thing, DCT_CREATED) || "",
-      urlTime,
-    };
-  };
-
   const buildDecisionKey = (item) =>
+    item.requestId ||
+    (item.scenarioRunId
+      ? `${item.applicationId || "scenario"}:${item.scenarioRunId}:${
+          item.datasetIdentifier || "dataset"
+        }`
+      : "") ||
     item.datasetIdentifier ||
     item.datasetAccessUrl ||
     item.datasetSemanticModelUrl ||
@@ -176,7 +153,7 @@ const DecisionInbox = ({ webId }) => {
         resourceUrls.map(async (url) => {
           try {
             const { thing } = await loadDecisionThing(url);
-            return parseDecision(url, thing);
+            return parseAccessDecisionThing(url, thing);
           } catch (err) {
             console.warn("Failed to parse decision:", url, err);
             return null;
@@ -235,8 +212,9 @@ const DecisionInbox = ({ webId }) => {
     loadDecisions();
   }, [webId]);
 
-  const filteredDecisions = decisions.filter((item) =>
-    hideClosed ? item.decision !== "revoked" && item.decision !== "denied" : true
+  const currentRunDecisions = filterPreviousScenarioRuns(decisions, showPreviousRuns);
+  const filteredDecisions = currentRunDecisions.filter((item) =>
+    hideClosed ? !CLOSED_DECISIONS.has(item.decision) : true
   );
   const totalPages = Math.max(1, Math.ceil(filteredDecisions.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -254,11 +232,11 @@ const DecisionInbox = ({ webId }) => {
       <div className="notifications-header toolbar--title">
         <div className="crumb">
           <FontAwesomeIcon icon={faBell} className="crumb-icon" />
-          <span>Access Decisions</span>
+          <span>{t("Access Decisions")}</span>
         </div>
         <button className="pill-btn" onClick={loadDecisions} disabled={loading}>
           <FontAwesomeIcon icon={faRotateRight} />
-          <span>Refresh</span>
+          <span>{t("Refresh")}</span>
         </button>
       </div>
       <div className="notifications-filters">
@@ -271,10 +249,21 @@ const DecisionInbox = ({ webId }) => {
               setPage(1);
             }}
           />
-          Hide closed
+          {t("Hide closed")}
+        </label>
+        <label className="notifications-toggle">
+          <input
+            type="checkbox"
+            checked={showPreviousRuns}
+            onChange={(e) => {
+              setShowPreviousRuns(e.target.checked);
+              setPage(1);
+            }}
+          />
+          Show previous scenario runs
         </label>
         <div className="notifications-count">
-          Showing {filteredDecisions.length} decision(s)
+          {t(`Showing ${filteredDecisions.length} decision(s)`)}
         </div>
       </div>
 
@@ -286,27 +275,30 @@ const DecisionInbox = ({ webId }) => {
       )}
 
       {loading ? (
-        <div className="notifications-empty">Loading decisions...</div>
+        <div className="notifications-empty">{t("Loading decisions...")}</div>
       ) : filteredDecisions.length === 0 ? (
-        <div className="notifications-empty">No access decisions found.</div>
+        <div className="notifications-empty">{t("No access decisions found.")}</div>
       ) : (
         <div className="notifications-list">
-          {pagedDecisions.map((item) => (
-            <div className="notification-card" key={item.id}>
+          {pagedDecisions.map((item) => {
+            const trustedEnvironmental = isTrustedEnvironmentalRequest(
+              item,
+              serviceWebId
+            );
+            return (
+              <div className="notification-card" key={item.id}>
               <div className="notification-head">
                 <div>
                   <div className="notification-title">
-                    {item.datasetTitle || "Untitled dataset"}
+                    {item.datasetTitle || t("Untitled dataset")}
                   </div>
                   <div className="notification-subtitle">
-                    ID: {item.datasetIdentifier || "N/A"}
+                    {t("ID:")} {item.datasetIdentifier || "N/A"}
                   </div>
                 </div>
                 <div className="notification-actions-inline">
                   <span className={`status-pill status-${item.decision || "pending"}`}>
-                    {item.decision === "revoked" || item.decision === "denied"
-                      ? "closed"
-                      : item.decision || "unknown"}
+                    {getDisplayDecision(item.decision)}
                   </span>
                   <button
                     className="icon-btn icon-btn--danger"
@@ -320,21 +312,34 @@ const DecisionInbox = ({ webId }) => {
               </div>
 
               <div className="notification-meta">
+                {trustedEnvironmental && (
+                  <div>
+                    <strong>Application:</strong>{" "}
+                    {t(ENVIRONMENTAL_REQUEST.displayName)}
+                  </div>
+                )}
                 <div>
-                  <strong>Decided:</strong> {formatDateTime(item.decidedAt || item.createdAt)}
+                  <strong>{t("Decided:")}</strong> {formatDateTime(item.decidedAt || item.createdAt, language)}
                 </div>
-                <div><strong>Expires:</strong> {formatDateTime(item.expiresAt)}</div>
-                <div><strong>Provider:</strong> {getProviderRoot(item, webId)}</div>
+                <div><strong>{t("Expires:")}</strong> {formatDateTime(item.expiresAt, language)}</div>
+                <div><strong>{t("Provider:")}</strong> {getProviderRoot(item, webId)}</div>
+                {trustedEnvironmental && (
+                  <>
+                    <div><strong>{t("Purpose:")}</strong> {t(ENVIRONMENTAL_CONSENT.purpose)}</div>
+                    <div><strong>{t("Access:")}</strong> {t(ENVIRONMENTAL_CONSENT.access)}</div>
+                  </>
+                )}
               </div>
 
               {item.decisionComment && (
                 <div className="notification-message">
-                  <strong>Comment:</strong> {item.decisionComment}
+                  <strong>{t("Comment:")}</strong> {item.decisionComment}
                 </div>
               )}
 
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
       {!loading && filteredDecisions.length > pageSize && (

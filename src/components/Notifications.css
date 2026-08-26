@@ -195,6 +195,30 @@
   color: #1f2a44;
 }
 
+.notification-card--consent {
+  border-color: rgba(37, 99, 235, 0.38);
+}
+
+.notification-consent {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  color: #172554;
+  line-height: 1.45;
+}
+
+.notification-consent__invalid {
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-weight: 600;
+}
+
 .notification-decision {
   background: #f8fafc;
   border: 1px solid rgba(148, 163, 184, 0.25);

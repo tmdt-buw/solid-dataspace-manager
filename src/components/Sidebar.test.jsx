@@ -28,6 +28,10 @@ function renderSidebar(statisticsAdmin) {
 
 test("hides the administration section from non-admins", () => {
   renderSidebar(false);
+  expect(screen.getByRole("link", { name: /Solid Tours/i })).toHaveAttribute(
+    "href",
+    "/web/solid-tours"
+  );
   expect(screen.queryByText("Administration")).not.toBeInTheDocument();
   expect(screen.queryByText("Statistics Dashboard")).not.toBeInTheDocument();
 });

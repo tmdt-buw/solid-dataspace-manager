@@ -1,6 +1,12 @@
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
+const {
+  clearCraWebpackCache,
+  copyPackageDirectory,
+  getChangedLocalPackages,
+  readLocalPackage,
+} = require("./local-package-sync");
 
 const appRoot = path.resolve(__dirname, "..");
 const nodeModulesRoot = path.join(appRoot, "node_modules");
@@ -8,6 +14,7 @@ const defaultSourceDirs = [
   "/solid-data-manager/dist",
   "/semantic-data-catalog/dist",
   "/solid-health-app/dist",
+  "/solid-tours/dist",
   "/solid-chatbot/dist",
 ];
 
@@ -18,74 +25,6 @@ const sourceDirs = (process.env.LOCAL_PACKAGE_WATCH_DIRS || defaultSourceDirs.jo
 const pollIntervalMs = Number(process.env.LOCAL_PACKAGE_WATCH_INTERVAL_MS || 1500);
 const triggerFile = path.join(appRoot, "src", "App.js");
 
-const packageDestination = (packageName) => {
-  const parts = packageName.split("/");
-  return path.join(nodeModulesRoot, ...parts);
-};
-
-const copyDirectory = (source, target) => {
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.rmSync(target, { recursive: true, force: true });
-  fs.cpSync(source, target, {
-    recursive: true,
-    dereference: true,
-    force: true,
-  });
-};
-
-const readLocalPackage = (sourceDir) => {
-  const packagePath = path.join(sourceDir, "package.json");
-  if (!fs.existsSync(packagePath)) return null;
-  const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
-  if (!packageJson.name) return null;
-  return {
-    name: packageJson.name,
-    sourceDir,
-    targetDir: packageDestination(packageJson.name),
-  };
-};
-
-const getDirectorySignature = (sourceDir) => {
-  if (!fs.existsSync(sourceDir)) return "missing";
-  const stack = [sourceDir];
-  let newest = 0;
-  let fileCount = 0;
-  let totalSize = 0;
-
-  while (stack.length > 0) {
-    const current = stack.pop();
-    let entries = [];
-    try {
-      entries = fs.readdirSync(current, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-
-    entries.forEach((entry) => {
-      const fullPath = path.join(current, entry.name);
-      let stat;
-      try {
-        stat = fs.statSync(fullPath);
-      } catch {
-        return;
-      }
-
-      if (entry.isDirectory()) {
-        stack.push(fullPath);
-        return;
-      }
-
-      if (entry.isFile()) {
-        fileCount += 1;
-        totalSize += stat.size;
-        newest = Math.max(newest, stat.mtimeMs);
-      }
-    });
-  }
-
-  return `${newest}:${fileCount}:${totalSize}`;
-};
-
 const touchReloadTrigger = () => {
   if (!fs.existsSync(triggerFile)) return;
   const now = new Date();
@@ -93,22 +32,56 @@ const touchReloadTrigger = () => {
 };
 
 const syncPackage = (localPackage) => {
-  copyDirectory(localPackage.sourceDir, localPackage.targetDir);
+  copyPackageDirectory(localPackage.sourceDir, localPackage.targetDir);
   console.log(
     `[local-package-watch] Synced ${localPackage.name} from ${localPackage.sourceDir}`
   );
 };
 
-const localPackages = sourceDirs.map(readLocalPackage).filter(Boolean);
-if (localPackages.length === 0) {
-  console.warn("[local-package-watch] No local dist packages found. Starting normally.");
+const signatures = new Map();
+const synchronizePackages = (packages) => {
+  let syncedCount = 0;
+
+  packages.forEach((candidate) => {
+    // Re-read immediately before copying. A dist build may have removed or
+    // replaced package.json since the polling snapshot was taken.
+    const currentPackage = readLocalPackage(candidate.sourceDir, nodeModulesRoot);
+    if (!currentPackage || currentPackage.name !== candidate.name) return;
+
+    try {
+      syncPackage(currentPackage);
+      signatures.set(candidate.sourceDir, candidate.signature);
+      syncedCount += 1;
+    } catch (error) {
+      // Do not advance the signature. The next poll will retry this package
+      // after its dist directory has reached a stable state.
+      console.warn(
+        `[local-package-watch] Could not sync ${candidate.name}; will retry (${error.code || error.message}).`
+      );
+    }
+  });
+
+  return syncedCount;
+};
+
+const initialPackages = getChangedLocalPackages(
+  sourceDirs,
+  nodeModulesRoot,
+  signatures
+);
+const initialSyncedCount = synchronizePackages(initialPackages);
+if (initialSyncedCount === 0) {
+  console.warn(
+    "[local-package-watch] No local dist packages ready. Starting normally and continuing discovery."
+  );
 }
 
-const signatures = new Map();
-localPackages.forEach((localPackage) => {
-  signatures.set(localPackage.sourceDir, getDirectorySignature(localPackage.sourceDir));
-  syncPackage(localPackage);
-});
+// Docker keeps /app/node_modules in a named volume. Clear its derived webpack
+// cache after the initial package sync as well, so restarting the container
+// cannot resurrect modules compiled from an older local build.
+if (initialSyncedCount > 0 && clearCraWebpackCache(appRoot)) {
+  console.log("[local-package-watch] Cleared CRA/webpack cache");
+}
 
 let child = null;
 let restarting = false;
@@ -182,6 +155,12 @@ const restartDevServer = () => {
     .then(async () => {
       restarting = true;
       await stopDevServer();
+      // The old webpack process must be fully stopped before its filesystem
+      // cache is removed; otherwise an in-flight compile can recreate stale
+      // cache entries between invalidation and the new process starting.
+      if (clearCraWebpackCache(appRoot)) {
+        console.log("[local-package-watch] Cleared CRA/webpack cache");
+      }
       spawnDevServer();
       restarting = false;
     })
@@ -203,21 +182,20 @@ const scheduleSync = (changedPackages) => {
     pendingSync = null;
     const packagesToSync = Array.from(pendingChangedPackages.values());
     pendingChangedPackages.clear();
-    packagesToSync.forEach(syncPackage);
-    touchReloadTrigger();
-    restartDevServer();
+    const syncedCount = synchronizePackages(packagesToSync);
+    if (syncedCount > 0) {
+      touchReloadTrigger();
+      restartDevServer();
+    }
   }, 350);
 };
 
 setInterval(() => {
-  const changedPackages = [];
-  localPackages.forEach((localPackage) => {
-    const nextSignature = getDirectorySignature(localPackage.sourceDir);
-    if (nextSignature !== signatures.get(localPackage.sourceDir)) {
-      signatures.set(localPackage.sourceDir, nextSignature);
-      changedPackages.push(localPackage);
-    }
-  });
+  const changedPackages = getChangedLocalPackages(
+    sourceDirs,
+    nodeModulesRoot,
+    signatures
+  );
 
   if (changedPackages.length > 0) {
     scheduleSync(changedPackages);

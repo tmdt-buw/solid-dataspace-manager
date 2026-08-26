@@ -22,6 +22,16 @@ window.__APP_CONFIG__ = {
       "linkType": "internal"
     },
     {
+      "id": "solid-tours",
+      "title": "Solid Tours",
+      "href": "/web/solid-tours",
+      "section": "applications",
+      "iconKey": "tour",
+      "visible": true,
+      "order": 22,
+      "linkType": "internal"
+    },
+    {
       "id": "solid-chatbot",
       "title": "Solid Chatbot",
       "href": "/web/solid-chatbot",

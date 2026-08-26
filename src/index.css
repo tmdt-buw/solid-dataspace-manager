@@ -28,6 +28,24 @@ code {
     monospace;
 }
 
+html.solid-tours-route {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.solid-tours-route {
+  height: var(--dataspace-scaled-vh);
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.solid-tours-route #root {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 @supports not (zoom: 1) {
   body {
     width: auto;

@@ -19,6 +19,11 @@ import {
   setSession as setHealthAppSession,
   healthAppVersion,
 } from "@hoelk-f/solid-health-app/embed";
+import "@hoelk-f/solid-tours/embed.css";
+import {
+  SolidToursEmbed,
+  toursAppVersion,
+} from "@hoelk-f/solid-tours/embed";
 import "@hoelk-f/solid-chatbot/embed.css";
 import {
   ChatbotEmbed,
@@ -26,7 +31,7 @@ import {
   chatbotVersion,
 } from "@hoelk-f/solid-chatbot/embed";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBookOpen, faHeartPulse } from "@fortawesome/free-solid-svg-icons";
+import { faBookOpen, faHeartPulse, faRoute } from "@fortawesome/free-solid-svg-icons";
 import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import "./App.css";
 import ExternalHost from "./components/ExternalHost";
@@ -42,6 +47,7 @@ import DataConnection from "./components/DataConnection";
 import LoadingParticleCloud from "./components/LoadingParticleCloud";
 import StatisticsDashboard from "./components/StatisticsDashboard";
 import StatisticsRouteGuard from "./components/StatisticsRouteGuard";
+import RouteAwareLayout from "./components/RouteAwareLayout";
 import { appVersion } from "./versions";
 import {
   dispatchLanguageChange,
@@ -582,13 +588,28 @@ const App = () => {
     </div>
   );
 
+  const SolidToursPage = () => (
+    <div className="solid-tours-embed">
+      <div className="solid-tours-header toolbar--title">
+        <div className="crumb">
+          <FontAwesomeIcon icon={faRoute} className="crumb-icon" />
+          <span>Solid Tours</span>
+        </div>
+        <span className="integrated-version">{toursAppVersion}</span>
+      </div>
+      <SolidToursEmbed webId={webId} language={language} session={session} />
+    </div>
+  );
+
   const fundingLogos = getFundingLogos();
   const fundingGrantNumber = getFundingGrantNumber();
   const statisticsAdmin = isStatisticsAdmin(webId);
 
   return renderWithI18n(
     <BrowserRouter>
-      <div className={`layout${sidebarCollapsed ? " layout--sidebar-collapsed" : ""}`}>
+      <RouteAwareLayout
+        className={`layout${sidebarCollapsed ? " layout--sidebar-collapsed" : ""}`}
+      >
         <Sidebar
           webId={webId}
           collapsed={sidebarCollapsed}
@@ -620,6 +641,7 @@ const App = () => {
                 }
               />
               <Route path="/web/solid-health-app" element={<HealthAppPage />} />
+              <Route path="/web/solid-tours" element={<SolidToursPage />} />
               <Route path="/web/solid-chatbot" element={<ChatbotPage />} />
               <Route path="/web/:slug" element={<ExternalHost />} />
             </Routes>
@@ -650,7 +672,7 @@ const App = () => {
             )}
           </footer>
         </div>
-      </div>
+      </RouteAwareLayout>
     </BrowserRouter>
   );
 };

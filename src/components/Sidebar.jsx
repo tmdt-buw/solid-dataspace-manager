@@ -19,6 +19,7 @@ import {
   faChevronLeft,
   faChevronRight,
   faLink,
+  faRoute,
 } from "@fortawesome/free-solid-svg-icons";
 import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import session from "../solidSession";
@@ -58,6 +59,7 @@ const appIconMap = {
   temperature: faTemperatureHigh,
   database: faDatabase,
   health: faHeartPulse,
+  tour: faRoute,
   server: faServer,
   rocketchat: faRocketchat,
 };

@@ -54,6 +54,16 @@ describe("i18n language resolution", () => {
     expect(translateText("Refresh", "de")).toBe("Aktualisieren");
   });
 
+  test("keeps Environmental Monitoring consent in English and localizes it for German", () => {
+    const title = "Environmental Monitoring wants to use your completed tours";
+    expect(translateText(title, "en")).toBe(title);
+    expect(translateText(title, "de")).toBe(
+      "Environmental Monitoring möchte deine gemachten Touren verwenden"
+    );
+    expect(translateText("Data:", "de")).toBe("Daten:");
+    expect(translateText("Note:", "de")).toBe("Hinweis:");
+  });
+
   test("translates dynamic manager labels", () => {
     expect(translateText("Showing 3 request(s)", "de")).toBe(
       "3 Zugriffsanfrage(n) angezeigt"

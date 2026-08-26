@@ -34,6 +34,26 @@ const enToDe = {
   "Data Connection": "Datenverbindung",
   "Solid Pod Provider": "Solid-Pod-Anbieter",
   "Environmental Monitoring": "Umweltmonitoring",
+  "Environmental Monitoring wants to use your completed tours":
+    "Environmental Monitoring möchte deine gemachten Touren verwenden",
+  "All donated completed routes and their calculated activity values":
+    "Alle gespendeten gemachten Routen und ihre berechneten Aktivitätswerte",
+  "Anonymous public display of all donated routes and their derived activity values in Environmental Monitoring.":
+    "Anonyme öffentliche Darstellung aller gespendeten Routen und der daraus berechneten Aktivitätswerte in Environmental Monitoring.",
+  "Read only": "Nur lesen",
+  "The data are provided only anonymously in Environmental Monitoring: There, name, WebID, Pod URL, contact email, and other direct identifiers are not shown. In the public catalog entry, Hannah Mueller as creator, her WebID, and the contact email stored in the Solid profile are shown separately. A shared resource is approved with the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and for walking an estimated step count.":
+    "Die Daten werden ausschließlich in Environmental Monitoring anonym zur Verfügung gestellt: Dort werden weder Name, WebID, Pod-URL, Kontakt-E-Mail noch andere direkte Identifikatoren ausgegeben. Im öffentlichen Katalogeintrag sind Hannah Mueller als Erstellerin, ihre WebID und die im Solid-Profil hinterlegte Kontakt-E-Mail separat sichtbar. Freigegeben wird eine gemeinsame Ressource mit den vollständigen Routenkoordinaten, dem Abschlussdatum, der Aktivitätsart sowie berechneter Distanz, aktiven Minuten, Tempo und beim Gehen ungefähr geschätzten Schritten.",
+  "Delete closed requests": "Geschlossene Anfragen löschen",
+  "This will permanently delete the closed requests from your inbox.":
+    "Dadurch werden die geschlossenen Anfragen dauerhaft aus deiner Inbox gelöscht.",
+  "ID:": "Kennung:",
+  "Tour activity": "Tour-Aktivität",
+  "Data:": "Daten:",
+  "Purpose:": "Zweck:",
+  "Access:": "Zugriff:",
+  "Note:": "Hinweis:",
+  "This request cannot be approved:": "Diese Anfrage kann nicht genehmigt werden:",
+  "Failed to update access decision:": "Zugriffsentscheidung konnte nicht aktualisiert werden:",
   "Solid Health App": "Solid Gesundheits-App",
   "Solid Chatbot": "Solid Chatbot",
   Logout: "Abmelden",

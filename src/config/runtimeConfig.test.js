@@ -1,4 +1,5 @@
 import {
+  getAppsBySection,
   isStatisticsAdmin,
   normalizePlasmaUrl,
   normalizeRelativeResourcePath,
@@ -9,6 +10,20 @@ const INITIAL_ADMIN =
   "https://solid-community-server.tmdt.info/solidtestpod/profile/card#me";
 
 describe("statistics runtime config", () => {
+  test("includes Solid Tours as an embedded fallback application", () => {
+    expect(getAppsBySection("applications")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "solid-tours",
+          href: "/web/solid-tours",
+          iconKey: "tour",
+          order: 22,
+          linkType: "internal",
+        }),
+      ])
+    );
+  });
+
   test("accepts a same-origin PLASMA path and rejects unsafe schemes", () => {
     expect(normalizePlasmaUrl("/plasma/modelings")).toBe("/plasma/modelings");
     expect(normalizePlasmaUrl("//example.org/plasma")).toBe("");

@@ -21,6 +21,16 @@ const fallbackConfig = {
       order: 20,
       linkType: "internal",
     },
+    {
+      id: "solid-tours",
+      title: "Solid Tours",
+      href: "/web/solid-tours",
+      section: "applications",
+      iconKey: "tour",
+      visible: true,
+      order: 22,
+      linkType: "internal",
+    },
   ],
   providers: [
     {

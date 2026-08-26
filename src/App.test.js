@@ -10,6 +10,9 @@ jest.mock("@hoelk-f/semantic-data-catalog/embed.css", () => ({}), {
 jest.mock("@hoelk-f/solid-health-app/embed.css", () => ({}), {
   virtual: true,
 });
+jest.mock("@hoelk-f/solid-tours/embed.css", () => ({}), {
+  virtual: true,
+});
 jest.mock("@hoelk-f/solid-chatbot/embed.css", () => ({}), {
   virtual: true,
 });
@@ -34,6 +37,11 @@ jest.mock(
   { virtual: true }
 );
 jest.mock(
+  "@hoelk-f/solid-tours/embed",
+  () => ({ SolidToursEmbed: () => null, setSession: jest.fn(), toursAppVersion: "test" }),
+  { virtual: true }
+);
+jest.mock(
   "@hoelk-f/solid-chatbot/embed",
   () => ({ ChatbotEmbed: () => null, setSession: jest.fn(), chatbotVersion: "test" }),
   { virtual: true }
@@ -43,6 +51,7 @@ jest.mock("react-router-dom", () => ({
   BrowserRouter: ({ children }) => <div>{children}</div>,
   Routes: ({ children }) => <div>{children}</div>,
   Route: () => null,
+  useLocation: () => ({ pathname: "/" }),
 }), { virtual: true });
 
 import App from "./App";

@@ -26,6 +26,24 @@
   transition: margin-left 0.2s ease;
 }
 
+.layout.layout--solid-tours {
+  height: var(--dataspace-scaled-vh, 100vh);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.layout--solid-tours > .main {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.layout--solid-tours > .main > .container {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .layout--sidebar-collapsed > .main {
   margin-left: 76px;
 }

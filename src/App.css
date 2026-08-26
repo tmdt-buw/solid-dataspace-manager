@@ -81,6 +81,21 @@ body {
   padding-bottom: 0;
 }
 
+.solid-tours-embed {
+  position: relative;
+  width: 100%;
+  min-height: auto;
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.solid-tours-embed > .solid-tours-app {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .solid-health-app-embed .app-shell--embedded {
   width: 100%;
   max-width: none;
@@ -142,6 +157,35 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.solid-tours-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 13px 20px;
+  border-color: #dce4ef;
+  border-radius: 16px;
+}
+
+.solid-tours-header .crumb {
+  gap: 12px;
+  color: #10284a;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.solid-tours-header .crumb-icon {
+  color: #1759ad;
+  font-size: 1.25rem;
+}
+
+.solid-tours-header .integrated-version {
+  color: #10284a;
+  background: #eaf0fb;
+  border-color: #d8e2f0;
 }
 
 .integrated-version {
