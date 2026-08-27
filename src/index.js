@@ -4,6 +4,9 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { restoreSession } from './solidSession';
+import { markSafariBrowser } from './browserCompatibility';
+
+markSafariBrowser();
 
 const rootElement = document.getElementById('root');
 

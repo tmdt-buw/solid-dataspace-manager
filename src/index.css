@@ -1,20 +1,37 @@
 :root {
   --dataspace-ui-scale: 0.7;
+  --dataspace-viewport-height: 100vh;
   --dataspace-scaled-vw: calc(100vw / var(--dataspace-ui-scale));
-  --dataspace-scaled-vh: calc(100vh / var(--dataspace-ui-scale));
+  --dataspace-scaled-vh: calc(var(--dataspace-viewport-height) / var(--dataspace-ui-scale));
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --dataspace-viewport-height: 100dvh;
+  }
+}
+
+html.browser-safari {
+  --dataspace-ui-scale: 1;
+  --dataspace-scaled-vw: 100vw;
+  --dataspace-scaled-vh: var(--dataspace-viewport-height);
 }
 
 html {
+  width: 100%;
+  height: var(--dataspace-viewport-height);
   min-width: 100%;
-  min-height: 100%;
+  min-height: var(--dataspace-viewport-height);
+  overflow: hidden;
   background: #f8fafc;
 }
 
 body {
   margin: 0;
   width: var(--dataspace-scaled-vw);
+  height: var(--dataspace-scaled-vh);
   min-height: var(--dataspace-scaled-vh);
-  overflow-x: hidden;
+  overflow: hidden;
   zoom: var(--dataspace-ui-scale);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -23,13 +40,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html.browser-safari body {
+  zoom: 1;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
 
-html.solid-tours-route {
+#root {
+  width: 100%;
   height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+html.solid-tours-route {
+  height: var(--dataspace-viewport-height);
   min-height: 0;
   overflow: hidden;
 }
@@ -44,19 +73,4 @@ body.solid-tours-route #root {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-}
-
-@supports not (zoom: 1) {
-  body {
-    width: auto;
-    min-height: 100vh;
-    zoom: 1;
-  }
-
-  #root {
-    width: var(--dataspace-scaled-vw);
-    min-height: var(--dataspace-scaled-vh);
-    transform: scale(var(--dataspace-ui-scale));
-    transform-origin: top left;
-  }
 }
