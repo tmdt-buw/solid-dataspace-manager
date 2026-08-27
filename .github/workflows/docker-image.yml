@@ -25,5 +25,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: son1i/solid-dataspace-manager:latest
-          build-args: |
-            NPM_TOKEN=${{ secrets.NPM_TOKEN }}
+          secrets: |
+            npm_token=${{ secrets.NPM_TOKEN }}
