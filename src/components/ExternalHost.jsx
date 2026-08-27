@@ -12,6 +12,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import { LANGUAGE_MESSAGE_TYPE, useI18n } from "../i18n";
+import { getDataspaceId } from "../config/runtimeConfig";
+import { buildExternalTargetUrl } from "./externalTargetUrl";
 import "./ExternalHost.css";
 
 export default function ExternalHost() {
@@ -42,14 +44,12 @@ export default function ExternalHost() {
   }, [activeLink]);
 
   const targetUrl = useMemo(() => {
-    if (!activeLink?.url) return "";
-    try {
-      const url = new URL(activeLink.url, window.location.origin);
-      url.searchParams.set("lang", language);
-      return url.toString();
-    } catch {
-      return activeLink.url;
-    }
+    return buildExternalTargetUrl({
+      activeLink,
+      language,
+      origin: window.location.origin,
+      dataspaceId: getDataspaceId(),
+    });
   }, [activeLink, language]);
 
   useEffect(() => {

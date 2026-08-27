@@ -1,4 +1,5 @@
 const fallbackConfig = {
+  dataspaceId: "",
   plasmaUrl: "http://plasma.uni-wuppertal.de/modelings",
   apps: [
     {
@@ -320,6 +321,11 @@ function normalizeBooleanFlag(value) {
   return ["true", "1", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
+export function normalizeDataspaceId(value) {
+  const normalized = String(value || "").trim();
+  return /^[a-z0-9][a-z0-9._-]{0,63}$/i.test(normalized) ? normalized : "";
+}
+
 export function normalizeStatisticsConfig(statistics) {
   const podBaseUrl = normalizeContainerUrl(statistics?.podBaseUrl);
   const explicitEventsUrl = normalizeContainerUrl(statistics?.eventsUrl);
@@ -367,6 +373,8 @@ const fundingLogosSource =
     : fallbackConfig.fundingLogos;
 
 export const appConfig = {
+  dataspaceId:
+    normalizeDataspaceId(runtimeConfig.dataspaceId) || fallbackConfig.dataspaceId,
   plasmaUrl:
     normalizePlasmaUrl(runtimeConfig.plasmaUrl) || fallbackConfig.plasmaUrl,
   apps: appsSource.map(normalizeApp),
@@ -392,6 +400,10 @@ export const appConfig = {
 
 export function getPlasmaUrl() {
   return appConfig.plasmaUrl;
+}
+
+export function getDataspaceId() {
+  return appConfig.dataspaceId;
 }
 
 export function getAppsBySection(section) {

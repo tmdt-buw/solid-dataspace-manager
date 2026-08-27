@@ -43,6 +43,7 @@ function parseBooleanEnv(name) {
 }
 
 const config = {
+  dataspaceId: process.env.APP_DATASPACE_ID || "",
   plasmaUrl:
     process.env.APP_PLASMA_URL ||
     "http://plasma.uni-wuppertal.de/modelings",

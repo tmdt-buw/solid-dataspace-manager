@@ -1,6 +1,7 @@
 import {
   getAppsBySection,
   isStatisticsAdmin,
+  normalizeDataspaceId,
   normalizePlasmaUrl,
   normalizeRelativeResourcePath,
   normalizeStatisticsConfig,
@@ -10,6 +11,13 @@ const INITIAL_ADMIN =
   "https://solid-community-server.tmdt.info/solidtestpod/profile/card#me";
 
 describe("statistics runtime config", () => {
+  test("accepts only bounded dataspace registry identifiers", () => {
+    expect(normalizeDataspaceId("dace")).toBe("dace");
+    expect(normalizeDataspaceId(" stadt-wuppertal ")).toBe("stadt-wuppertal");
+    expect(normalizeDataspaceId("../../private")).toBe("");
+    expect(normalizeDataspaceId("test?all=true")).toBe("");
+  });
+
   test("includes Solid Tours as an embedded fallback application", () => {
     expect(getAppsBySection("applications")).toEqual(
       expect.arrayContaining([
