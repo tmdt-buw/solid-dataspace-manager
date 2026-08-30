@@ -1,6 +1,7 @@
 name: Docker Hub
 
 on:
+  workflow_dispatch:
   push:
     branches: ["main"]
   repository_dispatch:
@@ -9,6 +10,9 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    concurrency:
+      group: solid-dataspace-manager-docker-publish
+      cancel-in-progress: false
     permissions:
       contents: read
       packages: read
@@ -19,26 +23,77 @@ jobs:
           node-version: "22"
           registry-url: "https://npm.pkg.github.com"
           scope: "@hoelk-f"
-      - name: Wait for the pinned Solid Health Questionnaire package
+      - name: Read Manager version
+        id: manager-version
+        run: node -e "console.log('version=' + require('./package.json').version)" >> "$GITHUB_OUTPUT"
+      - name: Verify embedded package pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require("node:fs");
+          const packageJson = require("./package.json");
+          const packageLock = require("./package-lock.json");
+          const dockerfile = fs.readFileSync("Dockerfile", "utf8");
+          if (!/^\d+\.\d+\.\d+$/.test(packageJson.version) || packageLock.version !== packageJson.version) {
+            throw new Error(
+              `Manager version is not a stable, synchronized SemVer: package.json=${packageJson.version}, ` +
+              `package-lock.json=${packageLock.version}.`,
+            );
+          }
+          const pins = [
+            ["@hoelk-f/semantic-data-catalog", "SEMANTIC_DATA_CATALOG_PACKAGE_VERSION"],
+            ["@hoelk-f/solid-tours", "SOLID_TOURS_PACKAGE_VERSION"],
+            ["@hoelk-f/solid-health-questionnaire", "SOLID_HEALTH_QUESTIONNAIRE_PACKAGE_VERSION"],
+          ];
+
+          for (const [packageName, argumentName] of pins) {
+            const match = dockerfile.match(new RegExp(`^ARG ${argumentName}=([^\\s]+)$`, "m"));
+            if (!match) {
+              throw new Error(`Dockerfile does not define ${argumentName}.`);
+            }
+
+            const dockerVersion = match[1];
+            const requestedVersion = packageJson.dependencies?.[packageName];
+            const lockRequest = packageLock.packages?.[""]?.dependencies?.[packageName];
+            const lockedVersion = packageLock.packages?.[`node_modules/${packageName}`]?.version;
+
+            if (requestedVersion !== dockerVersion || lockRequest !== dockerVersion || lockedVersion !== dockerVersion) {
+              throw new Error(
+                `${packageName} is not pinned consistently: Dockerfile=${dockerVersion}, ` +
+                `package.json=${requestedVersion}, package-lock request=${lockRequest}, ` +
+                `package-lock package=${lockedVersion}.`,
+              );
+            }
+          }
+          NODE
+      - name: Verify GitHub Packages authentication
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm whoami --registry https://npm.pkg.github.com
+      - name: Wait for pinned embed packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          QUESTIONNAIRE_VERSION=$(awk -F= '/^ARG SOLID_HEALTH_QUESTIONNAIRE_PACKAGE_VERSION=/{print $2}' Dockerfile)
-          if [ -z "$QUESTIONNAIRE_VERSION" ]; then
-            echo "Dockerfile does not define SOLID_HEALTH_QUESTIONNAIRE_PACKAGE_VERSION." >&2
-            exit 1
-          fi
+          for attempt in $(seq 1 60); do
+            all_available=true
 
-          for attempt in $(seq 1 30); do
-            PUBLISHED_VERSION=$(npm view "@hoelk-f/solid-health-questionnaire@${QUESTIONNAIRE_VERSION}" version --registry https://npm.pkg.github.com 2>/dev/null || true)
-            if [ "$PUBLISHED_VERSION" = "$QUESTIONNAIRE_VERSION" ]; then
+            while IFS='|' read -r package_name package_version; do
+              published_version=$(npm view "${package_name}@${package_version}" version --registry https://npm.pkg.github.com 2>/dev/null || true)
+              if [ "$published_version" != "$package_version" ]; then
+                echo "Waiting for ${package_name}@${package_version} (attempt ${attempt}/60)."
+                all_available=false
+              fi
+            done < <(node -e "const p = require('./package.json').dependencies; for (const name of ['@hoelk-f/semantic-data-catalog', '@hoelk-f/solid-tours', '@hoelk-f/solid-health-questionnaire']) console.log(name + '|' + p[name]);")
+
+            if [ "$all_available" = true ]; then
               exit 0
             fi
 
-            if [ "$attempt" -eq 30 ]; then
-              echo "Solid Health Questionnaire ${QUESTIONNAIRE_VERSION} did not become available in time." >&2
+            if [ "$attempt" -eq 60 ]; then
+              echo "At least one pinned embed package did not become available in time." >&2
               exit 1
             fi
 
@@ -54,6 +109,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: son1i/solid-dataspace-manager:latest
+          tags: |
+            son1i/solid-dataspace-manager:latest
+            son1i/solid-dataspace-manager:${{ steps.manager-version.outputs.version }}
           secrets: |
             npm_token=${{ secrets.NPM_TOKEN }}
