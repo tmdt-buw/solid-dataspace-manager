@@ -21,6 +21,7 @@ import {
 import { FOAF, VCARD } from "@inrupt/vocab-common-rdf";
 import session from "../solidSession";
 import { getPodRoot } from "../solidCatalog";
+import ContentLoadingState from "./ContentLoadingState";
 import {
   clearRememberedAccountLogin,
   readRememberedAccountLogin,
@@ -331,7 +332,14 @@ function AccountActionModal({ modal, onClose }) {
           </div>
         </div>
         <div className="spp-modal__body">
-          {!loaded ? <div className="spp-modal__loading">Loading...</div> : null}
+          {!loaded ? (
+            <ContentLoadingState
+              title="Solid Pod Provider"
+              message="Loading your personal provider workspace …"
+              icon={faServer}
+              variant="overlay"
+            />
+          ) : null}
           <iframe
             src={modal.url}
             title={modal.title}
@@ -1360,7 +1368,14 @@ export default function SolidPodProvider({ webId }) {
             </div>
           </div>
 
-          {loading ? <div className="spp-status">Loading account information...</div> : null}
+          {loading ? (
+            <ContentLoadingState
+              title="Solid Pod Provider"
+              message="Loading your personal account information …"
+              icon={faServer}
+              variant="compact"
+            />
+          ) : null}
 
           {!loading && !account.authorized ? (
             <form className="spp-login" onSubmit={handleAccountLogin}>

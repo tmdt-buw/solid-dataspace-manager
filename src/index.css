@@ -3,6 +3,10 @@
   --dataspace-viewport-height: 100vh;
   --dataspace-scaled-vw: calc(100vw / var(--dataspace-ui-scale));
   --dataspace-scaled-vh: calc(var(--dataspace-viewport-height) / var(--dataspace-ui-scale));
+  --dataspace-scrollbar-size: 11px;
+  --dataspace-scrollbar-track: #e9eef5;
+  --dataspace-scrollbar-thumb: #8fa0b6;
+  --dataspace-scrollbar-thumb-hover: #526983;
 }
 
 @supports (height: 100dvh) {
@@ -49,6 +53,32 @@ code {
     monospace;
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--dataspace-scrollbar-thumb) var(--dataspace-scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: var(--dataspace-scrollbar-size);
+  height: var(--dataspace-scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--dataspace-scrollbar-track);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  min-height: 40px;
+  border: 3px solid var(--dataspace-scrollbar-track);
+  border-radius: 999px;
+  background: var(--dataspace-scrollbar-thumb);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--dataspace-scrollbar-thumb-hover);
+}
+
 #root {
   width: 100%;
   height: 100%;
@@ -57,19 +87,29 @@ code {
   overflow-y: auto;
 }
 
-html.solid-tours-route {
+body.dataspace-shell-active #root {
+  overflow: hidden;
+}
+
+html.solid-tours-route,
+html.catalog-route,
+html.health-questionnaire-route {
   height: var(--dataspace-viewport-height);
   min-height: 0;
   overflow: hidden;
 }
 
-body.solid-tours-route {
+body.solid-tours-route,
+body.catalog-route,
+body.health-questionnaire-route {
   height: var(--dataspace-scaled-vh);
   min-height: 0;
   overflow: hidden;
 }
 
-body.solid-tours-route #root {
+body.solid-tours-route #root,
+body.catalog-route #root,
+body.health-questionnaire-route #root {
   height: 100%;
   min-height: 0;
   overflow: hidden;

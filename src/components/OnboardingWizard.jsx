@@ -25,7 +25,11 @@ import {
   overwriteFile,
 } from "@inrupt/solid-client";
 import { FOAF, VCARD, LDP } from "@inrupt/vocab-common-rdf";
-import { faFlask, faSitemap } from "@fortawesome/free-solid-svg-icons";
+import {
+  faFlask,
+  faHexagonNodes,
+  faSitemap,
+} from "@fortawesome/free-solid-svg-icons";
 import session from "../solidSession";
 import {
   buildDefaultPrivateRegistry,
@@ -38,38 +42,15 @@ import {
   saveRegistryConfig,
   SDP_CATALOG,
 } from "../solidCatalog";
-import {
-  createClientCredential,
-  getAccountIndexUrl,
-  loadAccountIndex,
-  readStoredAccountToken,
-  resolveClientCredentialsUrl,
-} from "../cssAccountApi";
-import {
-  isCredentialTokenDecodeError,
-  loadCredentialToken,
-  saveCredentialToken,
-} from "../solidCredentialToken";
-import {
-  registerSyncWorkerParticipant,
-  resolveOidcIssuer,
-} from "../syncWorkerRegistration";
-import {
-  connectionContainerExists,
-  ensureConnectionsContainer,
-  getConnectionsContainerUrl,
-} from "../solidConnections";
 import { ensurePodStorageLink } from "../solidStorage";
-import { recordStatisticsActivity } from "../statisticsActivity";
 import {
   hasStatisticsConsent,
   saveStatisticsConsent,
 } from "../statisticsConsent";
+import ContentLoadingState from "./ContentLoadingState";
 import "./OnboardingWizard.css";
 
 const VCARD_TYPE = "http://www.w3.org/2006/vcard/ns#type";
-const SOLID_OIDC_ISSUER = "http://www.w3.org/ns/solid/terms#oidcIssuer";
-const DATASPACE_TOKEN_NAME = "solid-dataspace";
 
 const REGISTRY_ICON_MAP = {
   flask: faFlask,
@@ -120,36 +101,6 @@ const containerExists = async (url) => {
   }
 };
 
-const isCredentialNameConflict = (error) =>
-  /\b409\b|conflict|already exists|duplicate/i.test(error?.message || "");
-
-const createDataspaceCredential = async (
-  clientCredentialsUrl,
-  { webId, accountToken }
-) => {
-  try {
-    return await createClientCredential(
-      clientCredentialsUrl,
-      {
-        name: DATASPACE_TOKEN_NAME,
-        webId,
-      },
-      accountToken
-    );
-  } catch (error) {
-    if (!isCredentialNameConflict(error)) throw error;
-    const uniqueName = `${DATASPACE_TOKEN_NAME}-${Date.now().toString(36)}`;
-    return createClientCredential(
-      clientCredentialsUrl,
-      {
-        name: uniqueName,
-        webId,
-      },
-      accountToken
-    );
-  }
-};
-
 export default function OnboardingWizard({
   webId,
   statisticsConfig,
@@ -181,9 +132,6 @@ export default function OnboardingWizard({
   const [researchRegistryAcknowledged, setResearchRegistryAcknowledged] = useState(false);
   const [privateRegistryUrl, setPrivateRegistryUrl] = useState("");
   const [privateRegistryAcknowledged, setPrivateRegistryAcknowledged] = useState(false);
-  const [credentialAccountIndexUrl, setCredentialAccountIndexUrl] = useState("");
-  const [credentialTokenAcknowledged, setCredentialTokenAcknowledged] = useState(false);
-  const [connectionsAcknowledged, setConnectionsAcknowledged] = useState(false);
   const [statisticsAcknowledged, setStatisticsAcknowledged] = useState(false);
 
   const steps = useMemo(
@@ -195,7 +143,7 @@ export default function OnboardingWizard({
     []
   );
 
-  const basicsComplete = Boolean(name.trim() && org.trim() && role.trim());
+  const basicsComplete = Boolean(name.trim());
   const emailsComplete = normalizeEmails(emails).length > 0;
   const statisticsEnabled = Boolean(statisticsConfig?.enabled);
   const defaultPrivateRegistry = buildDefaultPrivateRegistry(webId);
@@ -311,40 +259,13 @@ export default function OnboardingWizard({
       setResearchRegistryAcknowledged(hasResearchRegistryMembership);
       setPrivateRegistryAcknowledged(hasPrivateRegistryContainer);
 
-      const oidcIssuer = getUrl(me, SOLID_OIDC_ISSUER) || webId;
-      const accountIndexUrl = getAccountIndexUrl(oidcIssuer || webId);
-      setCredentialAccountIndexUrl(accountIndexUrl);
-      let storedCredential = null;
-      try {
-        storedCredential = await loadCredentialToken(
-          webId,
-          session.fetch,
-          DATASPACE_TOKEN_NAME
-        );
-      } catch (err) {
-        if (isCredentialTokenDecodeError(err)) {
-          console.info("Stored credential token is invalid; setup will recreate it.");
-        } else {
-          console.warn("Failed to load credential token from pod:", err);
-        }
-      }
-      setCredentialTokenAcknowledged(Boolean(storedCredential));
-
-      const hasConnectionsContainer = await connectionContainerExists(
-        webId,
-        session.fetch
-      );
-      setConnectionsAcknowledged(hasConnectionsContainer);
-
-      const missingBasics = !(nm && loadedOrg && loadedRole);
+      const missingBasics = !nm;
       const missingEmail = allEmails.length === 0;
       const missingInbox = !inbox;
       const missingCatalog = !hasCatalog;
       const registryMissing =
         !((registryConfig.privateRegistry || buildDefaultPrivateRegistry(webId)).trim()) ||
         (registryConfig.mode !== "private" && !(registryConfig.registries || []).length);
-      const missingCredentialToken = !storedCredential;
-      const missingConnectionsContainer = !hasConnectionsContainer;
       const missingStatisticsConsent =
         statisticsEnabled && !statisticsConsentGranted;
 
@@ -354,8 +275,6 @@ export default function OnboardingWizard({
         !missingInbox &&
         !missingCatalog &&
         !registryMissing &&
-        !missingCredentialToken &&
-        !missingConnectionsContainer &&
         !missingStatisticsConsent
       ) {
         onComplete();
@@ -458,8 +377,12 @@ export default function OnboardingWizard({
     me = removeAll(me, VCARD.organization_name);
     me = removeAll(me, VCARD.role);
     me = setStringNoLocale(me, VCARD.fn, name.trim());
-    me = setStringNoLocale(me, VCARD.organization_name, org.trim());
-    me = setStringNoLocale(me, VCARD.role, role.trim());
+    if (org.trim()) {
+      me = setStringNoLocale(me, VCARD.organization_name, org.trim());
+    }
+    if (role.trim()) {
+      me = setStringNoLocale(me, VCARD.role, role.trim());
+    }
     me = removeAll(me, VCARD.hasPhoto);
     if (photoIri) {
       me = setUrl(me, VCARD.hasPhoto, photoIri);
@@ -557,74 +480,11 @@ export default function OnboardingWizard({
       session.fetch,
       registryConfig.privateRegistry
     );
-    const { catalogUrl: configuredUrl } = await ensureCatalogStructure(webId, session.fetch, {
+    const { catalogUrl: configuredUrl } = await ensureCatalogStructure(session, {
       title,
       registryConfig,
     });
     setCatalogUrl(configuredUrl);
-  };
-
-  const configureCredentialToken = async () => {
-    if (!webId) return;
-
-    const accountIndexUrl = credentialAccountIndexUrl || getAccountIndexUrl(webId);
-    let storedCredential = null;
-    try {
-      storedCredential = await loadCredentialToken(
-        webId,
-        session.fetch,
-        DATASPACE_TOKEN_NAME
-      );
-    } catch (err) {
-      if (!isCredentialTokenDecodeError(err)) {
-        throw err;
-      }
-      console.info("Stored credential token is invalid and will be replaced.");
-    }
-
-    if (storedCredential) {
-      return storedCredential;
-    }
-
-    const accountToken = readStoredAccountToken(accountIndexUrl);
-    if (!accountToken) {
-      throw new Error(
-        "Account login is required to create the Solid Dataspace credential token."
-      );
-    }
-
-    const accountIndex = await loadAccountIndex(accountIndexUrl, accountToken);
-    if (!accountIndex.authorized) {
-      throw new Error("The stored account login is no longer accepted by the provider.");
-    }
-
-    const clientCredentialsUrl = resolveClientCredentialsUrl(accountIndex.controls);
-    if (!clientCredentialsUrl) {
-      throw new Error("This provider does not expose credential token creation.");
-    }
-
-    const credential = await createDataspaceCredential(clientCredentialsUrl, {
-      webId,
-      accountToken,
-    });
-
-    const stored = await saveCredentialToken(webId, session.fetch, {
-      name: DATASPACE_TOKEN_NAME,
-      id: credential?.id,
-      secret: credential?.secret,
-      resource: credential?.resource,
-    });
-
-    if (!stored) {
-      throw new Error("The provider did not return a complete credential token.");
-    }
-
-    return stored;
-  };
-
-  const configureConnections = async () => {
-    if (!webId) return;
-    await ensureConnectionsContainer(webId, session.fetch);
   };
 
   const handleNext = async () => {
@@ -643,34 +503,8 @@ export default function OnboardingWizard({
         }
         await configureInbox();
         await configureCatalog();
-        await configureConnections();
-        const credentialToken = await configureCredentialToken();
         if (statisticsEnabled) {
-          await recordStatisticsActivity({
-            webId,
-            fetch: session.fetch,
-            config: statisticsConfig,
-          });
           await saveStatisticsConsent(webId, session.fetch);
-        }
-        try {
-          const workerRegistration = await registerSyncWorkerParticipant({
-            webId,
-            oidcIssuer: resolveOidcIssuer({
-              accountIndexUrl: credentialAccountIndexUrl,
-              webId,
-            }),
-            accountIndexUrl: credentialAccountIndexUrl,
-            credentialToken,
-            solidFetch: session.fetch,
-          });
-          if (workerRegistration?.registered === false) {
-            console.info(
-              `Sync worker registration skipped: ${workerRegistration.reason}.`
-            );
-          }
-        } catch (workerError) {
-          console.warn("Sync worker registration failed; setup will continue.", workerError);
         }
         onComplete();
       }
@@ -689,9 +523,11 @@ export default function OnboardingWizard({
   if (loading) {
     return (
       <div className="onboarding-wrap">
-        <div className="onboarding-card">
-          <div className="onboarding-title">Preparing your profile...</div>
-        </div>
+        <ContentLoadingState
+          title="Profile setup"
+          message="Loading your personal dataspace workspace …"
+          icon={faHexagonNodes}
+        />
       </div>
     );
   }
@@ -762,24 +598,27 @@ export default function OnboardingWizard({
               </div>
               <div className="onboarding-grid">
                 <div>
-                  <label>Name</label>
+                  <label htmlFor="onboarding-name">Name</label>
                   <input
+                    id="onboarding-name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label>Organization</label>
+                  <label htmlFor="onboarding-organization">Organization (optional)</label>
                   <input
+                    id="onboarding-organization"
                     type="text"
                     value={org}
                     onChange={(e) => setOrg(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label>Role</label>
+                  <label htmlFor="onboarding-role">Role (optional)</label>
                   <input
+                    id="onboarding-role"
                     type="text"
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
@@ -832,15 +671,10 @@ export default function OnboardingWizard({
 
         {step === 3 && (
           <div className="onboarding-section">
-            <h3>
-              {statisticsEnabled
-                ? "Inbox, Catalog, Registry, Connections, Statistics & Token"
-                : "Inbox, Catalog, Registry, Connections & Token"}
-            </h3>
+            <h3>Inbox, Catalog & Registry</h3>
             <p>
-              {statisticsEnabled
-                ? "Configure your Solid inbox, catalog, registry settings, connections folder, usage statistics, and a credential token so access requests, metadata, connections, and automated access can work with your pod."
-                : "Configure your Solid inbox, catalog, registry settings, connections folder, and a credential token so access requests, metadata, connections, and automated access can work with your pod."}
+              Configure your shared Solid inbox, catalog, and registry settings so access
+              requests and metadata can work with your pod.
             </p>
             <div className="onboarding-inbox">
               <div className="onboarding-inbox__label">Inbox URL</div>
@@ -965,32 +799,14 @@ export default function OnboardingWizard({
               </label>
             </div>
 
-            <div className="onboarding-inbox" style={{ marginTop: 18 }}>
-              <div className="onboarding-inbox__label">Connections Folder</div>
-              <div className="onboarding-inbox__value">
-                {getConnectionsContainerUrl(webId)}
-              </div>
-              <div className="onboarding-inbox__hint">
-                Connection settings will be stored in your pod under{" "}
-                <code>connections/</code>. The background sync worker will be
-                granted access to this container so it can update selected data
-                sources without an open browser tab.
-              </div>
-              <label className="onboarding-checkbox">
-                <input
-                  type="checkbox"
-                  checked={connectionsAcknowledged}
-                  onChange={(e) => setConnectionsAcknowledged(e.target.checked)}
-                />
-                <span>I understand that finishing will create my connections folder.</span>
-              </label>
-            </div>
-
             {statisticsEnabled && (
               <div className="onboarding-inbox" style={{ marginTop: 18 }}>
                 <div className="onboarding-inbox__label">Usage Statistics</div>
                 <div className="onboarding-inbox__value">
-                  {`${getPodRoot(webId)}${statisticsConfig.activityResourcePath}`}
+                  {`${getPodRoot(webId)}${
+                    statisticsConfig?.activityResourcePath ||
+                    "statistics/activity/activity.ttl"
+                  }`}
                 </div>
                 <div className="onboarding-inbox__hint">
                   The Manager stores your last activity time and active calendar month
@@ -1000,7 +816,9 @@ export default function OnboardingWizard({
                   <input
                     type="checkbox"
                     checked={statisticsAcknowledged}
-                    onChange={(e) => setStatisticsAcknowledged(e.target.checked)}
+                    onChange={(event) =>
+                      setStatisticsAcknowledged(event.target.checked)
+                    }
                   />
                   <span>
                     I agree that finishing will create and update my usage statistics
@@ -1010,26 +828,6 @@ export default function OnboardingWizard({
               </div>
             )}
 
-            <div className="onboarding-inbox" style={{ marginTop: 18 }}>
-              <div className="onboarding-inbox__label">Credential Token</div>
-              <div className="onboarding-inbox__value">{DATASPACE_TOKEN_NAME}</div>
-              <div className="onboarding-inbox__hint">
-                A credential token named <code>{DATASPACE_TOKEN_NAME}</code> will be created
-                and stored in your Solid Pod with its identifier and secret under{" "}
-                <code>token/</code>.
-              </div>
-              <label className="onboarding-checkbox">
-                <input
-                  type="checkbox"
-                  checked={credentialTokenAcknowledged}
-                  onChange={(e) => setCredentialTokenAcknowledged(e.target.checked)}
-                />
-                <span>
-                  I understand that finishing will create and store the solid-dataspace
-                  credential token in my pod.
-                </span>
-              </label>
-            </div>
           </div>
         )}
 
@@ -1054,9 +852,7 @@ export default function OnboardingWizard({
                 (!inboxAcknowledged ||
                   !catalogAcknowledged ||
                   !privateRegistryAcknowledged ||
-                  !connectionsAcknowledged ||
                   (statisticsEnabled && !statisticsAcknowledged) ||
-                  !credentialTokenAcknowledged ||
                   (registryMode === "research" &&
                     (!researchRegistryAcknowledged || !registrySelectionsComplete))))
             }

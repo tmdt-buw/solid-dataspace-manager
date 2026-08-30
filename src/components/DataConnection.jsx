@@ -1,11 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faLink,
+  faFolderOpen,
+  faKey,
   faPlus,
   faServer,
   faSliders,
   faTrash,
+  faUserGear,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import session from "../solidSession";
@@ -23,6 +26,8 @@ import {
 import { loadCredentialToken } from "../solidCredentialToken";
 import { getPodRoot } from "../solidCatalog";
 import { registerSyncWorkerParticipant } from "../syncWorkerRegistration";
+import { prepareDataConnectionSetup } from "../dataConnectionSetup";
+import ContentLoadingState from "./ContentLoadingState";
 import "./DataConnection.css";
 
 const HOME_ASSISTANT_LOGO =
@@ -45,6 +50,16 @@ const emptyCustomConnection = () => ({
 
 const WORKER_SYNC_INTERVAL_MINUTES = "10";
 const HOME_ASSISTANT_DATA_MODEL = "solid-sync-json";
+
+const EMPTY_SETUP_STATUS = {
+  webId: "",
+  phase: "checking",
+  connectionsReady: false,
+  credentialReady: false,
+  workerRegistered: false,
+  workerReason: "",
+  error: "",
+};
 
 const connectionSyncKey = (type, id) => `${type}:${id || ""}`;
 
@@ -398,9 +413,12 @@ function HomeAssistantModal({
 
         <FormSection title="Entities">
           {loadingEntities ? (
-            <span className="data-connection-form__result">
-              Loading entities...
-            </span>
+            <ContentLoadingState
+              title="Data Connection"
+              message="Loading your available entities …"
+              icon={faLink}
+              variant="compact"
+            />
           ) : null}
 
           {entities.length > 0 ? (
@@ -807,7 +825,114 @@ function DeleteConnectionModal({ target, saving, onCancel, onConfirm }) {
   );
 }
 
+function DataConnectionSetupItem({ icon, title, description, ready, checking }) {
+  const stateLabel = checking ? "Checking..." : ready ? "Ready" : "Required";
+  return (
+    <div className="data-connection-setup__item">
+      <span className="data-connection-setup__itemIcon" aria-hidden="true">
+        <FontAwesomeIcon icon={icon} />
+      </span>
+      <span className="data-connection-setup__itemCopy">
+        <strong>{title}</strong>
+        <span>{description}</span>
+      </span>
+      <span
+        className={`data-connection-setup__state${
+          ready ? " data-connection-setup__state--ready" : ""
+        }`}
+      >
+        {stateLabel}
+      </span>
+    </div>
+  );
+}
+
+function DataConnectionSetupScreen({ status, onSetup }) {
+  const checking = status.phase === "checking";
+  const saving = status.phase === "saving";
+  const busy = checking || saving;
+
+  return (
+    <div className="data-connection">
+      <div className="toolbar toolbar--title data-connection__header">
+        <div className="crumb">
+          <FontAwesomeIcon icon={faLink} className="crumb-icon" />
+          <span>Data Connection</span>
+        </div>
+      </div>
+
+      <div className="data-connection__shell data-connection__shell--setup">
+        <section className="data-connection-setup" aria-busy={busy}>
+          <div className="data-connection-setup__head">
+            <span className="data-connection-setup__heroIcon" aria-hidden="true">
+              <FontAwesomeIcon icon={faLink} />
+            </span>
+            <div>
+              <h2>Set up Data Connection</h2>
+              <p>
+                Prepare the private Pod folder, credential token, and background
+                worker access required for automated data connections.
+              </p>
+            </div>
+          </div>
+
+          <div className="data-connection-setup__list">
+            <DataConnectionSetupItem
+              icon={faFolderOpen}
+              title="Connections folder"
+              description="Stores connection settings privately in your Solid Pod."
+              ready={status.connectionsReady}
+              checking={checking}
+            />
+            <DataConnectionSetupItem
+              icon={faKey}
+              title="Credential token"
+              description="Lets the background worker authenticate as your WebID."
+              ready={status.credentialReady}
+              checking={checking}
+            />
+            <DataConnectionSetupItem
+              icon={faUserGear}
+              title="Background sync worker"
+              description="Registers the participant and grants access only to connection data."
+              ready={status.workerRegistered}
+              checking={checking}
+            />
+          </div>
+
+          {status.error ? (
+            <div className="data-connection-setup__error" role="alert">
+              {status.error}
+            </div>
+          ) : null}
+
+          <div className="data-connection-setup__actions">
+            <button
+              type="button"
+              className="data-connection-btn data-connection-btn--primary"
+              onClick={onSetup}
+              disabled={busy}
+            >
+              {checking
+                ? "Checking setup..."
+                : saving
+                ? "Setting up..."
+                : status.error
+                ? "Retry setup"
+                : "Set up Data Connection"}
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 function DataConnection({ webId }) {
+  const [setupStatus, setSetupStatus] = useState(() => ({
+    ...EMPTY_SETUP_STATUS,
+    webId: webId || "",
+  }));
   const [newConnectionType, setNewConnectionType] = useState("home-assistant");
   const [homeAssistantOpen, setHomeAssistantOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
@@ -832,11 +957,72 @@ function DataConnection({ webId }) {
   const [error, setError] = useState("");
   const [lastSyncByConnection, setLastSyncByConnection] = useState({});
 
+  const setupReady =
+    setupStatus.phase === "ready" && setupStatus.webId === webId;
+
+  const applySetupResult = useCallback(
+    (result, phaseWhenIncomplete = "required") => {
+      setSetupStatus({
+        ...EMPTY_SETUP_STATUS,
+        ...result,
+        webId: webId || "",
+        phase: result?.ready ? "ready" : phaseWhenIncomplete,
+      });
+    },
+    [webId]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setSetupStatus({
+      ...EMPTY_SETUP_STATUS,
+      webId: webId || "",
+      phase: "checking",
+    });
+
+    if (!webId) {
+      setSetupStatus({
+        ...EMPTY_SETUP_STATUS,
+        webId: "",
+        phase: "required",
+        error: "A WebID is required for Data Connection setup.",
+      });
+      return undefined;
+    }
+
+    prepareDataConnectionSetup({
+      webId,
+      solidFetch: session.fetch,
+      provision: false,
+    }).then((result) => {
+      if (!cancelled) applySetupResult(result);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applySetupResult, webId]);
+
+  const handleSetup = async () => {
+    setSetupStatus((current) => ({
+      ...current,
+      webId: webId || "",
+      phase: "saving",
+      error: "",
+    }));
+    const result = await prepareDataConnectionSetup({
+      webId,
+      solidFetch: session.fetch,
+      provision: true,
+    });
+    applySetupResult(result);
+  };
+
   useEffect(() => {
     let cancelled = false;
 
     const loadConnections = async () => {
-      if (!webId) return;
+      if (!webId || !setupReady) return;
 
       setError("");
       try {
@@ -881,7 +1067,7 @@ function DataConnection({ webId }) {
     return () => {
       cancelled = true;
     };
-  }, [webId]);
+  }, [setupReady, webId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -898,7 +1084,7 @@ function DataConnection({ webId }) {
     ];
 
     const loadLastSyncs = async () => {
-      if (!webId || connections.length === 0) {
+      if (!webId || !setupReady || connections.length === 0) {
         if (!cancelled) setLastSyncByConnection({});
         return;
       }
@@ -930,7 +1116,7 @@ function DataConnection({ webId }) {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [webId, homeAssistantConnections, customConnections]);
+  }, [webId, setupReady, homeAssistantConnections, customConnections]);
 
   const resetHomeAssistantForm = () => {
     setActiveHomeAssistantId("");
@@ -1244,6 +1430,15 @@ function DataConnection({ webId }) {
       setSaving(false);
     }
   };
+
+  if (!setupReady) {
+    return (
+      <DataConnectionSetupScreen
+        status={setupStatus}
+        onSetup={handleSetup}
+      />
+    );
+  }
 
   const hasConnections = homeAssistantConnections.length > 0 || customConnections.length > 0;
 

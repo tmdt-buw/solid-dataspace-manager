@@ -24,6 +24,11 @@ import {
   SolidToursEmbed,
   toursAppVersion,
 } from "@hoelk-f/solid-tours/embed";
+import "@hoelk-f/solid-health-questionnaire/embed.css";
+import {
+  SolidHealthQuestionnaireEmbed,
+  healthQuestionnaireVersion,
+} from "@hoelk-f/solid-health-questionnaire/embed";
 import "@hoelk-f/solid-chatbot/embed.css";
 import {
   ChatbotEmbed,
@@ -31,7 +36,7 @@ import {
   chatbotVersion,
 } from "@hoelk-f/solid-chatbot/embed";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBookOpen, faHeartPulse, faRoute } from "@fortawesome/free-solid-svg-icons";
+import { faBookOpen, faClipboardCheck, faHeartPulse, faRoute } from "@fortawesome/free-solid-svg-icons";
 import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import "./App.css";
 import ExternalHost from "./components/ExternalHost";
@@ -64,8 +69,6 @@ import {
   resolveCatalogUrl,
   SDP_CATALOG,
 } from "./solidCatalog";
-import { connectionContainerExists } from "./solidConnections";
-import { loadCredentialToken } from "./solidCredentialToken";
 import {
   getFundingGrantNumber,
   getFundingLogos,
@@ -362,8 +365,6 @@ const App = () => {
             getStringNoLocale(me, VCARD.family_name) || ""
           }`.trim();
 
-        const org = getStringNoLocale(me, VCARD.organization_name) || "";
-        const role = getStringNoLocale(me, VCARD.role) || "";
         const inbox = getUrl(me, LDP.inbox) || "";
 
         const emailUris = getUrlAll(me, VCARD.hasEmail) || [];
@@ -387,7 +388,7 @@ const App = () => {
 
         const allEmails = [...collected, ...directEmails].filter(Boolean);
 
-        const missingBasics = !(name && org && role);
+        const missingBasics = !name;
         const missingEmail = allEmails.length === 0;
         const missingInbox = !inbox;
 
@@ -426,29 +427,6 @@ const App = () => {
           missingRegistry = true;
         }
 
-        let missingCredentialToken = false;
-        try {
-          const credentialToken = await loadCredentialToken(
-            webId,
-            session.fetch,
-            "solid-dataspace"
-          );
-          missingCredentialToken = !credentialToken;
-        } catch {
-          missingCredentialToken = true;
-        }
-
-        let missingConnectionsContainer = false;
-        try {
-          const hasConnectionsContainer = await connectionContainerExists(
-            webId,
-            session.fetch
-          );
-          missingConnectionsContainer = !hasConnectionsContainer;
-        } catch {
-          missingConnectionsContainer = true;
-        }
-
         const missingStatisticsConsent =
           statisticsConfig.enabled && !statisticsConsentGranted;
 
@@ -462,8 +440,6 @@ const App = () => {
             missingInbox ||
             missingCatalog ||
             missingRegistry ||
-            missingCredentialToken ||
-            missingConnectionsContainer ||
             missingStatisticsConsent
         );
       } catch (err) {
@@ -551,14 +527,16 @@ const App = () => {
         </div>
         <span className="integrated-version">{catalogVersion}</span>
       </div>
-      <SemanticDataCatalogEmbed
-        webId={webId}
-        language={language}
-        statisticsConfig={{
-          enabled: statisticsConfig.enabled,
-          eventsUrl: statisticsConfig.eventsUrl,
-        }}
-      />
+      <div className="catalog-frame">
+        <SemanticDataCatalogEmbed
+          webId={webId}
+          language={language}
+          statisticsConfig={{
+            enabled: statisticsConfig.enabled,
+            eventsUrl: statisticsConfig.eventsUrl,
+          }}
+        />
+      </div>
     </div>
   );
 
@@ -601,6 +579,25 @@ const App = () => {
     </div>
   );
 
+  const HealthQuestionnairePage = () => (
+    <div className="solid-health-questionnaire-embed">
+      <div className="health-questionnaire-header toolbar--title">
+        <div className="crumb">
+          <FontAwesomeIcon icon={faClipboardCheck} className="crumb-icon" />
+          <span>Solid Health Questionnaire</span>
+        </div>
+        <span className="integrated-version">{healthQuestionnaireVersion}</span>
+      </div>
+      <div className="health-questionnaire-frame">
+        <SolidHealthQuestionnaireEmbed
+          webId={webId}
+          language={language}
+          session={session}
+        />
+      </div>
+    </div>
+  );
+
   const fundingLogos = getFundingLogos();
   const fundingGrantNumber = getFundingGrantNumber();
   const statisticsAdmin = isStatisticsAdmin(webId);
@@ -618,33 +615,36 @@ const App = () => {
         />
         <div className="main">
           <div className="container">
-            <Routes>
-              <Route path="/" element={<DataManagerPage />} />
-              <Route path="/catalog" element={<CatalogPage />} />
-              <Route path="/data-connection" element={<DataConnection webId={webId} />} />
-              <Route path="/transactions" element={<TransactionHistory webId={webId} />} />
-              <Route path="/notifications" element={<Notifications webId={webId} />} />
-              <Route path="/decisions" element={<DecisionInbox webId={webId} />} />
-              <Route path="/profile" element={<ProfilePage webId={webId} />} />
-              <Route path="/pod-provider" element={<SolidPodProvider webId={webId} />} />
-              <Route path="/info" element={<Info />} />
-              <Route
-                path="/statistics"
-                element={
-                  <StatisticsRouteGuard webId={webId}>
-                    <StatisticsDashboard
-                      webId={webId}
-                      solidFetch={session.fetch}
-                      config={statisticsConfig}
-                    />
-                  </StatisticsRouteGuard>
-                }
-              />
-              <Route path="/web/solid-health-app" element={<HealthAppPage />} />
-              <Route path="/web/solid-tours" element={<SolidToursPage />} />
-              <Route path="/web/solid-chatbot" element={<ChatbotPage />} />
-              <Route path="/web/:slug" element={<ExternalHost />} />
-            </Routes>
+            <div className="route-content">
+              <Routes>
+                <Route path="/" element={<DataManagerPage />} />
+                <Route path="/catalog" element={<CatalogPage />} />
+                <Route path="/data-connection" element={<DataConnection webId={webId} />} />
+                <Route path="/transactions" element={<TransactionHistory webId={webId} />} />
+                <Route path="/notifications" element={<Notifications webId={webId} />} />
+                <Route path="/decisions" element={<DecisionInbox webId={webId} />} />
+                <Route path="/profile" element={<ProfilePage webId={webId} />} />
+                <Route path="/pod-provider" element={<SolidPodProvider webId={webId} />} />
+                <Route path="/info" element={<Info />} />
+                <Route
+                  path="/statistics"
+                  element={
+                    <StatisticsRouteGuard webId={webId}>
+                      <StatisticsDashboard
+                        webId={webId}
+                        solidFetch={session.fetch}
+                        config={statisticsConfig}
+                      />
+                    </StatisticsRouteGuard>
+                  }
+                />
+                <Route path="/web/solid-health-app" element={<HealthAppPage />} />
+                <Route path="/web/solid-tours" element={<SolidToursPage />} />
+                <Route path="/web/solid-health-questionnaire" element={<HealthQuestionnairePage />} />
+                <Route path="/web/solid-chatbot" element={<ChatbotPage />} />
+                <Route path="/web/:slug" element={<ExternalHost />} />
+              </Routes>
+            </div>
           </div>
           <footer className="app-footer">
             <div className="app-footer__meta">

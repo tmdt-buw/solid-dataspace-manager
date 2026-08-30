@@ -1,4 +1,5 @@
 window.__APP_CONFIG__ = {
+  "dataspaceId": "stadt-wuppertal",
   "plasmaUrl": "/plasma/modelings",
   "apps": [
     {
@@ -29,6 +30,16 @@ window.__APP_CONFIG__ = {
       "iconKey": "tour",
       "visible": true,
       "order": 22,
+      "linkType": "internal"
+    },
+    {
+      "id": "solid-health-questionnaire",
+      "title": "Solid Health Questionnaire",
+      "href": "/web/solid-health-questionnaire",
+      "section": "applications",
+      "iconKey": "questionnaire",
+      "visible": true,
+      "order": 24,
       "linkType": "internal"
     },
     {

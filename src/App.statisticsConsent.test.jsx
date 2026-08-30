@@ -105,6 +105,9 @@ jest.mock("@hoelk-f/solid-health-app/embed.css", () => ({}), {
 jest.mock("@hoelk-f/solid-tours/embed.css", () => ({}), {
   virtual: true,
 });
+jest.mock("@hoelk-f/solid-health-questionnaire/embed.css", () => ({}), {
+  virtual: true,
+});
 jest.mock("@hoelk-f/solid-chatbot/embed.css", () => ({}), {
   virtual: true,
 });
@@ -126,6 +129,11 @@ jest.mock(
 jest.mock(
   "@hoelk-f/solid-tours/embed",
   () => ({ SolidToursEmbed: () => null, setSession: jest.fn(), toursAppVersion: "test" }),
+  { virtual: true }
+);
+jest.mock(
+  "@hoelk-f/solid-health-questionnaire/embed",
+  () => ({ SolidHealthQuestionnaireEmbed: () => null, healthQuestionnaireVersion: "test" }),
   { virtual: true }
 );
 jest.mock(
@@ -155,7 +163,9 @@ describe("App statistics consent gate", () => {
     const solidClient = jest.requireMock("@inrupt/solid-client");
     solidClient.getThing.mockReturnValue({ url: mockWebId });
     solidClient.getThingAll.mockReturnValue([]);
-    solidClient.getStringNoLocale.mockReturnValue("complete");
+    solidClient.getStringNoLocale.mockImplementation((_thing, predicate) =>
+      String(predicate).endsWith("#fn") ? "Alice" : ""
+    );
     solidClient.getUrl.mockImplementation((_thing, predicate) => {
       if (String(predicate).includes("inbox")) {
         return "https://pod.example/alice/inbox/";
@@ -182,7 +192,7 @@ describe("App statistics consent gate", () => {
     mockGetSolidDataset.mockResolvedValue({ profile: true });
   });
 
-  test("does not start the heartbeat for a profile without explicit consent", async () => {
+  test("routes a complete profile without statistics consent into onboarding", async () => {
     mockHasStatisticsConsent.mockReturnValue(false);
 
     render(<App />);
@@ -190,6 +200,7 @@ describe("App statistics consent gate", () => {
     expect(
       await screen.findByText("Statistics consent onboarding")
     ).toBeInTheDocument();
+    expect(screen.queryByText("Manager ready")).not.toBeInTheDocument();
     expect(mockStartStatisticsActivityHeartbeat).not.toHaveBeenCalled();
   });
 
@@ -204,6 +215,8 @@ describe("App statistics consent gate", () => {
 
     render(<App />);
     expect(mockStartStatisticsActivityHeartbeat).not.toHaveBeenCalled();
+    expect(screen.getByTestId("loading-particle-cloud")).toBeInTheDocument();
+    expect(screen.getByText("Checking profile")).toBeInTheDocument();
 
     resolveProfile({ profile: true });
 

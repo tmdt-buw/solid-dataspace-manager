@@ -11,7 +11,11 @@ jest.mock("../config/runtimeConfig", () => ({
 jest.mock(
   "react-router-dom",
   () => ({
-    Navigate: ({ to }) => <div data-testid="redirect">{to}</div>,
+    Navigate: ({ to, replace }) => (
+      <div data-testid="redirect" data-replace={String(Boolean(replace))}>
+        {to}
+      </div>
+    ),
   }),
   { virtual: true }
 );
@@ -33,4 +37,5 @@ test("redirects a similar but non-matching WebID", () => {
   renderGuard(`${ADMIN_WEBID}/`);
   expect(screen.queryByText("Secret dashboard")).not.toBeInTheDocument();
   expect(screen.getByTestId("redirect")).toHaveTextContent("/");
+  expect(screen.getByTestId("redirect")).toHaveAttribute("data-replace", "true");
 });

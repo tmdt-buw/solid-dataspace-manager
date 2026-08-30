@@ -87,6 +87,13 @@ describe("i18n language resolution", () => {
     expect(translateText("Usage Statistics", "de")).toBe(
       "Nutzungsstatistiken"
     );
+    expect(translateText("Enable usage statistics", "de")).toBe(
+      "Nutzungsstatistiken aktivieren"
+    );
+    expect(translateText("Withdraw consent", "de")).toBe(
+      "Zustimmung widerrufen"
+    );
+    expect(translateText("Worker access", "de")).toBe("Worker-Zugriff");
     expect(translateText("User survey", "de")).toBe("Nutzerbefragung");
     expect(translateText("System comprehensibility", "de")).toBe(
       "Verst\u00e4ndlichkeit des Systems"
@@ -109,5 +116,63 @@ describe("i18n language resolution", () => {
         "de"
       )
     ).toBe("Der Statistik-Snapshot konnte nicht geladen werden (503).");
+  });
+
+  test("translates shared onboarding and Data Connection setup labels", () => {
+    expect(translateText("Organization (optional)", "de")).toBe(
+      "Organisation (optional)"
+    );
+    expect(translateText("Inbox, Catalog & Registry", "de")).toBe(
+      "Inbox, Katalog und Registry"
+    );
+    expect(translateText("Set up Data Connection", "de")).toBe(
+      "Datenverbindung einrichten"
+    );
+    expect(translateText("Background sync worker", "de")).toBe(
+      "Hintergrund-Sync-Worker"
+    );
+  });
+
+  test("translates the current Information page explicitly", () => {
+    expect(translateText("Your Solid Dataspace, at a glance.", "de")).toBe(
+      "Dein Solid Dataspace auf einen Blick."
+    );
+    expect(translateText("Available in this Dataspace today", "de")).toBe(
+      "Heute in diesem Dataspace verfügbar"
+    );
+    expect(translateText("What stays where", "de")).toBe(
+      "Was wo gespeichert und verarbeitet wird"
+    );
+    expect(translateText("Current scope", "de")).toBe("Aktueller Umfang");
+    expect(
+      translateText("Applications available in this instance", "de")
+    ).toBe("In dieser Instanz verfügbare Anwendungen");
+  });
+
+  test("translates tab-specific personal workspace loading copy", () => {
+    expect(
+      translateText("Loading your personal access decisions workspace …", "de")
+    ).toBe("Dein persönlicher Bereich für Zugriffsentscheidungen wird geladen …");
+    expect(
+      translateText("Loading your personal access requests workspace …", "de")
+    ).toBe("Dein persönlicher Bereich für Zugriffsanfragen wird geladen …");
+    expect(
+      translateText("Loading your personal statistics workspace …", "de")
+    ).toBe("Dein persönlicher Statistikbereich wird geladen …");
+    expect(
+      translateText("Loading your personal provider workspace …", "de")
+    ).toBe("Dein persönlicher Anbieterbereich wird geladen …");
+  });
+
+  test("translates the centralized application loading copy", () => {
+    expect(
+      translateText("Loading your personal dataspace workspace …", "de")
+    ).toBe("Dein persönlicher Dataspace-Bereich wird geladen …");
+    expect(
+      translateText("Loading your personal profile workspace …", "de")
+    ).toBe("Dein persönlicher Profilbereich wird geladen …");
+    expect(
+      translateText("Loading your personal application workspace …", "de")
+    ).toBe("Dein persönlicher Anwendungsbereich wird geladen …");
   });
 });

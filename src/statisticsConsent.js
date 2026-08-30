@@ -20,9 +20,13 @@ export function hasStatisticsConsent(profileThing) {
   );
 }
 
-export async function saveStatisticsConsent(webId, solidFetch) {
+export async function setStatisticsConsent(webId, solidFetch, granted) {
   const profileDocumentUrl = getProfileDocumentUrl(webId);
-  if (!profileDocumentUrl || typeof solidFetch !== "function") {
+  if (
+    !profileDocumentUrl ||
+    typeof solidFetch !== "function" ||
+    typeof granted !== "boolean"
+  ) {
     throw new Error("A WebID and authenticated Solid fetch are required.");
   }
 
@@ -35,9 +39,17 @@ export async function saveStatisticsConsent(webId, solidFetch) {
   profileThing = setBoolean(
     profileThing,
     STATISTICS_CONSENT_PREDICATE,
-    true
+    granted
   );
   dataset = setThing(dataset, profileThing);
   await saveSolidDatasetAt(profileDocumentUrl, dataset, { fetch: solidFetch });
-  return true;
+  return granted;
+}
+
+export async function saveStatisticsConsent(webId, solidFetch) {
+  return setStatisticsConsent(webId, solidFetch, true);
+}
+
+export async function revokeStatisticsConsent(webId, solidFetch) {
+  return setStatisticsConsent(webId, solidFetch, false);
 }

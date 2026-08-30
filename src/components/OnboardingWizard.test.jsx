@@ -12,10 +12,9 @@ import OnboardingWizard from "./OnboardingWizard";
 
 const mockGetSolidDataset = jest.fn();
 const mockSaveSolidDatasetAt = jest.fn();
-const mockRecordStatisticsActivity = jest.fn();
-const mockSaveStatisticsConsent = jest.fn();
-const mockHasStatisticsConsent = jest.fn();
 const mockSessionFetch = jest.fn();
+const mockHasStatisticsConsent = jest.fn();
+const mockSaveStatisticsConsent = jest.fn();
 
 jest.mock("@inrupt/solid-client", () => {
   const actual = jest.requireActual("@inrupt/solid-client");
@@ -60,37 +59,8 @@ jest.mock("../solidCatalog", () => ({
   SDP_CATALOG: "https://w3id.org/solid-dataspace-manager#catalog",
 }));
 
-jest.mock("../cssAccountApi", () => ({
-  createClientCredential: jest.fn(),
-  getAccountIndexUrl: () => "https://pod.example/.account/",
-  loadAccountIndex: jest.fn(),
-  readStoredAccountToken: jest.fn(),
-  resolveClientCredentialsUrl: jest.fn(),
-}));
-
-jest.mock("../solidCredentialToken", () => ({
-  isCredentialTokenDecodeError: () => false,
-  loadCredentialToken: jest.fn(async () => ({ id: "id", secret: "secret" })),
-  saveCredentialToken: jest.fn(),
-}));
-
-jest.mock("../syncWorkerRegistration", () => ({
-  registerSyncWorkerParticipant: jest.fn(async () => ({ registered: true })),
-  resolveOidcIssuer: () => "https://pod.example/",
-}));
-
-jest.mock("../solidConnections", () => ({
-  connectionContainerExists: jest.fn(async () => true),
-  ensureConnectionsContainer: jest.fn(async () => ({})),
-  getConnectionsContainerUrl: () => "https://pod.example/alice/connections/",
-}));
-
 jest.mock("../solidStorage", () => ({
   ensurePodStorageLink: (thing) => thing,
-}));
-
-jest.mock("../statisticsActivity", () => ({
-  recordStatisticsActivity: (...args) => mockRecordStatisticsActivity(...args),
 }));
 
 jest.mock("../statisticsConsent", () => ({
@@ -100,34 +70,30 @@ jest.mock("../statisticsConsent", () => ({
 
 const WEB_ID = "https://pod.example/alice/profile/card#me";
 const CATALOG = "https://w3id.org/solid-dataspace-manager#catalog";
-const OIDC_ISSUER = "http://www.w3.org/ns/solid/terms#oidcIssuer";
+const STATISTICS_CONFIG = {
+  enabled: true,
+  workerWebId: "https://pod.example/worker/profile/card#me",
+  activityResourcePath: "statistics/activity/activity.ttl",
+};
 
-function completeProfileDataset() {
+function profileDataset({ name = "Alice", email = "alice@example.org" } = {}) {
   let profile = createThing({ url: WEB_ID });
-  profile = setStringNoLocale(profile, VCARD.fn, "Alice");
-  profile = setStringNoLocale(profile, VCARD.organization_name, "Example Org");
-  profile = setStringNoLocale(profile, VCARD.role, "Researcher");
-  profile = setUrl(profile, VCARD.email, "mailto:alice@example.org");
+  if (name) profile = setStringNoLocale(profile, VCARD.fn, name);
+  if (email) profile = setUrl(profile, VCARD.email, `mailto:${email}`);
   profile = setUrl(profile, LDP.inbox, "https://pod.example/alice/inbox/");
   profile = setUrl(
     profile,
     CATALOG,
     "https://pod.example/alice/catalog/cat.ttl#it"
   );
-  profile = setUrl(profile, OIDC_ISSUER, "https://pod.example/");
   return setThing(createSolidDataset(), profile);
 }
 
-const statisticsConfig = {
-  enabled: true,
-  workerWebId: "https://pod.example/worker/profile/card#me",
-  activityResourcePath: "statistics/activity/activity.ttl",
-  timezone: "Europe/Berlin",
-};
-
-describe("OnboardingWizard statistics consent", () => {
+describe("OnboardingWizard shared Dataspace setup", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHasStatisticsConsent.mockReturnValue(false);
+    mockSaveStatisticsConsent.mockResolvedValue(true);
     const solidClient = jest.requireMock("@inrupt/solid-client");
     solidClient.getSolidDatasetWithAcl.mockResolvedValue({ resource: true });
     solidClient.getResourceAcl.mockReturnValue({});
@@ -136,7 +102,6 @@ describe("OnboardingWizard statistics consent", () => {
     solidClient.createAclFromFallbackAcl.mockReturnValue({});
     solidClient.setPublicResourceAccess.mockImplementation((acl) => acl);
     solidClient.saveAclFor.mockResolvedValue({});
-
     const solidCatalog = jest.requireMock("../solidCatalog");
     solidCatalog.loadRegistryConfig.mockResolvedValue({
       mode: "private",
@@ -148,83 +113,126 @@ describe("OnboardingWizard statistics consent", () => {
     });
     solidCatalog.ensurePrivateRegistryContainer.mockResolvedValue({});
     solidCatalog.saveRegistryConfig.mockResolvedValue({});
-    jest
-      .requireMock("../solidCredentialToken")
-      .loadCredentialToken.mockResolvedValue({ id: "id", secret: "secret" });
-    const solidConnections = jest.requireMock("../solidConnections");
-    solidConnections.connectionContainerExists.mockResolvedValue(true);
-    solidConnections.ensureConnectionsContainer.mockResolvedValue({});
-    jest
-      .requireMock("../syncWorkerRegistration")
-      .registerSyncWorkerParticipant.mockResolvedValue({ registered: true });
-    const dataset = completeProfileDataset();
+    const dataset = profileDataset();
     mockGetSolidDataset.mockResolvedValue(dataset);
     mockSaveSolidDatasetAt.mockImplementation(async (_url, updated) => updated);
-    mockHasStatisticsConsent.mockReturnValue(false);
-    mockRecordStatisticsActivity.mockResolvedValue({ recorded: true });
-    mockSaveStatisticsConsent.mockResolvedValue(true);
   });
 
-  test("requires the checkbox and records activity before persisting consent", async () => {
+  test("describes startup as loading the personal Dataspace workspace", () => {
+    mockGetSolidDataset.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <OnboardingWizard
+        webId={WEB_ID}
+        onComplete={jest.fn()}
+        onCancel={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Profile setup", level: 1 })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Loading your personal dataspace workspace …"
+    );
+    expect(screen.queryByText("Solid Dataspace")).not.toBeInTheDocument();
+  });
+
+  test("accepts a complete shared profile without organization or role", async () => {
     const onComplete = jest.fn();
     render(
       <OnboardingWizard
         webId={WEB_ID}
-        statisticsConfig={statisticsConfig}
         onComplete={onComplete}
         onCancel={jest.fn()}
       />
     );
 
-    const consent = await screen.findByRole("checkbox", {
-      name: /create and update my usage statistics/i,
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+  });
+
+  test("requires only name in Basics and keeps app-specific setup out of Pod setup", async () => {
+    mockGetSolidDataset.mockResolvedValue(profileDataset({ name: "", email: "" }));
+    const onComplete = jest.fn();
+
+    render(
+      <OnboardingWizard
+        webId={WEB_ID}
+        onComplete={onComplete}
+        onCancel={jest.fn()}
+      />
+    );
+
+    const next = await screen.findByRole("button", { name: "Next" });
+    expect(next).toBeDisabled();
+    expect(screen.getByLabelText("Organization (optional)")).toHaveValue("");
+    expect(screen.getByLabelText("Role (optional)")).toHaveValue("");
+
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "Alice" },
+    });
+    expect(next).toBeEnabled();
+    fireEvent.click(next);
+
+    const email = await screen.findByPlaceholderText("name@example.org");
+    fireEvent.change(email, { target: { value: "alice@example.org" } });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Inbox, Catalog & Registry" })
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Connections Folder")).not.toBeInTheDocument();
+    expect(screen.queryByText("Credential Token")).not.toBeInTheDocument();
+    expect(screen.queryByText("Usage Statistics")).not.toBeInTheDocument();
+
+    const finish = screen.getByRole("button", { name: "Finish" });
+    expect(finish).toBeEnabled();
+    fireEvent.click(finish);
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    const solidCatalog = jest.requireMock("../solidCatalog");
+    expect(solidCatalog.ensureCatalogStructure).toHaveBeenCalledWith(
+      expect.objectContaining({ fetch: expect.any(Function) }),
+      expect.objectContaining({
+        title: "Alice's Catalog",
+        registryConfig: expect.objectContaining({ mode: "private" }),
+      })
+    );
+  });
+
+  test("collects and stores usage statistics consent during Pod setup", async () => {
+    const onComplete = jest.fn();
+
+    render(
+      <OnboardingWizard
+        webId={WEB_ID}
+        statisticsConfig={STATISTICS_CONFIG}
+        onComplete={onComplete}
+        onCancel={jest.fn()}
+      />
+    );
+
+    expect(await screen.findByText("Usage Statistics")).toBeInTheDocument();
+    const consent = screen.getByRole("checkbox", {
+      name: /I agree that finishing will create and update my usage statistics/i,
     });
     const finish = screen.getByRole("button", { name: "Finish" });
 
+    expect(consent).not.toBeChecked();
     expect(finish).toBeDisabled();
-    expect(mockRecordStatisticsActivity).not.toHaveBeenCalled();
-    expect(mockSaveStatisticsConsent).not.toHaveBeenCalled();
 
     fireEvent.click(consent);
     expect(finish).toBeEnabled();
     fireEvent.click(finish);
 
+    await waitFor(() =>
+      expect(mockSaveStatisticsConsent).toHaveBeenCalledWith(
+        WEB_ID,
+        expect.any(Function)
+      )
+    );
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    expect(mockRecordStatisticsActivity).toHaveBeenCalledWith({
-      webId: WEB_ID,
-      fetch: expect.any(Function),
-      config: statisticsConfig,
-    });
-    expect(mockSaveStatisticsConsent).toHaveBeenCalledWith(
-      WEB_ID,
-      expect.any(Function)
-    );
-    expect(mockRecordStatisticsActivity.mock.invocationCallOrder[0]).toBeLessThan(
-      mockSaveStatisticsConsent.mock.invocationCallOrder[0]
-    );
     expect(mockSaveStatisticsConsent.mock.invocationCallOrder[0]).toBeLessThan(
       onComplete.mock.invocationCallOrder[0]
     );
-  });
-
-  test("does not require or write consent when statistics are disabled", async () => {
-    const onComplete = jest.fn();
-    render(
-      <OnboardingWizard
-        webId={WEB_ID}
-        statisticsConfig={{ ...statisticsConfig, enabled: false }}
-        onComplete={onComplete}
-        onCancel={jest.fn()}
-      />
-    );
-
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    expect(
-      screen.queryByRole("checkbox", {
-        name: /create and update my usage statistics/i,
-      })
-    ).not.toBeInTheDocument();
-    expect(mockRecordStatisticsActivity).not.toHaveBeenCalled();
-    expect(mockSaveStatisticsConsent).not.toHaveBeenCalled();
   });
 });

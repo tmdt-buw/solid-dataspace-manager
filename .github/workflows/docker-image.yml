@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
   repository_dispatch:
-    types: ["semantic-data-catalog-released", "solid-health-app-released", "solid-tours-released", "solid-chatbot-released"]
+    types: ["semantic-data-catalog-released", "solid-health-app-released", "solid-tours-released", "solid-health-questionnaire-released", "solid-chatbot-released"]
 
 jobs:
   build-and-push:
@@ -14,6 +14,36 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@hoelk-f"
+      - name: Wait for the pinned Solid Health Questionnaire package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          QUESTIONNAIRE_VERSION=$(awk -F= '/^ARG SOLID_HEALTH_QUESTIONNAIRE_PACKAGE_VERSION=/{print $2}' Dockerfile)
+          if [ -z "$QUESTIONNAIRE_VERSION" ]; then
+            echo "Dockerfile does not define SOLID_HEALTH_QUESTIONNAIRE_PACKAGE_VERSION." >&2
+            exit 1
+          fi
+
+          for attempt in $(seq 1 30); do
+            PUBLISHED_VERSION=$(npm view "@hoelk-f/solid-health-questionnaire@${QUESTIONNAIRE_VERSION}" version --registry https://npm.pkg.github.com 2>/dev/null || true)
+            if [ "$PUBLISHED_VERSION" = "$QUESTIONNAIRE_VERSION" ]; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 30 ]; then
+              echo "Solid Health Questionnaire ${QUESTIONNAIRE_VERSION} did not become available in time." >&2
+              exit 1
+            fi
+
+            sleep 10
+          done
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:

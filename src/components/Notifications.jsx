@@ -27,6 +27,7 @@ import { DCAT, DCTERMS, LDP } from "@inrupt/vocab-common-rdf";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faInbox, faRotateRight, faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
 import DeleteConfirmModal from "./DeleteConfirmModal";
+import ContentLoadingState from "./ContentLoadingState";
 import { getSyncWorkerConfig } from "../config/runtimeConfig";
 import {
   ENVIRONMENTAL_CONSENT,
@@ -516,7 +517,11 @@ const Notifications = ({ webId }) => {
       )}
 
       {loading ? (
-        <div className="notifications-empty">{t("Loading notifications...")}</div>
+        <ContentLoadingState
+          title={t("Access Requests")}
+          message={t("Loading your personal access requests workspace …")}
+          icon={faInbox}
+        />
       ) : filteredNotifications.length === 0 ? (
         <div className="notifications-empty">{t("No access requests found.")}</div>
       ) : (

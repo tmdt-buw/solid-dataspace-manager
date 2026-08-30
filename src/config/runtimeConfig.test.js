@@ -32,6 +32,20 @@ describe("statistics runtime config", () => {
     );
   });
 
+  test("includes Solid Health Questionnaire as an embedded fallback application", () => {
+    expect(getAppsBySection("applications")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "solid-health-questionnaire",
+          href: "/web/solid-health-questionnaire",
+          iconKey: "questionnaire",
+          order: 24,
+          linkType: "internal",
+        }),
+      ])
+    );
+  });
+
   test("accepts a same-origin PLASMA path and rejects unsafe schemes", () => {
     expect(normalizePlasmaUrl("/plasma/modelings")).toBe("/plasma/modelings");
     expect(normalizePlasmaUrl("//example.org/plasma")).toBe("");

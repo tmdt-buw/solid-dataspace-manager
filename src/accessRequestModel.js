@@ -63,10 +63,10 @@ export const ENVIRONMENTAL_CONSENT = Object.freeze({
   title: "Environmental Monitoring wants to use your completed tours",
   data: "All donated completed routes and their calculated activity values",
   purpose:
-    "Anonymous aggregated public display of donated routes and their derived activity values in Environmental Monitoring.",
+    "Aggregated public display of donated routes and their derived activity values without direct identifiers in Environmental Monitoring.",
   access: "Read only",
   notice:
-    "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. Your contribution is combined with contributions from other users, and a route is displayed only after the configured minimum number of different donors has approved access. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.",
+    "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. Your contribution is combined with contributions from other users; a route and activity type are displayed only after access to matching contributions from at least two different WebIDs has been approved. Even with this aggregation, route locations may still be linkable to people or places. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.",
 });
 
 export const DCT_CREATED = "http://purl.org/dc/terms/created";

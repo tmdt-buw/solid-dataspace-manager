@@ -5,6 +5,7 @@ import {
   faTableColumns,
   faBookOpen,
   faHexagonNodes,
+  faDiagramProject,
   faDatabase,
   faUser,
   faRightFromBracket,
@@ -16,6 +17,7 @@ import {
   faChartLine,
   faFolder,
   faHeartPulse,
+  faClipboardCheck,
   faChevronLeft,
   faChevronRight,
   faLink,
@@ -59,12 +61,18 @@ const appIconMap = {
   temperature: faTemperatureHigh,
   database: faDatabase,
   health: faHeartPulse,
+  questionnaire: faClipboardCheck,
   tour: faRoute,
   server: faServer,
   rocketchat: faRocketchat,
 };
 
-function Sidebar({ webId, collapsed = false, onToggle, statisticsAdmin = false }) {
+function Sidebar({
+  webId,
+  collapsed = false,
+  onToggle,
+  statisticsAdmin = false,
+}) {
   const { pathname } = useLocation();
   const isActive = (to) => pathname === to || (to !== "/" && pathname.startsWith(`${to}/`));
   const [unreadRequests, setUnreadRequests] = useState(0);
@@ -281,7 +289,7 @@ function Sidebar({ webId, collapsed = false, onToggle, statisticsAdmin = false }
           className={"sb-link" + (isActive("/web/node-red") ? " active" : "")}
           title="Node-RED"
         >
-          <FontAwesomeIcon icon={faDatabase} />
+          <FontAwesomeIcon icon={faDiagramProject} />
           <span>Node-RED</span>
         </Link>
 

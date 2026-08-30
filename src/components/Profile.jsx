@@ -31,6 +31,7 @@ import { VCARD, FOAF, LDP } from "@inrupt/vocab-common-rdf";
 import "./Profile.css";
 import AlertModal from "./AlertModal";
 import ConfirmModal from "./ConfirmModal";
+import ContentLoadingState from "./ContentLoadingState";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUserCircle, faPen, faPlus, faTrash,
@@ -662,7 +663,11 @@ export default function Profile({ webId }) {
 
   if (loading) return (
     <>
-      <p>Loading profile…</p>
+      <ContentLoadingState
+        title={t("Profile Manager")}
+        message={t("Loading your personal profile workspace …")}
+        icon={faUserCircle}
+      />
       <AlertModal
         show={alertOpen}
         message={alertMessage}

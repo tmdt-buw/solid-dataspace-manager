@@ -20,6 +20,7 @@ import {
   faRotateRight,
 } from "@fortawesome/free-solid-svg-icons";
 import DataspaceConnectionsVisual from "./DataspaceConnectionsVisual";
+import ContentLoadingState from "./ContentLoadingState";
 import "./TransactionHistory.css";
 
 const SDM_NS = "https://w3id.org/solid-dataspace-manager#";
@@ -426,7 +427,12 @@ const TransactionHistory = ({ webId }) => {
             <span className="graph-meta">{activeConnections.length} total</span>
           </div>
           {loading ? (
-            <div className="transactions-empty">Loading connections...</div>
+            <ContentLoadingState
+              title="Transaction History"
+              message="Loading your personal connections …"
+              icon={faRightLeft}
+              variant="compact"
+            />
           ) : activeConnections.length === 0 ? (
             <div className="transactions-empty">No active connections found.</div>
           ) : (

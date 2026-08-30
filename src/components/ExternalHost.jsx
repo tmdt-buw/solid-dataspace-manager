@@ -14,6 +14,7 @@ import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import { LANGUAGE_MESSAGE_TYPE, useI18n } from "../i18n";
 import { getDataspaceId } from "../config/runtimeConfig";
 import { buildExternalTargetUrl } from "./externalTargetUrl";
+import ContentLoadingState from "./ContentLoadingState";
 import "./ExternalHost.css";
 
 export default function ExternalHost() {
@@ -73,7 +74,7 @@ export default function ExternalHost() {
 
   if (!activeLink) {
     return (
-      <div className="container">
+      <div className="external-host-container">
         <div className="toolbar">
           <div className="crumb">
             <span>{t("Not found")}</span>
@@ -94,7 +95,7 @@ export default function ExternalHost() {
   const useAppFrame = true;
 
   return (
-    <div className="container external-host-container">
+    <div className="external-host-container">
       <div className="toolbar toolbar--title external-host-header">
         <div className="crumb">
           <FontAwesomeIcon
@@ -136,7 +137,14 @@ export default function ExternalHost() {
           </div>
         ) : (
           <>
-            {!loaded && <p className="external-host-loading">{t("Loading...")}</p>}
+            {!loaded && (
+              <ContentLoadingState
+                title={activeLink.title}
+                message={t("Loading your personal application workspace …")}
+                icon={iconMap[activeLink.slug] || faHexagonNodes}
+                variant="overlay"
+              />
+            )}
             <div className="external-host-frame">
               <iframe
                 ref={iframeRef}

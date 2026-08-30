@@ -4,6 +4,7 @@ import {
   getActivityPeriod,
   parseActivityTurtle,
   recordStatisticsActivity,
+  revokeStatisticsActivityAccess,
   resolveActivityResourceUrl,
   resolveStatisticsPodUrl,
   startStatisticsActivityHeartbeat,
@@ -20,7 +21,7 @@ jest.mock("@inrupt/solid-client", () => ({
   createAcl: jest.fn(() => ({ acl: true })),
   createContainerAt: (...args) => mockCreateContainerAt(...args),
   getPodUrlAll: (...args) => mockGetPodUrlAll(...args),
-  getSolidDataset: (...args) => mockGetSolidDataset(...args),
+  getSolidDatasetWithAcl: (...args) => mockGetSolidDataset(...args),
   hasAccessibleAcl: () => true,
   saveAclFor: (...args) => mockSaveAclFor(...args),
   setAgentResourceAccess: (...args) => mockSetAgentResourceAccess(...args),
@@ -102,6 +103,55 @@ describe("statistics activity", () => {
         jest.fn()
       )
     ).resolves.toBe("https://pod.example/alice/");
+  });
+
+  test("revokes worker access from the activity resource and container", async () => {
+    const fetcher = jest.fn(async () => response(200));
+
+    await expect(
+      revokeStatisticsActivityAccess({
+        webId: ownerWebId,
+        fetch: fetcher,
+        config,
+      })
+    ).resolves.toEqual({
+      revoked: true,
+      resourceUrl:
+        "https://pod.example/alice/statistics/activity/activity.ttl",
+      resourceExists: true,
+    });
+
+    expect(mockSaveAclFor).toHaveBeenCalledTimes(2);
+    expect(mockGetSolidDataset.mock.calls.map(([url]) => url)).toEqual([
+      "https://pod.example/alice/statistics/activity/activity.ttl",
+      "https://pod.example/alice/statistics/activity/",
+    ]);
+    expect(
+      mockSetAgentResourceAccess.mock.calls.some(
+        ([, agent]) => agent === config.workerWebId
+      )
+    ).toBe(false);
+    expect(
+      mockSetAgentDefaultAccess.mock.calls.some(
+        ([, agent]) => agent === config.workerWebId
+      )
+    ).toBe(false);
+  });
+
+  test("withdrawal does not create statistics storage when no activity exists", async () => {
+    const fetcher = jest.fn(async () => response(404));
+
+    await expect(
+      revokeStatisticsActivityAccess({
+        webId: ownerWebId,
+        fetch: fetcher,
+        config,
+      })
+    ).resolves.toMatchObject({ revoked: true, resourceExists: false });
+
+    expect(mockGetSolidDataset).not.toHaveBeenCalled();
+    expect(mockSaveAclFor).not.toHaveBeenCalled();
+    expect(mockCreateContainerAt).not.toHaveBeenCalled();
   });
 
   test("does not hide profile discovery errors behind the local fallback", async () => {

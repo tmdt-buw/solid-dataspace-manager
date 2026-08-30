@@ -2,7 +2,7 @@ import {
   createAcl,
   createContainerAt,
   getPodUrlAll,
-  getSolidDataset,
+  getSolidDatasetWithAcl,
   hasAccessibleAcl,
   saveAclFor,
   setAgentDefaultAccess,
@@ -156,7 +156,7 @@ async function securePrivateContainer(
     workerDefaultAccess = null,
   } = {}
 ) {
-  const resource = await getSolidDataset(containerUrl, {
+  const resource = await getSolidDatasetWithAcl(containerUrl, {
     fetch: solidFetch,
   });
   if (!hasAccessibleAcl(resource)) {
@@ -324,7 +324,7 @@ export async function ensureActivityAcl({
     throw new Error("Statistics worker WebID is not configured.");
   }
 
-  const resource = await getSolidDataset(resourceUrl, {
+  const resource = await getSolidDatasetWithAcl(resourceUrl, {
     fetch: solidFetch,
   });
   if (!hasAccessibleAcl(resource)) {
@@ -338,6 +338,58 @@ export async function ensureActivityAcl({
     acl = setAgentResourceAccess(acl, workerWebId, WORKER_READ_ACCESS);
   }
   await saveAclFor(resource, acl, { fetch: solidFetch });
+}
+
+export async function revokeStatisticsActivityAccess({
+  webId,
+  fetch: solidFetch,
+  config,
+}) {
+  if (!webId || typeof solidFetch !== "function") {
+    throw new Error("A WebID and authenticated Solid fetch are required.");
+  }
+
+  const podUrl = await resolveStatisticsPodUrl(webId, solidFetch);
+  const resourceUrl = resolveActivityResourceUrl(
+    podUrl,
+    config?.activityResourcePath
+  );
+  const activityContainerUrl = new URL(".", resourceUrl).href;
+  const response = await solidFetch(resourceUrl, {
+    method: "GET",
+    headers: { Accept: "text/turtle" },
+    cache: "no-store",
+  });
+
+  if (response.status === 404) {
+    return { revoked: true, resourceUrl, resourceExists: false };
+  }
+  if (!response.ok) {
+    throw new Error(
+      `Statistics activity could not be read (${response.status}).`
+    );
+  }
+
+  const resource = await getSolidDatasetWithAcl(resourceUrl, {
+    fetch: solidFetch,
+  });
+  if (!hasAccessibleAcl(resource)) {
+    throw new Error("No Control access to the statistics activity ACL.");
+  }
+
+  let acl = createAcl(resource);
+  acl = setPublicResourceAccess(acl, NO_ACCESS);
+  acl = setAgentResourceAccess(acl, webId, OWNER_ACCESS);
+  await saveAclFor(resource, acl, { fetch: solidFetch });
+
+  await securePrivateContainer(
+    activityContainerUrl,
+    webId,
+    "",
+    solidFetch
+  );
+
+  return { revoked: true, resourceUrl, resourceExists: true };
 }
 
 export async function recordStatisticsActivity({

@@ -14,6 +14,7 @@ import {
   initializeStatisticsPod,
 } from "../statisticsPodSetup";
 import { useI18n } from "../i18n";
+import ContentLoadingState from "./ContentLoadingState";
 import "./StatisticsDashboard.css";
 
 const DOWNLOAD_TYPES = [
@@ -682,10 +683,11 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
       )}
 
       {loading && (
-        <div className="statistics-state" role="status">
-          <span className="statistics-spinner" />
-          {t("Loading statistics snapshot...")}
-        </div>
+        <ContentLoadingState
+          title={t("Statistics Dashboard")}
+          message={t("Loading your personal statistics workspace …")}
+          icon={faChartColumn}
+        />
       )}
 
       {!loading && error && (

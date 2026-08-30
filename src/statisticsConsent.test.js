@@ -10,7 +10,9 @@ import {
 } from "@inrupt/solid-client";
 import {
   hasStatisticsConsent,
+  revokeStatisticsConsent,
   saveStatisticsConsent,
+  setStatisticsConsent,
   STATISTICS_CONSENT_PREDICATE,
 } from "./statisticsConsent";
 
@@ -80,6 +82,34 @@ describe("statistics consent", () => {
     expect(
       getStringNoLocale(savedProfile, "http://www.w3.org/2006/vcard/ns#fn")
     ).toBe("Alice");
+  });
+
+  test("persists an explicit withdrawal without deleting other profile data", async () => {
+    const solidFetch = jest.fn();
+    let profile = createThing({ url: WEB_ID });
+    profile = setStringNoLocale(
+      setBoolean(profile, STATISTICS_CONSENT_PREDICATE, true),
+      "http://www.w3.org/2006/vcard/ns#fn",
+      "Alice"
+    );
+    const dataset = setThing(createSolidDataset(), profile);
+    mockGetSolidDataset.mockResolvedValue(dataset);
+    mockSaveSolidDatasetAt.mockImplementation(async (_url, updated) => updated);
+
+    await expect(revokeStatisticsConsent(WEB_ID, solidFetch)).resolves.toBe(false);
+
+    const savedProfile = getThing(mockSaveSolidDatasetAt.mock.calls[0][1], WEB_ID);
+    expect(getBoolean(savedProfile, STATISTICS_CONSENT_PREDICATE)).toBe(false);
+    expect(
+      getStringNoLocale(savedProfile, "http://www.w3.org/2006/vcard/ns#fn")
+    ).toBe("Alice");
+  });
+
+  test("requires an explicit boolean when changing consent", async () => {
+    await expect(
+      setStatisticsConsent(WEB_ID, jest.fn(), undefined)
+    ).rejects.toThrow(/WebID and authenticated Solid fetch/i);
+    expect(mockGetSolidDataset).not.toHaveBeenCalled();
   });
 
   test("rejects calls without an authenticated session", async () => {
