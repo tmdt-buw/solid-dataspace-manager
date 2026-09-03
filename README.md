@@ -6,6 +6,18 @@ Solid Dataspace is a web application for managing data in Solid Pods and authent
 
 The manager includes an inbox UI for Solid access request notifications. Dataset owners can review requests, approve or deny access, and optionally set an expiry date.
 
+## Dataspace instance configuration
+
+Set `APP_DATASPACE_ID` to the registry ID represented by this Manager deployment. The Manager adds
+that value as `dataspaceId` when embedding Environmental Monitoring, so the application loads only
+the matching aggregate partition. IDs are normalized to a bounded registry identifier. A missing or
+invalid value fails closed by requesting the explicit unconfigured partition instead of the combined
+cross-instance endpoint.
+
+The repository's Compose file accepts `DATASPACE_ID` and falls back to
+`STATISTICS_REGISTRY_CONTEXT`. In the central `solid-dataspace` Compose stack, one resolved ID is
+passed to both the Manager and the catalog to keep their instance selection aligned.
+
 ## Available Scripts
 
 In the project directory, you can run:

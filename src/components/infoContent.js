@@ -121,8 +121,8 @@ export const INFO_APPLICATION_DETAILS = {
   "environmental-monitoring": {
     eyebrow: "Environment & movement",
     description:
-      "Explore weather, soil and movement data on a map. Donated tour activity appears only as an aggregate after the privacy threshold is met.",
-    dataNote: "Catalog data and privacy-thresholded aggregates",
+      "Explore weather, soil and movement data on a map. Approved tour activity can appear from the first contribution; direct identifiers are removed, but an individual route may still identify a person or place.",
+    dataNote: "Catalog data and route summaries without direct identifiers",
   },
   "solid-health-app": {
     eyebrow: "Personal health data",

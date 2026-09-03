@@ -56,9 +56,17 @@ describe("i18n language resolution", () => {
 
   test("keeps Environmental Monitoring consent in English and localizes it for German", () => {
     const title = "Environmental Monitoring wants to use your completed tours";
+    const notice =
+      "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.";
     expect(translateText(title, "en")).toBe(title);
     expect(translateText(title, "de")).toBe(
       "Environmental Monitoring möchte deine gemachten Touren verwenden"
+    );
+    expect(translateText(notice, "de")).toContain(
+      "einer einzelnen WebID genehmigt"
+    );
+    expect(translateText(notice, "de")).toContain(
+      "macht eine Route nicht anonym"
     );
     expect(translateText("Data:", "de")).toBe("Daten:");
     expect(translateText("Note:", "de")).toBe("Hinweis:");

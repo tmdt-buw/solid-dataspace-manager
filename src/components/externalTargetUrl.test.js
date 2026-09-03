@@ -8,18 +8,21 @@ const environmentalLink = {
   url: "/environmental-monitoring/",
 };
 
-test("partitions the embedded Environmental Monitoring URL", () => {
-  expect(
-    buildExternalTargetUrl({
-      activeLink: environmentalLink,
-      language: "de",
-      origin: "https://dataspace.example",
-      dataspaceId: "stadt-wuppertal",
-    })
-  ).toBe(
-    "https://dataspace.example/environmental-monitoring/?lang=de&dataspaceId=stadt-wuppertal"
-  );
-});
+test.each(["stadt-wuppertal", "dace", "timberconnect", "test"])(
+  "partitions the embedded Environmental Monitoring URL for %s",
+  (dataspaceId) => {
+    expect(
+      buildExternalTargetUrl({
+        activeLink: environmentalLink,
+        language: "de",
+        origin: "https://dataspace.example",
+        dataspaceId,
+      })
+    ).toBe(
+      `https://dataspace.example/environmental-monitoring/?lang=de&dataspaceId=${dataspaceId}`
+    );
+  }
+);
 
 test("fails closed when the embedded dataspace partition is not configured", () => {
   const target = new URL(

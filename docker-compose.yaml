@@ -9,6 +9,7 @@ services:
     environment:
       - REACT_APP_OIDC_ISSUER=https://solidcommunity.net
       - PORT=3001
+      - APP_DATASPACE_ID=${DATASPACE_ID:-${STATISTICS_REGISTRY_CONTEXT:-}}
     tty: true
     ports:
       - "${FRONTEND_PORT:-3001}:3001"

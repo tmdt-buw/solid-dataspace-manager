@@ -38,11 +38,11 @@ const enToDe = {
     "Environmental Monitoring möchte deine gemachten Touren verwenden",
   "All donated completed routes and their calculated activity values":
     "Alle gespendeten gemachten Routen und ihre berechneten Aktivitätswerte",
-  "Aggregated public display of donated routes and their derived activity values without direct identifiers in Environmental Monitoring.":
-    "Aggregierte öffentliche Darstellung gespendeter Routen und der daraus berechneten Aktivitätswerte ohne direkte Identifikatoren in Environmental Monitoring.",
+  "Public display of approved donated routes and their derived activity values without direct identifiers in Environmental Monitoring.":
+    "Öffentliche Darstellung freigegebener gespendeter Routen und der daraus abgeleiteten Aktivitätswerte ohne direkte Identifikatoren in Environmental Monitoring.",
   "Read only": "Nur lesen",
-  "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. Your contribution is combined with contributions from other users; a route and activity type are displayed only after access to matching contributions from at least two different WebIDs has been approved. Even with this aggregation, route locations may still be linkable to people or places. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.":
-    "Environmental Monitoring zeigt weder deinen Namen, deine WebID, Pod-URL, Kontakt-E-Mail, das genaue Abschlussdatum noch andere direkte Identifikatoren an. Dein Beitrag wird mit Beiträgen anderer Nutzer zusammengefasst; eine Route und Aktivitätsart erscheinen erst, nachdem der Zugriff auf passende Beiträge von mindestens zwei unterschiedlichen WebIDs genehmigt wurde. Auch durch diese Aggregation können Rückschlüsse von Routenorten auf Personen oder Orte nicht ausgeschlossen werden. Die geschützte Quelldatei enthält die vollständigen Routenkoordinaten, das Abschlussdatum, die Aktivitätsart, berechnete Distanz, aktive Minuten, Tempo und beim Gehen eine geschätzte Schrittzahl. Dein öffentlicher Katalogeintrag kann weiterhin den Ersteller, die WebID und die im Solid-Profil hinterlegte Kontakt-E-Mail anzeigen.",
+  "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.":
+    "Environmental Monitoring zeigt weder deinen Namen, deine WebID, Pod-URL, Kontakt-E-Mail, das genaue Abschlussdatum noch andere direkte Identifikatoren an. Eine Route und Aktivitätsart können bereits angezeigt werden, sobald der Zugriff auf einen passenden Beitrag einer einzelnen WebID genehmigt wurde; Werte aus weiteren genehmigten Beiträgen werden zusammengefasst, sofern sie vorliegen. Das Entfernen direkter Identifikatoren macht eine Route nicht anonym: Ort und Verlauf einer einzelnen Route, zeitliche Muster oder Bezüge zu bekannten Orten können weiterhin Rückschlüsse auf eine Person oder einen Ort ermöglichen. Die geschützte Quelldatei enthält die vollständigen Routenkoordinaten, das Abschlussdatum, die Aktivitätsart, berechnete Distanz, aktive Minuten, Tempo und beim Gehen eine geschätzte Schrittzahl. Dein öffentlicher Katalogeintrag kann weiterhin den Ersteller, die WebID und die im Solid-Profil hinterlegte Kontakt-E-Mail anzeigen.",
   "Delete closed requests": "Geschlossene Anfragen löschen",
   "This will permanently delete the closed requests from your inbox.":
     "Dadurch werden die geschlossenen Anfragen dauerhaft aus deiner Inbox gelöscht.",
@@ -850,10 +850,10 @@ Object.assign(enToDe, {
   "Data handling depends on the application's access policy":
     "Die Datenverarbeitung richtet sich nach der Zugriffsrichtlinie der Anwendung",
   "Environment & movement": "Umwelt und Bewegung",
-  "Explore weather, soil and movement data on a map. Donated tour activity appears only as an aggregate after the privacy threshold is met.":
-    "Erkunde Wetter-, Boden- und Bewegungsdaten auf einer Karte. Gespendete Tour-Aktivitäten erscheinen erst nach Erreichen der Datenschutzschwelle als Aggregat.",
-  "Catalog data and privacy-thresholded aggregates":
-    "Katalogdaten und durch Datenschutzschwellen geschützte Aggregate",
+  "Explore weather, soil and movement data on a map. Approved tour activity can appear from the first contribution; direct identifiers are removed, but an individual route may still identify a person or place.":
+    "Erkunde Wetter-, Boden- und Bewegungsdaten auf einer Karte. Freigegebene Tour-Aktivitäten können ab dem ersten Beitrag erscheinen; direkte Identifikatoren werden entfernt, eine einzelne Route kann dennoch Rückschlüsse auf eine Person oder einen Ort ermöglichen.",
+  "Catalog data and route summaries without direct identifiers":
+    "Katalogdaten und Routenzusammenfassungen ohne direkte Identifikatoren",
   "Personal health data": "Persönliche Gesundheitsdaten",
   "Synchronize selected Google Fit metrics such as steps, calories, sleep, heart rate and weight into your personal Pod.":
     "Synchronisiere ausgewählte Google-Fit-Werte wie Schritte, Kalorien, Schlaf, Herzfrequenz und Gewicht in deinen persönlichen Pod.",
