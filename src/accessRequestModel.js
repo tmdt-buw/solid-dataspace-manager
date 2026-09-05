@@ -48,22 +48,24 @@ export const SDM = Object.freeze({
   purpose: `${SDM_NS}purpose`,
   dataCategory: `${SDM_NS}dataCategory`,
   outputVisibility: `${SDM_NS}outputVisibility`,
+  publicationScope: `${SDM_NS}publicationScope`,
 });
 
 export const ENVIRONMENTAL_REQUEST = Object.freeze({
   applicationId: "environmental-monitoring",
   displayName: "Environmental Monitoring",
   purpose: "completed-route-public-display",
+  sharedPurpose: "completed-route-shared-public-display",
   dataCategory: "route-and-derived-activity-summary",
   outputVisibility: "public",
   fileName: "activity.geojson",
 });
 
 export const ENVIRONMENTAL_CONSENT = Object.freeze({
-  title: "Environmental Monitoring wants to use your completed tours",
+  title: "Environmental Monitoring would like to access your donated data",
   data: "All donated completed routes and their calculated activity values",
   purpose:
-    "Public display of approved donated routes and their derived activity values without direct identifiers in Environmental Monitoring.",
+    "With your consent, Environmental Monitoring may read your donated routes and calculated activity values and display them publicly. Your source data in your Pod remains protected.",
   access: "Read only",
   notice:
     "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.",
@@ -111,6 +113,7 @@ const commonFields = (thing) => {
     purpose: getStringNoLocale(thing, SDM.purpose) || "",
     dataCategory: getStringNoLocale(thing, SDM.dataCategory) || "",
     outputVisibility: getStringNoLocale(thing, SDM.outputVisibility) || "",
+    publicationScope: getStringNoLocale(thing, SDM.publicationScope) || "dataspace",
   };
 };
 
@@ -197,7 +200,16 @@ export function validateTrustedEnvironmentalRequest(item, serviceWebId, ownerWeb
   if (!UUID_V4_PATTERN.test(item.scenarioRunId || "")) {
     errors.push("Scenario run identifier must be a UUID v4.");
   }
-  if (item.purpose !== ENVIRONMENTAL_REQUEST.purpose) errors.push("Unsupported purpose.");
+  const publicationScope = item.publicationScope || "dataspace";
+  if (!["dataspace", "shared"].includes(publicationScope)) {
+    errors.push("Unsupported publication scope.");
+  }
+  // A distinct purpose makes older clients reject shared requests instead of
+  // approving them without the updated public-display explanation.
+  const expectedPurpose = publicationScope === "shared"
+    ? ENVIRONMENTAL_REQUEST.sharedPurpose
+    : ENVIRONMENTAL_REQUEST.purpose;
+  if (item.purpose !== expectedPurpose) errors.push("Unsupported purpose.");
   if (item.dataCategory !== ENVIRONMENTAL_REQUEST.dataCategory) {
     errors.push("Unsupported data category.");
   }
@@ -293,6 +305,7 @@ export function buildAccessDecisionTurtle({
     ["purpose", item.purpose],
     ["dataCategory", item.dataCategory],
     ["outputVisibility", item.outputVisibility],
+    ["publicationScope", item.publicationScope],
     ["decisionComment", note],
     ["expiresAt", expiresAt],
   ];

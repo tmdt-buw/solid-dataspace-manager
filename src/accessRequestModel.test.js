@@ -95,16 +95,37 @@ test("parses the extended environmental access request contract", () => {
 
 test("uses the exact Environmental Monitoring informed-consent copy", () => {
   expect(ENVIRONMENTAL_CONSENT).toEqual({
-    title: "Environmental Monitoring wants to use your completed tours",
+    title: "Environmental Monitoring would like to access your donated data",
     data: "All donated completed routes and their calculated activity values",
     purpose:
-      "Public display of approved donated routes and their derived activity values without direct identifiers in Environmental Monitoring.",
+      "With your consent, Environmental Monitoring may read your donated routes and calculated activity values and display them publicly. Your source data in your Pod remains protected.",
     access: "Read only",
     notice:
       "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.",
   });
   expect(ENVIRONMENTAL_CONSENT).not.toHaveProperty("qualityWarning");
   expect(ENVIRONMENTAL_CONSENT).not.toHaveProperty("privacyWarning");
+  expect(JSON.stringify(ENVIRONMENTAL_CONSENT)).not.toMatch(/instances|localhost/i);
+});
+
+test("shared requests preserve their scope in decisions and cannot disguise it as legacy consent", () => {
+  let thing = environmentalThing(SDM.AccessRequest);
+  thing = setStringNoLocale(thing, SDM.publicationScope, "shared");
+  thing = setStringNoLocale(thing, SDM.purpose, ENVIRONMENTAL_REQUEST.sharedPurpose);
+  const item = parseAccessRequestThing("https://pod.example/laura/inbox/shared", thing);
+  expect(item.publicationScope).toBe("shared");
+  expect(validateTrustedEnvironmentalRequest(item, SERVICE_WEBID, OWNER_WEBID)).toEqual([]);
+  expect(getApprovedAccess(item, SERVICE_WEBID)).toBe(READ_ONLY_ACCESS);
+  expect(buildAccessDecisionTurtle({ item, decision: "approved", decidedAt: "2026-09-05T10:00:00.000Z" }))
+    .toContain('sdm:publicationScope "shared"');
+  expect(validateTrustedEnvironmentalRequest({ ...item, publicationScope: "dataspace" }, SERVICE_WEBID, OWNER_WEBID))
+    .toContain("Unsupported purpose.");
+  expect(validateTrustedEnvironmentalRequest({ ...item, publicationScope: "anything" }, SERVICE_WEBID, OWNER_WEBID))
+    .toContain("Unsupported publication scope.");
+  const old = parseAccessRequestThing("https://pod.example/laura/inbox/old", environmentalThing(SDM.AccessRequest));
+  expect(old.publicationScope).toBe("dataspace");
+  expect(validateTrustedEnvironmentalRequest({ ...old, publicationScope: "shared" }, SERVICE_WEBID, OWNER_WEBID))
+    .toContain("Unsupported purpose.");
 });
 
 test("parses the extended fields from access decisions", () => {
