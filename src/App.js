@@ -638,7 +638,7 @@ const App = () => {
                     </StatisticsRouteGuard>
                   }
                 />
-                <Route path="/web/solid-health-app" element={<HealthAppPage />} />
+                <Route path="/web/solid-health-app/*" element={<HealthAppPage />} />
                 <Route path="/web/solid-tours" element={<SolidToursPage />} />
                 <Route path="/web/solid-health-questionnaire" element={<HealthQuestionnairePage />} />
                 <Route path="/web/solid-chatbot" element={<ChatbotPage />} />

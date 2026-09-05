@@ -24,7 +24,7 @@ export const externalLinks = [
     slug: "solid-health-app",
     title: "Solid Health App",
     url: "/solid-health-app/",
-    version: "0.1.22",
+    version: "0.1.23",
     hideOpenButton: true,
   },
   {
