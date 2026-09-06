@@ -520,7 +520,7 @@ const Notifications = ({ webId }) => {
         <ContentLoadingState
           title={t("Access Requests")}
           message={t("Loading your personal access requests workspace …")}
-          icon={faInbox}
+          appId="notifications"
         />
       ) : filteredNotifications.length === 0 ? (
         <div className="notifications-empty">{t("No access requests found.")}</div>

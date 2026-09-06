@@ -336,7 +336,7 @@ function AccountActionModal({ modal, onClose }) {
             <ContentLoadingState
               title="Solid Pod Provider"
               message="Loading your personal provider workspace …"
-              icon={faServer}
+              appId="pod-provider"
               variant="overlay"
             />
           ) : null}
@@ -1372,7 +1372,7 @@ export default function SolidPodProvider({ webId }) {
             <ContentLoadingState
               title="Solid Pod Provider"
               message="Loading your personal account information …"
-              icon={faServer}
+              appId="pod-provider"
               variant="compact"
             />
           ) : null}

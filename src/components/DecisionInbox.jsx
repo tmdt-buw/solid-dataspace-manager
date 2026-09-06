@@ -12,7 +12,6 @@ import { LDP } from "@inrupt/vocab-common-rdf";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBell,
-  faCircleCheck,
   faRotateRight,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
@@ -284,7 +283,7 @@ const DecisionInbox = ({ webId }) => {
         <ContentLoadingState
           title={t("Access Decisions")}
           message={t("Loading your personal access decisions workspace …")}
-          icon={faCircleCheck}
+          appId="decisions"
         />
       ) : filteredDecisions.length === 0 ? (
         <div className="notifications-empty">{t("No access decisions found.")}</div>

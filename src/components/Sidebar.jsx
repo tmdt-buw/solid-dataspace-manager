@@ -2,28 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faTableColumns,
-  faBookOpen,
-  faHexagonNodes,
-  faDiagramProject,
-  faDatabase,
-  faUser,
   faRightFromBracket,
-  faInfo,
-  faTemperatureHigh,
-  faServer,
-  faInbox,
-  faBell,
-  faChartLine,
-  faFolder,
-  faHeartPulse,
-  faClipboardCheck,
   faChevronLeft,
   faChevronRight,
-  faLink,
-  faRoute,
 } from "@fortawesome/free-solid-svg-icons";
-import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import session from "../solidSession";
 import {
   getSolidDataset,
@@ -37,6 +19,7 @@ import {
 import { LDP, RDF } from "@inrupt/vocab-common-rdf";
 import "./Sidebar.css";
 import { getAppsBySection, getBranding } from "../config/runtimeConfig";
+import { getAppIcon, navigationIcons } from "../config/appIcons";
 
 const SDM_NS = "https://w3id.org/solid-dataspace-manager#";
 const SDM = {
@@ -55,17 +38,6 @@ const noCacheFetch = (input, init = {}) =>
     cache: "no-store",
     headers: { ...(init.headers || {}), "Cache-Control": "no-cache" },
   });
-
-const appIconMap = {
-  default: faTableColumns,
-  temperature: faTemperatureHigh,
-  database: faDatabase,
-  health: faHeartPulse,
-  questionnaire: faClipboardCheck,
-  tour: faRoute,
-  server: faServer,
-  rocketchat: faRocketchat,
-};
 
 function Sidebar({
   webId,
@@ -205,7 +177,7 @@ function Sidebar({
         <div className="sb-section">General</div>
 
         <Link to="/" className={"sb-link" + (isActive("/") ? " active" : "")} title="Solid Data Manager">
-          <FontAwesomeIcon icon={faFolder} />
+          <FontAwesomeIcon icon={navigationIcons["solid-data-manager"]} />
           <span>Solid Data Manager</span>
         </Link>
 
@@ -214,7 +186,7 @@ function Sidebar({
           className={"sb-link" + (isActive("/transactions") ? " active" : "")}
           title="Transaction History"
         >
-          <FontAwesomeIcon icon={faChartLine} />
+          <FontAwesomeIcon icon={navigationIcons.transactions} />
           <span>Transaction History</span>
         </Link>
 
@@ -224,7 +196,7 @@ function Sidebar({
           title="Access Requests"
         >
           <span className="sb-icon">
-            <FontAwesomeIcon icon={faInbox} />
+            <FontAwesomeIcon icon={navigationIcons.notifications} />
             {unreadRequests > 0 && (
               <span className="sb-badge">
                 {unreadRequests > 9 ? "9+" : unreadRequests}
@@ -240,7 +212,7 @@ function Sidebar({
           title="Access Decisions"
         >
           <span className="sb-icon">
-            <FontAwesomeIcon icon={faBell} />
+            <FontAwesomeIcon icon={navigationIcons.decisions} />
             {unreadDecisions > 0 && (
               <span className="sb-badge">
                 {unreadDecisions > 9 ? "9+" : unreadDecisions}
@@ -255,12 +227,12 @@ function Sidebar({
           className={"sb-link" + (isActive("/profile") ? " active" : "")}
           title="Profile Manager"
         >
-          <FontAwesomeIcon icon={faUser} />
+          <FontAwesomeIcon icon={navigationIcons.profile} />
           <span>Profile Manager</span>
         </Link>
 
         <Link to="/info" className={"sb-link" + (isActive("/info") ? " active" : "")} title="Information">
-          <FontAwesomeIcon icon={faInfo} />
+          <FontAwesomeIcon icon={navigationIcons.info} />
           <span>Information</span>
         </Link>
 
@@ -271,7 +243,7 @@ function Sidebar({
           className={"sb-link" + (isActive("/catalog") ? " active" : "")}
           title="Semantic Data Catalog"
         >
-          <FontAwesomeIcon icon={faBookOpen} />
+          <FontAwesomeIcon icon={navigationIcons.catalog} />
           <span>Semantic Data Catalog</span>
         </Link>
 
@@ -280,7 +252,7 @@ function Sidebar({
           className={"sb-link" + (isActive("/web/plasma") ? " active" : "")}
           title="PLASMA"
         >
-          <FontAwesomeIcon icon={faHexagonNodes} />
+          <FontAwesomeIcon icon={navigationIcons.plasma} />
           <span>PLASMA</span>
         </Link>
 
@@ -289,7 +261,7 @@ function Sidebar({
           className={"sb-link" + (isActive("/web/node-red") ? " active" : "")}
           title="Node-RED"
         >
-          <FontAwesomeIcon icon={faDiagramProject} />
+          <FontAwesomeIcon icon={navigationIcons["node-red"]} />
           <span>Node-RED</span>
         </Link>
 
@@ -298,7 +270,7 @@ function Sidebar({
           className={"sb-link" + (isActive("/data-connection") ? " active" : "")}
           title="Data Connection"
         >
-          <FontAwesomeIcon icon={faLink} />
+          <FontAwesomeIcon icon={navigationIcons["data-connection"]} />
           <span>Data Connection</span>
         </Link>
 
@@ -306,7 +278,7 @@ function Sidebar({
           <>
             <div className="sb-section">Applications</div>
             {applicationApps.map((app) => {
-              const icon = appIconMap[app.iconKey] || appIconMap.default;
+              const icon = getAppIcon(app.iconKey);
 
               if (app.linkType === "internal") {
                 return (
@@ -340,7 +312,7 @@ function Sidebar({
               className={"sb-link" + (isActive("/statistics") ? " active" : "")}
               title="Statistics Dashboard"
             >
-              <FontAwesomeIcon icon={faChartLine} />
+              <FontAwesomeIcon icon={navigationIcons.statistics} />
               <span>Statistics Dashboard</span>
             </Link>
           </>
@@ -352,7 +324,7 @@ function Sidebar({
           className={"sb-link" + (isActive("/pod-provider") ? " active" : "")}
           title="Solid Pod Provider"
         >
-          <FontAwesomeIcon icon={faServer} />
+          <FontAwesomeIcon icon={navigationIcons["pod-provider"]} />
           <span>Solid Pod Provider</span>
         </Link>
       </nav>

@@ -17,7 +17,7 @@ export const externalLinks = [
     slug: "environmental-monitoring",
     title: "Environmental Monitoring",
     url: "/environmental-monitoring/",
-    version: "0.3.10",
+    version: "0.3.11",
     hideOpenButton: true,
   },
   {
@@ -31,7 +31,7 @@ export const externalLinks = [
     slug: "solid-chatbot",
     title: "Solid Chatbot",
     url: "/solid-chatbot/",
-    version: "0.1.12",
+    version: "0.1.13",
     hideOpenButton: true,
   },
 ];

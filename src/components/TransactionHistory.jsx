@@ -430,7 +430,7 @@ const TransactionHistory = ({ webId }) => {
             <ContentLoadingState
               title="Transaction History"
               message="Loading your personal connections …"
-              icon={faRightLeft}
+              appId="transactions"
               variant="compact"
             />
           ) : activeConnections.length === 0 ? (

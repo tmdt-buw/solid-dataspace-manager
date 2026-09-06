@@ -686,7 +686,7 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
         <ContentLoadingState
           title={t("Statistics Dashboard")}
           message={t("Loading your personal statistics workspace …")}
-          icon={faChartColumn}
+          appId="statistics"
         />
       )}
 

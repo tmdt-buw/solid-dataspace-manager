@@ -5,14 +5,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowLeft,
   faUpRightFromSquare,
-  faHexagonNodes,
-  faDiagramProject,
-  faTemperatureHigh,
-  faHeartPulse,
 } from "@fortawesome/free-solid-svg-icons";
-import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import { LANGUAGE_MESSAGE_TYPE, useI18n } from "../i18n";
 import { getDataspaceId } from "../config/runtimeConfig";
+import { getApplicationIcon } from "../config/appIcons";
 import { buildExternalTargetUrl } from "./externalTargetUrl";
 import ContentLoadingState from "./ContentLoadingState";
 import "./ExternalHost.css";
@@ -24,14 +20,6 @@ export default function ExternalHost() {
   const { language, t } = useI18n();
   const activeLink = externalLinks.find((link) => link.slug === slug);
   const [loaded, setLoaded] = useState(false);
-
-  const iconMap = {
-    plasma: faHexagonNodes,
-    "node-red": faDiagramProject,
-    "environmental-monitoring": faTemperatureHigh,
-    "solid-health-app": faHeartPulse,
-    "solid-chatbot": faRocketchat,
-  };
 
   const isParentHttps =
     typeof window !== "undefined" && window.location.protocol === "https:";
@@ -99,7 +87,7 @@ export default function ExternalHost() {
       <div className="toolbar toolbar--title external-host-header">
         <div className="crumb">
           <FontAwesomeIcon
-            icon={iconMap[activeLink.slug] || faHexagonNodes}
+            icon={getApplicationIcon(activeLink.slug)}
             className="crumb-icon"
           />
           <span>{activeLink.title}</span>
@@ -141,7 +129,7 @@ export default function ExternalHost() {
               <ContentLoadingState
                 title={activeLink.title}
                 message={t("Loading your personal application workspace …")}
-                icon={iconMap[activeLink.slug] || faHexagonNodes}
+                appId={activeLink.slug}
                 variant="overlay"
               />
             )}

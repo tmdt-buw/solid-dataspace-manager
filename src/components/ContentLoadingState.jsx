@@ -2,12 +2,14 @@ import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHexagonNodes } from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "../i18n";
+import { getApplicationIcon } from "../config/appIcons";
 import "./ContentLoadingState.css";
 
 export default function ContentLoadingState({
   title,
   message = "Loading your personal application workspace …",
   icon = faHexagonNodes,
+  appId,
   variant = "page",
   className = "",
 }) {
@@ -30,7 +32,7 @@ export default function ContentLoadingState({
       aria-busy="true"
     >
       <span className="dataspace-content-loading__mark" aria-hidden="true">
-        <FontAwesomeIcon icon={icon} />
+        <FontAwesomeIcon icon={appId ? getApplicationIcon(appId) : icon} />
       </span>
       <Heading className="dataspace-content-loading__title">
         {translatedTitle}

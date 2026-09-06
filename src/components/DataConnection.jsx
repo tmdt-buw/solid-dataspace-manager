@@ -416,7 +416,7 @@ function HomeAssistantModal({
             <ContentLoadingState
               title="Data Connection"
               message="Loading your available entities …"
-              icon={faLink}
+              appId="data-connection"
               variant="compact"
             />
           ) : null}

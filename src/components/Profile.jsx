@@ -666,7 +666,7 @@ export default function Profile({ webId }) {
       <ContentLoadingState
         title={t("Profile Manager")}
         message={t("Loading your personal profile workspace …")}
-        icon={faUserCircle}
+        appId="profile"
       />
       <AlertModal
         show={alertOpen}
