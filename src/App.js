@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import session from "./solidSession";
 import "@hoelk-f/solid-data-manager/embed.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+import SemanticSearchPage from "./components/SemanticSearchPage";
 import {
   DataManagerEmbed,
   setSession as setDataManagerSession,
@@ -518,7 +519,9 @@ const App = () => {
     </div>
   );
 
-  const CatalogPage = () => (
+  const CatalogPage = () => {
+    const location = useLocation();
+    return (
     <div className="data-catalog-embed">
       <div className="catalog-header toolbar--title">
         <div className="crumb">
@@ -529,6 +532,7 @@ const App = () => {
       </div>
       <div className="catalog-frame">
         <SemanticDataCatalogEmbed
+          datasetUrl={new URLSearchParams(location.search).get("dataset")}
           webId={webId}
           language={language}
           statisticsConfig={{
@@ -539,6 +543,7 @@ const App = () => {
       </div>
     </div>
   );
+  };
 
   const ChatbotPage = () => (
     <div className="solid-chatbot-embed">
@@ -619,6 +624,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<DataManagerPage />} />
                 <Route path="/catalog" element={<CatalogPage />} />
+                <Route path="/semantic-search" element={<SemanticSearchPage language={language} />} />
                 <Route path="/data-connection" element={<DataConnection webId={webId} />} />
                 <Route path="/transactions" element={<TransactionHistory webId={webId} />} />
                 <Route path="/notifications" element={<Notifications webId={webId} />} />

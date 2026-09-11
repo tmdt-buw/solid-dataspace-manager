@@ -276,7 +276,13 @@ function Sidebar({
 
         {applicationApps.length > 0 && (
           <>
-            <div className="sb-section">Applications</div>
+            <Link to="/semantic-search" className={"sb-link" + (isActive("/semantic-search") ? " active" : "")}
+          title="Semantic Search">
+          <FontAwesomeIcon icon={navigationIcons["semantic-search"]} />
+          <span>Semantic Search</span>
+        </Link>
+
+        <div className="sb-section">Applications</div>
             {applicationApps.map((app) => {
               const icon = getAppIcon(app.iconKey);
 

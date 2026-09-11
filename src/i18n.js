@@ -17,6 +17,7 @@ export const PROFILE_LANGUAGE_PREDICATE =
   "https://w3id.org/solid-dataspace-manager#preferredLanguage";
 
 const enToDe = {
+  "Semantic Search": "Semantische Suche",
   Language: "Sprache",
   English: "Englisch",
   German: "Deutsch",

@@ -1,7 +1,7 @@
 import {
   faBell, faBookOpen, faChartLine, faClipboardCheck, faDatabase,
   faDiagramProject, faFolder, faHeartPulse, faHexagonNodes, faInbox,
-  faInfo, faLink, faRoute, faServer, faTableColumns, faTemperatureHigh, faUser,
+  faInfo, faLink, faMagnifyingGlass, faRoute, faServer, faTableColumns, faTemperatureHigh, faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import { getAppsBySection } from "./runtimeConfig";
@@ -16,6 +16,7 @@ export const navigationIcons = {
   profile: faUser,
   info: faInfo,
   catalog: faBookOpen,
+  "semantic-search": faMagnifyingGlass,
   plasma: faHexagonNodes,
   "node-red": faDiagramProject,
   "data-connection": faLink,

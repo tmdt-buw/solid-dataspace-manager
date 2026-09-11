@@ -1,6 +1,6 @@
 {
   "name": "pod_browser",
-  "version": "0.3.74",
+  "version": "0.3.75",
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
@@ -11,12 +11,12 @@
     "@fortawesome/free-regular-svg-icons": "^7.0.0",
     "@fortawesome/free-solid-svg-icons": "^7.0.0",
     "@fortawesome/react-fontawesome": "^0.2.3",
-    "@hoelk-f/semantic-data-catalog": "0.8.73",
+    "@hoelk-f/semantic-data-catalog": "0.8.74",
     "@hoelk-f/solid-chatbot": "0.1.13",
     "@hoelk-f/solid-data-manager": "0.4.17",
     "@hoelk-f/solid-health-app": "0.1.23",
     "@hoelk-f/solid-health-questionnaire": "0.1.4",
-    "@hoelk-f/solid-tours": "0.1.9",
+    "@hoelk-f/solid-tours": "0.1.10",
     "@inrupt/solid-client": "^2.1.2",
     "@inrupt/solid-client-authn-browser": "^3.1.0",
     "@inrupt/vocab-common-rdf": "^1.0.5",
