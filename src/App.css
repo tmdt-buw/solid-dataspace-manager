@@ -79,6 +79,15 @@ body {
   border: 1px solid #dbeafe;
 }
 
+.semantic-search-page {
+  width: 100%;
+  min-width: 0;
+}
+
+.semantic-search-page .toolbar--title .crumb {
+  margin: 0;
+}
+
 .data-catalog-embed {
   position: relative;
   display: flex;

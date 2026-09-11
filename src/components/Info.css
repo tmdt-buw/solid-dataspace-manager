@@ -30,10 +30,10 @@
   --info-orange: #f0a23a;
   display: grid;
   width: 100%;
-  max-width: 1680px;
+  max-width: none;
   min-width: 0;
   gap: 64px;
-  margin: 0 auto;
+  margin: 0;
   padding: 18px 18px 42px;
   border: 1px solid #dce4ef;
   border-radius: 26px;
