@@ -162,6 +162,18 @@ const setCatalogLinkInProfile = async (webId, catalogUrl, fetch) => {
   await saveSolidDatasetAt(profileDocUrl, updatedProfile, { fetch });
 };
 
+const registryConfigFromProfile = (profileThing, webId) => ({
+  mode: (getStringNoLocale(profileThing, SDM_REGISTRY_MODE) || "research")
+    .toLowerCase() === "private" ? "private" : "research",
+  registries: (getUrlAll(profileThing, SDM_REGISTRY) || [])
+    .filter(Boolean)
+    .map(migrateLegacyTmdtUrl)
+    .map((url) => url.replace(/\/+$/, "")),
+  privateRegistry:
+    migrateLegacyTmdtUrl(getUrl(profileThing, SDM_PRIVATE_REGISTRY)) ||
+    buildDefaultPrivateRegistry(webId),
+});
+
 export const loadRegistryConfig = async (webId, fetch) => {
   if (!webId || !fetch) {
     return { mode: "research", registries: [], privateRegistry: "" };
@@ -170,19 +182,7 @@ export const loadRegistryConfig = async (webId, fetch) => {
   try {
     const profileDataset = await getSolidDataset(profileDocUrl, { fetch });
     const profileThing = getThing(profileDataset, webId);
-    const mode = (getStringNoLocale(profileThing, SDM_REGISTRY_MODE) || "research").toLowerCase();
-    const registries = (getUrlAll(profileThing, SDM_REGISTRY) || [])
-      .filter(Boolean)
-      .map(migrateLegacyTmdtUrl)
-      .map((url) => url.replace(/\/+$/, ""));
-    const privateRegistry =
-      migrateLegacyTmdtUrl(getUrl(profileThing, SDM_PRIVATE_REGISTRY)) ||
-      buildDefaultPrivateRegistry(webId);
-    return {
-      mode: mode === "private" ? "private" : "research",
-      registries,
-      privateRegistry,
-    };
+    return registryConfigFromProfile(profileThing, webId);
   } catch (err) {
     console.warn("Failed to load registry config from profile:", err);
     return {
@@ -211,6 +211,16 @@ export const saveRegistryConfig = async (webId, fetch, config) => {
     migrateLegacyTmdtUrl(config?.privateRegistry) ||
     buildDefaultPrivateRegistry(webId);
 
+  // Keep the persisted selection until every membership operation succeeds.
+  // A retry can then still discover removals after a failed DELETE. All callers,
+  // including catalog setup/reset, use the same reconciliation path.
+  await syncRegistryMembership(
+    webId,
+    fetch,
+    registryConfigFromProfile(profileThing, webId),
+    { mode, registries, privateRegistry }
+  );
+
   profileThing = removeAll(profileThing, SDM_REGISTRY_MODE);
   profileThing = setStringNoLocale(profileThing, SDM_REGISTRY_MODE, mode);
   profileThing = removeAll(profileThing, SDM_REGISTRY);
@@ -223,7 +233,7 @@ export const saveRegistryConfig = async (webId, fetch, config) => {
   }
 
   const updatedProfile = setThing(profileDataset, profileThing);
-  await saveSolidDatasetAt(profileDocUrl, updatedProfile, { fetch });
+  return saveSolidDatasetAt(profileDocUrl, updatedProfile, { fetch });
 };
 
 const ensureRegistryContainer = async (containerUrl, fetch) => {
@@ -352,14 +362,19 @@ const removeWebIdFromRegistryContainer = async (containerUrl, fetch, webId) => {
         if (memberWebId === webId) {
           await deleteFile(resourceUrl, { fetch });
         }
-      } catch {
-        // Ignore malformed entries.
+      } catch (err) {
+        // An entry may already have been removed by a previous attempt.
+        // Read/DELETE failures must not be reported as a successful departure.
+        if ((err?.statusCode || err?.response?.status) !== 404) throw err;
       }
     }
   } catch (err) {
     const status = err?.statusCode || err?.response?.status;
     if (status === 404) return;
-    console.warn("Failed to remove member from registry", normalizedUrl, err);
+    throw new Error(
+      `Could not leave registry (${normalizedUrl})${status ? `: HTTP ${status}` : ""}. ` +
+      "The registry selection was not saved. Please retry or contact the registry owner."
+    );
   }
 };
 

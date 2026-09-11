@@ -49,7 +49,6 @@ import {
   resetCatalog,
   saveRegistryConfig,
   syncRegistryMembersInContainer,
-  syncRegistryMembership,
 } from "../solidCatalog";
 import { loadCredentialToken } from "../solidCredentialToken";
 import { LanguageSelect, useI18n } from "../i18n";
@@ -185,8 +184,6 @@ export default function Profile({ webId }) {
   const [role, setRole] = useState("");
   const [photoIri, setPhotoIri] = useState("");
   const [emails, setEmails] = useState([]);
-  const [dataset, setDataset] = useState(null);
-  const [profileThing, setProfileThing] = useState(null);
   const [photoSrc, setPhotoSrc] = useState("");
   const [editBasics, setEditBasics] = useState(false);
   const [editContact, setEditContact] = useState(false);
@@ -208,6 +205,7 @@ export default function Profile({ webId }) {
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const catalogContainerUrl = toCatalogContainerUrl(catalogUrl);
+  const registryBusy = saving || catalogConfiguring || catalogResetting;
 
   const showAlert = (msg) => {
     setAlertMessage(msg);
@@ -285,10 +283,8 @@ export default function Profile({ webId }) {
       try {
         setLoading(true);
         const ds = await getSolidDataset(profileDocUrl, { fetch: session.fetch });
-        setDataset(ds);
         let me = getThing(ds, webId) || getThingAll(ds).find((t) => t.url === webId);
         if (!me) me = createThing({ url: webId });
-        setProfileThing(me);
 
         const nm =
           getStringNoLocale(me, VCARD.fn) ||
@@ -447,9 +443,14 @@ export default function Profile({ webId }) {
 
   const onSave = async (e) => {
     e.preventDefault();
+    if (registryBusy) return;
     try {
       setSaving(true);
-      let me = profileThing || createThing({ url: webId });
+      // Form state is a render snapshot, not the latest Pod document:
+      // https://react.dev/learn/state-as-a-snapshot
+      // Read before editing so repeated saves do not reuse an old SDK changelog.
+      let ds = await getSolidDataset(profileDocUrl, { fetch: session.fetch });
+      let me = getThing(ds, webId) || createThing({ url: webId });
       me = removeAll(me, VCARD.fn);
       me = setStringNoLocale(me, VCARD.fn, name || "");
       me = removeAll(me, VCARD.organization_name); if (org) me = setStringNoLocale(me, VCARD.organization_name, org);
@@ -458,7 +459,6 @@ export default function Profile({ webId }) {
       if (photoIri) me = setUrl(me, VCARD.hasPhoto, photoIri);
       me = ensurePodStorageLink(me, webId);
 
-      let ds = dataset;
       me = removeAll(me, VCARD.hasEmail);
       me = removeAll(me, VCARD.email);
 
@@ -475,23 +475,14 @@ export default function Profile({ webId }) {
       ds = setThing(ds, me);
       await saveSolidDatasetAt(profileDocUrl, ds, { fetch: session.fetch });
 
-      setDataset(ds);
-      setProfileThing(me);
       setEditBasics(false);
       setEditContact(false);
-      const previousRegistryConfig = await loadRegistryConfig(webId, session.fetch);
       const nextRegistryConfig = getRegistryConfig();
       await saveRegistryConfig(webId, session.fetch, nextRegistryConfig);
       await ensurePrivateRegistryContainer(
         webId,
         session.fetch,
         nextRegistryConfig.privateRegistry
-      );
-      await syncRegistryMembership(
-        webId,
-        session.fetch,
-        previousRegistryConfig,
-        nextRegistryConfig
       );
       if (nextRegistryConfig.mode === "private") {
         const members = privateRegistryMembers
@@ -506,7 +497,7 @@ export default function Profile({ webId }) {
       showAlert("Profile saved.");
     } catch (err) {
       console.error("Saving failed:", err);
-      showAlert("Profile save failed.");
+      showAlert(err?.message || "Profile save failed.");
     } finally {
       setSaving(false);
     }
@@ -550,18 +541,13 @@ export default function Profile({ webId }) {
       });
       await saveAclFor(resource, updatedAcl, { fetch: session.fetch });
 
-      let ds = dataset;
-      if (!ds) {
-        ds = await getSolidDataset(profileDocUrl, { fetch: session.fetch });
-      }
-      let me = profileThing || createThing({ url: webId });
+      let ds = await getSolidDataset(profileDocUrl, { fetch: session.fetch });
+      let me = getThing(ds, webId) || createThing({ url: webId });
       me = removeAll(me, LDP.inbox);
       me = setUrl(me, LDP.inbox, targetInboxUrl);
       ds = setThing(ds, me);
       await saveSolidDatasetAt(profileDocUrl, ds, { fetch: session.fetch });
 
-      setDataset(ds);
-      setProfileThing(me);
       setInboxUrl(targetInboxUrl);
       showAlert("Solid inbox configured.");
     } catch (err) {
@@ -609,7 +595,7 @@ export default function Profile({ webId }) {
   };
 
   const configureCatalog = async () => {
-    if (!webId) return;
+    if (!webId || registryBusy) return;
     try {
       setCatalogConfiguring(true);
       const title = name ? `${name}'s Catalog` : "Solid Dataspace Catalog";
@@ -635,7 +621,7 @@ export default function Profile({ webId }) {
   };
 
   const handleCatalogReset = async () => {
-    if (!webId) return;
+    if (!webId || registryBusy) return;
     try {
       setCatalogResetting(true);
       const title = name ? `${name}'s Catalog` : "Solid Dataspace Catalog";
@@ -928,7 +914,7 @@ export default function Profile({ webId }) {
               type="button"
               className="pf-btn primary"
               onClick={configureCatalog}
-              disabled={catalogConfiguring}
+              disabled={registryBusy}
             >
               {catalogConfiguring
                 ? "Configuring..."
@@ -940,7 +926,7 @@ export default function Profile({ webId }) {
               type="button"
               className="pf-btn ghost"
               onClick={() => setShowCatalogResetConfirm(true)}
-              disabled={catalogResetting}
+              disabled={registryBusy}
             >
               {catalogResetting ? "Resetting..." : "Reset Catalog"}
             </button>
@@ -961,6 +947,7 @@ export default function Profile({ webId }) {
               type="button"
               className={`pf-toggleBtn ${registryMode === "research" ? "active" : ""}`}
               onClick={() => setRegistryMode("research")}
+              disabled={registryBusy}
             >
               Research project
             </button>
@@ -968,6 +955,7 @@ export default function Profile({ webId }) {
               type="button"
               className={`pf-toggleBtn ${registryMode === "private" ? "active" : ""}`}
               onClick={() => setRegistryMode("private")}
+              disabled={registryBusy}
             >
               Private use
             </button>
@@ -984,6 +972,7 @@ export default function Profile({ webId }) {
                       type="button"
                       className={`pf-registryCard ${selected ? "selected" : ""}`}
                       onClick={() => toggleRegistrySelection(preset.url)}
+                      disabled={registryBusy}
                       aria-pressed={selected}
                       title={preset.label}
                     >
@@ -1053,7 +1042,7 @@ export default function Profile({ webId }) {
       </div>
 
       <div className="pf-actions">
-        <button type="submit" className="pf-btn primary" disabled={saving}>
+        <button type="submit" className="pf-btn primary" disabled={registryBusy}>
           {saving ? "Saving…" : "Save"}
         </button>
       </div>
