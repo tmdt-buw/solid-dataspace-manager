@@ -14,7 +14,7 @@ const fallbackConfig = {
     },
     {
       id: "solid-health-app",
-      title: "Solid Health App",
+      title: "Health App",
       href: "/web/solid-health-app",
       section: "applications",
       iconKey: "health",
@@ -130,6 +130,13 @@ function normalizeApp(app, index) {
     ["Solid Health Questionnaire", "Solid Gesundheitsfragebogen"].includes(app.title)
   ) {
     app = { ...app, title: "Health Questionnaire" };
+  } else if (
+    app?.id === "solid-health-app" &&
+    ["Solid Health App", "Solid Gesundheits-App"].includes(app.title)
+  ) {
+    app = { ...app, title: "Health App" };
+  } else if (app?.id === "solid-chatbot" && app.title === "Solid Chatbot") {
+    app = { ...app, title: "Chatbot" };
   }
   return {
     id: app?.id || `app-${index}`,

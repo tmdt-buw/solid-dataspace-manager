@@ -14,7 +14,7 @@ window.__APP_CONFIG__ = {
     },
     {
       "id": "solid-health-app",
-      "title": "Solid Health App",
+      "title": "Health App",
       "href": "/web/solid-health-app",
       "section": "applications",
       "iconKey": "health",
@@ -44,7 +44,7 @@ window.__APP_CONFIG__ = {
     },
     {
       "id": "solid-chatbot",
-      "title": "Solid Chatbot",
+      "title": "Chatbot",
       "href": "/web/solid-chatbot",
       "section": "applications",
       "iconKey": "rocketchat",

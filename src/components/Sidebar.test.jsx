@@ -36,7 +36,7 @@ test.each([
   ["statistics", "Statistics Dashboard", "chart-line"],
   ["pod-provider", "Solid Pod Provider", "server"],
   ["environmental-monitoring", "Environmental Monitoring", "temperature-high"],
-  ["solid-health-app", "Solid Health App", "heart-pulse"],
+  ["solid-health-app", "Health App", "heart-pulse"],
   ["city-tours", "City Tours", "route"],
   ["solid-health-questionnaire", "Health Questionnaire", "clipboard-check"],
 ])("uses the sidebar icon for the %s loading screen", (appId, title, iconName) => {
@@ -94,7 +94,7 @@ test("hides the administration section from non-admins", () => {
     "href",
     "/web/city-tours"
   );
-  const healthAppLink = screen.getByRole("link", { name: /^Solid Health App$/i });
+  const healthAppLink = screen.getByRole("link", { name: /^Health App$/i });
   expect(healthAppLink.querySelector('[data-icon="heart-pulse"]')).toBeInTheDocument();
   const questionnaireLink = screen.getByRole("link", {
     name: /Health Questionnaire/i,

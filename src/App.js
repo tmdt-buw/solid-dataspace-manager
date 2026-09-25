@@ -550,7 +550,7 @@ const App = () => {
       <div className="chatbot-header toolbar--title">
         <div className="crumb">
           <FontAwesomeIcon icon={faRocketchat} className="crumb-icon" />
-          <span>Solid Chatbot</span>
+          <span>Chatbot</span>
         </div>
         <span className="integrated-version">{chatbotVersion}</span>
       </div>
@@ -563,7 +563,7 @@ const App = () => {
       <div className="health-app-header toolbar--title">
         <div className="crumb">
           <FontAwesomeIcon icon={faHeartPulse} className="crumb-icon" />
-          <span>Solid Health App</span>
+          <span>Health App</span>
         </div>
         <span className="integrated-version">{healthAppVersion}</span>
       </div>

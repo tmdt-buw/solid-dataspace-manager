@@ -22,16 +22,16 @@ export const externalLinks = [
   },
   {
     slug: "solid-health-app",
-    title: "Solid Health App",
+    title: "Health App",
     url: "/solid-health-app/",
-    version: "0.1.23",
+    version: "0.1.24",
     hideOpenButton: true,
   },
   {
     slug: "solid-chatbot",
-    title: "Solid Chatbot",
+    title: "Chatbot",
     url: "/solid-chatbot/",
-    version: "0.1.13",
+    version: "0.1.14",
     hideOpenButton: true,
   },
 ];

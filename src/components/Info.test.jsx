@@ -36,7 +36,7 @@ const configuredApplications = [
   },
   {
     id: "solid-health-app",
-    title: "Solid Health App",
+    title: "Health App",
     href: "/web/solid-health-app",
     iconKey: "health",
     linkType: "internal",
@@ -57,7 +57,7 @@ const configuredApplications = [
   },
   {
     id: "solid-chatbot",
-    title: "Solid Chatbot",
+    title: "Chatbot",
     href: "/web/solid-chatbot",
     iconKey: "rocketchat",
     linkType: "internal",
@@ -95,7 +95,7 @@ describe("Information page", () => {
     expect(
       screen.getByRole("link", { name: "Open Health Questionnaire" })
     ).toHaveAttribute("href", "/web/solid-health-questionnaire");
-    expect(screen.getByRole("link", { name: "Open Solid Chatbot" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Open Chatbot" })).toHaveAttribute(
       "href",
       "/web/solid-chatbot"
     );
