@@ -32,7 +32,7 @@ describe("statistics runtime config", () => {
     );
   });
 
-  test("includes Solid Health Questionnaire as an embedded fallback application", () => {
+  test("includes Health Questionnaire as an embedded fallback application", () => {
     expect(getAppsBySection("applications")).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

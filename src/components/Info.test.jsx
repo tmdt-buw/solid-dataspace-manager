@@ -50,7 +50,7 @@ const configuredApplications = [
   },
   {
     id: "solid-health-questionnaire",
-    title: "Solid Health Questionnaire",
+    title: "Health Questionnaire",
     href: "/web/solid-health-questionnaire",
     iconKey: "questionnaire",
     linkType: "internal",
@@ -93,7 +93,7 @@ describe("Information page", () => {
     expect(screen.getByText("5 active")).toBeInTheDocument();
     expect(screen.getByText("10 minute cycle")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Open Solid Health Questionnaire" })
+      screen.getByRole("link", { name: "Open Health Questionnaire" })
     ).toHaveAttribute("href", "/web/solid-health-questionnaire");
     expect(screen.getByRole("link", { name: "Open Solid Chatbot" })).toHaveAttribute(
       "href",

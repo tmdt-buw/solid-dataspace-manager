@@ -34,7 +34,7 @@ const fallbackConfig = {
     },
     {
       id: "solid-health-questionnaire",
-      title: "Solid Health Questionnaire",
+      title: "Health Questionnaire",
       href: "/web/solid-health-questionnaire",
       section: "applications",
       iconKey: "questionnaire",
@@ -123,6 +123,13 @@ function normalizeApp(app, index) {
         ? "/web/city-tours"
         : app.href,
     };
+  }
+  // Keep existing deployment configurations on the current display name.
+  if (
+    app?.id === "solid-health-questionnaire" &&
+    ["Solid Health Questionnaire", "Solid Gesundheitsfragebogen"].includes(app.title)
+  ) {
+    app = { ...app, title: "Health Questionnaire" };
   }
   return {
     id: app?.id || `app-${index}`,

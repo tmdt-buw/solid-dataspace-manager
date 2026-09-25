@@ -38,7 +38,7 @@ test.each([
   ["environmental-monitoring", "Environmental Monitoring", "temperature-high"],
   ["solid-health-app", "Solid Health App", "heart-pulse"],
   ["city-tours", "City Tours", "route"],
-  ["solid-health-questionnaire", "Solid Health Questionnaire", "clipboard-check"],
+  ["solid-health-questionnaire", "Health Questionnaire", "clipboard-check"],
 ])("uses the sidebar icon for the %s loading screen", (appId, title, iconName) => {
   const { container } = render(
     <>
@@ -97,7 +97,7 @@ test("hides the administration section from non-admins", () => {
   const healthAppLink = screen.getByRole("link", { name: /^Solid Health App$/i });
   expect(healthAppLink.querySelector('[data-icon="heart-pulse"]')).toBeInTheDocument();
   const questionnaireLink = screen.getByRole("link", {
-    name: /Solid Health Questionnaire/i,
+    name: /Health Questionnaire/i,
   });
   expect(questionnaireLink).toHaveAttribute("href", "/web/solid-health-questionnaire");
   expect(

@@ -594,7 +594,7 @@ const App = () => {
       <div className="health-questionnaire-header toolbar--title">
         <div className="crumb">
           <FontAwesomeIcon icon={faClipboardCheck} className="crumb-icon" />
-          <span>Solid Health Questionnaire</span>
+          <span>Health Questionnaire</span>
         </div>
         <span className="integrated-version">{healthQuestionnaireVersion}</span>
       </div>

@@ -34,7 +34,7 @@ window.__APP_CONFIG__ = {
     },
     {
       "id": "solid-health-questionnaire",
-      "title": "Solid Health Questionnaire",
+      "title": "Health Questionnaire",
       "href": "/web/solid-health-questionnaire",
       "section": "applications",
       "iconKey": "questionnaire",
