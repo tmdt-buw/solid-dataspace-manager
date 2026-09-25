@@ -121,10 +121,10 @@ describe("cross-browser viewport scaling", () => {
 
   test("retains scaled sizing for the clipped tour route", () => {
     expect(indexCss).toMatch(
-      /body\.solid-tours-route,[^{]*{[^}]*height:\s*var\(--dataspace-scaled-vh\)[^}]*overflow:\s*hidden/s
+      /body\.city-tours-route,[^{]*{[^}]*height:\s*var\(--dataspace-scaled-vh\)[^}]*overflow:\s*hidden/s
     );
     expect(indexCss).toMatch(
-      /body\.solid-tours-route\s*#root,[^{]*{[^}]*height:\s*100%[^}]*overflow:\s*hidden/s
+      /body\.city-tours-route\s*#root,[^{]*{[^}]*height:\s*100%[^}]*overflow:\s*hidden/s
     );
   });
 

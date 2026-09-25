@@ -61,6 +61,7 @@ const enToDe = {
   "This request cannot be approved:": "Diese Anfrage kann nicht genehmigt werden:",
   "Failed to update access decision:": "Zugriffsentscheidung konnte nicht aktualisiert werden:",
   "Solid Health App": "Solid Gesundheits-App",
+  "Solid Health Questionnaire": "Solid Gesundheitsfragebogen",
   "Solid Chatbot": "Solid Chatbot",
   Logout: "Abmelden",
   Login: "Anmelden",
@@ -925,10 +926,10 @@ Object.assign(enToDe, {
   "Implemented today, with clear boundaries": "Heute umgesetzt – mit klaren Grenzen",
   "Embedded applications reuse the Manager's authenticated Solid session. Several applications also provide a standalone build with their own sign-in.":
     "Eingebettete Anwendungen verwenden die authentifizierte Solid-Sitzung des Managers. Mehrere Anwendungen bieten zusätzlich eine Standalone-Variante mit eigener Anmeldung.",
-  "Solid Tours draws and imports routes, but it does not record live GPS tracks or call a routing service.":
-    "Solid Tours zeichnet und importiert Routen, erfasst jedoch keine Live-GPS-Spuren und ruft keinen Routingdienst auf.",
+  "City Tours draws and imports routes, but it does not record live GPS tracks or call a routing service.":
+    "City Tours zeichnet und importiert Routen, erfasst jedoch keine Live-GPS-Spuren und ruft keinen Routingdienst auf.",
   "The Health Questionnaire is an orientation tool. Its score thresholds are product assumptions, not clinically validated cutoffs.":
-    "Der Health Questionnaire dient zur Orientierung. Seine Bewertungsgrenzen sind Produktannahmen und keine klinisch validierten Grenzwerte.",
+    "Der Solid Gesundheitsfragebogen dient zur Orientierung. Seine Bewertungsgrenzen sind Produktannahmen und keine klinisch validierten Grenzwerte.",
   "The Chatbot service can currently index anonymously readable sources reliably; selected-source references and retrieval indexes remain separated by WebID.":
     "Der Chatbot-Dienst kann derzeit anonym lesbare Quellen zuverlässig indexieren; ausgewählte Quellenverweise und Retrieval-Indizes bleiben nach WebID getrennt.",
   "Chatbot processing uses Ollama, Qdrant and a configured Qwen/vLLM endpoint. Server-side indexing currently works reliably for anonymously readable sources.":

@@ -23,9 +23,9 @@ const fallbackConfig = {
       linkType: "internal",
     },
     {
-      id: "solid-tours",
-      title: "Solid Tours",
-      href: "/web/solid-tours",
+      id: "city-tours",
+      title: "City Tours",
+      href: "/web/city-tours",
       section: "applications",
       iconKey: "tour",
       visible: true,
@@ -113,6 +113,17 @@ export function normalizePlasmaUrl(value) {
 }
 
 function normalizeApp(app, index) {
+  // Instance configurations may still contain the name used before City Tours.
+  if (app?.id === "solid-tours") {
+    app = {
+      ...app,
+      id: "city-tours",
+      title: app.title === "Solid Tours" ? "City Tours" : app.title,
+      href: /^\/web\/solid-tours\/?$/.test(app.href || "")
+        ? "/web/city-tours"
+        : app.href,
+    };
+  }
   return {
     id: app?.id || `app-${index}`,
     title: app?.title || `App ${index + 1}`,

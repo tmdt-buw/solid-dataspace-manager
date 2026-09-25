@@ -18,12 +18,12 @@ describe("statistics runtime config", () => {
     expect(normalizeDataspaceId("test?all=true")).toBe("");
   });
 
-  test("includes Solid Tours as an embedded fallback application", () => {
+  test("includes City Tours as an embedded fallback application", () => {
     expect(getAppsBySection("applications")).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: "solid-tours",
-          href: "/web/solid-tours",
+          id: "city-tours",
+          href: "/web/city-tours",
           iconKey: "tour",
           order: 22,
           linkType: "internal",
@@ -171,4 +171,26 @@ describe("statistics runtime config", () => {
       expect(normalizeRelativeResourcePath(unsafe)).toBe("");
     }
   });
+});
+
+test("normalizes legacy Tours navigation while retaining deployment preferences", () => {
+  const previous = window.__APP_CONFIG__;
+  try {
+    window.__APP_CONFIG__ = {
+      apps: [{ id: "solid-tours", title: "Solid Tours", href: "/web/solid-tours/",
+        section: "applications", linkType: "internal", visible: false, order: 73 }],
+    };
+    jest.isolateModules(() => {
+      const { appConfig, getAppsBySection: getConfiguredApps } = require("./runtimeConfig");
+      expect(appConfig.apps).toEqual(
+        expect.arrayContaining([expect.objectContaining({
+          id: "city-tours", title: "City Tours", href: "/web/city-tours",
+          visible: false, order: 73,
+        })])
+      );
+      expect(getConfiguredApps("applications")).toEqual([]);
+    });
+  } finally {
+    window.__APP_CONFIG__ = previous;
+  }
 });

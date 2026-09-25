@@ -17,16 +17,16 @@ describe("RouteAwareLayout", () => {
     mockPathname = "/";
     document.documentElement.classList.remove("dataspace-shell-active");
     document.body.classList.remove("dataspace-shell-active");
-    document.documentElement.classList.remove("solid-tours-route");
-    document.body.classList.remove("solid-tours-route");
+    document.documentElement.classList.remove("city-tours-route");
+    document.body.classList.remove("city-tours-route");
     document.documentElement.classList.remove("catalog-route");
     document.body.classList.remove("catalog-route");
     document.documentElement.classList.remove("health-questionnaire-route");
     document.body.classList.remove("health-questionnaire-route");
   });
 
-  test("clips only the Solid Tours document and cleans up after SPA navigation", async () => {
-    mockPathname = "/web/solid-tours";
+  test("clips only the City Tours document and cleans up after SPA navigation", async () => {
+    mockPathname = "/web/city-tours";
     const { container, rerender, unmount } = render(
       <RouteAwareLayout className="layout layout--sidebar-collapsed">
         Tours
@@ -35,24 +35,24 @@ describe("RouteAwareLayout", () => {
 
     const layout = container.firstChild;
 
-    expect(layout).toHaveClass("layout", "layout--sidebar-collapsed", "layout--solid-tours");
+    expect(layout).toHaveClass("layout", "layout--sidebar-collapsed", "layout--city-tours");
     await waitFor(() => {
-      expect(document.documentElement).toHaveClass("solid-tours-route");
-      expect(document.body).toHaveClass("solid-tours-route");
+      expect(document.documentElement).toHaveClass("city-tours-route");
+      expect(document.body).toHaveClass("city-tours-route");
     });
 
     mockPathname = "/profile";
     rerender(<RouteAwareLayout className="layout">Profile</RouteAwareLayout>);
 
     await waitFor(() => {
-      expect(container.firstChild).not.toHaveClass("layout--solid-tours");
-      expect(document.documentElement).not.toHaveClass("solid-tours-route");
-      expect(document.body).not.toHaveClass("solid-tours-route");
+      expect(container.firstChild).not.toHaveClass("layout--city-tours");
+      expect(document.documentElement).not.toHaveClass("city-tours-route");
+      expect(document.body).not.toHaveClass("city-tours-route");
     });
 
     unmount();
-    expect(document.documentElement).not.toHaveClass("solid-tours-route");
-    expect(document.body).not.toHaveClass("solid-tours-route");
+    expect(document.documentElement).not.toHaveClass("city-tours-route");
+    expect(document.body).not.toHaveClass("city-tours-route");
   });
 
   test("does not alter the document on another route", () => {
@@ -62,9 +62,9 @@ describe("RouteAwareLayout", () => {
     );
 
     expect(container.firstChild).toHaveClass("layout");
-    expect(container.firstChild).not.toHaveClass("layout--solid-tours");
-    expect(document.documentElement).not.toHaveClass("solid-tours-route");
-    expect(document.body).not.toHaveClass("solid-tours-route");
+    expect(container.firstChild).not.toHaveClass("layout--city-tours");
+    expect(document.documentElement).not.toHaveClass("city-tours-route");
+    expect(document.body).not.toHaveClass("city-tours-route");
   });
 
   test("lets the data manager own the scroll area inside its frame", () => {
@@ -83,7 +83,7 @@ describe("RouteAwareLayout", () => {
     );
 
     expect(container.firstChild).toHaveClass("layout", "layout--catalog");
-    expect(container.firstChild).not.toHaveClass("layout--solid-tours");
+    expect(container.firstChild).not.toHaveClass("layout--city-tours");
     await waitFor(() => {
       expect(document.documentElement).toHaveClass("catalog-route");
       expect(document.body).toHaveClass("catalog-route");

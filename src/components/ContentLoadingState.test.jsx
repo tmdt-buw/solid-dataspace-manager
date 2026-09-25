@@ -61,7 +61,7 @@ describe("ContentLoadingState", () => {
       .not.toBeInTheDocument();
   });
 
-  test("matches the Solid Tours loader geometry and motion", () => {
+  test("matches the City Tours loader geometry and motion", () => {
     const css = fs.readFileSync(
       path.resolve(__dirname, "ContentLoadingState.css"),
       "utf8"

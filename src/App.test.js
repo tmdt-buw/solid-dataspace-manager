@@ -10,7 +10,7 @@ jest.mock("@hoelk-f/semantic-data-catalog/embed.css", () => ({}), {
 jest.mock("@hoelk-f/solid-health-app/embed.css", () => ({}), {
   virtual: true,
 });
-jest.mock("@hoelk-f/solid-tours/embed.css", () => ({}), {
+jest.mock("@hoelk-f/city-tours/embed.css", () => ({}), {
   virtual: true,
 });
 jest.mock("@hoelk-f/solid-health-questionnaire/embed.css", () => ({}), {
@@ -40,8 +40,8 @@ jest.mock(
   { virtual: true }
 );
 jest.mock(
-  "@hoelk-f/solid-tours/embed",
-  () => ({ SolidToursEmbed: () => null, setSession: jest.fn(), toursAppVersion: "test" }),
+  "@hoelk-f/city-tours/embed",
+  () => ({ CityToursEmbed: () => null, setSession: jest.fn(), toursAppVersion: "test" }),
   { virtual: true }
 );
 jest.mock(

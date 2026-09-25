@@ -169,7 +169,7 @@ body {
   --dataspace-scrollbar-thumb-hover: #236b56;
 }
 
-.solid-tours-embed {
+.city-tours-embed {
   position: relative;
   width: 100%;
   min-height: auto;
@@ -180,7 +180,7 @@ body {
   --dataspace-scrollbar-thumb-hover: #1759ad;
 }
 
-.solid-tours-embed > .solid-tours-app {
+.city-tours-embed > .city-tours-app {
   width: 100%;
   min-width: 0;
   flex: 1 1 auto;
@@ -303,7 +303,7 @@ body {
   justify-content: space-between;
 }
 
-.solid-tours-header {
+.city-tours-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -313,7 +313,7 @@ body {
   border-radius: 16px;
 }
 
-.solid-tours-header .crumb {
+.city-tours-header .crumb {
   gap: 12px;
   color: #10284a;
   font-size: 1.45rem;
@@ -321,12 +321,12 @@ body {
   letter-spacing: -0.025em;
 }
 
-.solid-tours-header .crumb-icon {
+.city-tours-header .crumb-icon {
   color: #1759ad;
   font-size: 1.25rem;
 }
 
-.solid-tours-header .integrated-version {
+.city-tours-header .integrated-version {
   color: #10284a;
   background: #eaf0fb;
   border-color: #d8e2f0;

@@ -53,7 +53,7 @@
 }
 
 .layout.layout--data-manager,
-.layout.layout--solid-tours,
+.layout.layout--city-tours,
 .layout.layout--catalog,
 .layout.layout--health-questionnaire {
   height: var(--dataspace-scaled-vh, 100vh);
@@ -62,7 +62,7 @@
 }
 
 .layout--data-manager > .main,
-.layout--solid-tours > .main,
+.layout--city-tours > .main,
 .layout--catalog > .main,
 .layout--health-questionnaire > .main {
   height: 100%;
@@ -71,7 +71,7 @@
 }
 
 .layout--data-manager > .main > .container,
-.layout--solid-tours > .main > .container,
+.layout--city-tours > .main > .container,
 .layout--catalog > .main > .container,
 .layout--health-questionnaire > .main > .container {
   min-height: 0;
@@ -79,7 +79,7 @@
 }
 
 .layout--data-manager > .main > .container > .route-content,
-.layout--solid-tours > .main > .container > .route-content,
+.layout--city-tours > .main > .container > .route-content,
 .layout--catalog > .main > .container > .route-content,
 .layout--health-questionnaire > .main > .container > .route-content {
   overflow: hidden;

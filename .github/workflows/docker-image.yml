@@ -5,7 +5,7 @@ on:
   push:
     branches: ["main"]
   repository_dispatch:
-    types: ["solid-data-manager-released", "semantic-data-catalog-released", "solid-health-app-released", "solid-tours-released", "solid-health-questionnaire-released", "solid-chatbot-released"]
+    types: ["solid-data-manager-released", "semantic-data-catalog-released", "solid-health-app-released", "city-tours-released", "solid-health-questionnaire-released", "solid-chatbot-released"]
 
 jobs:
   build-and-push:
@@ -46,7 +46,7 @@ jobs:
             ["@hoelk-f/semantic-data-catalog", "SEMANTIC_DATA_CATALOG_PACKAGE_VERSION"],
             ["@hoelk-f/solid-health-app", "SOLID_HEALTH_APP_PACKAGE_VERSION"],
             ["@hoelk-f/solid-chatbot", "SOLID_CHATBOT_PACKAGE_VERSION"],
-            ["@hoelk-f/solid-tours", "SOLID_TOURS_PACKAGE_VERSION"],
+            ["@hoelk-f/city-tours", "CITY_TOURS_PACKAGE_VERSION"],
             ["@hoelk-f/solid-health-questionnaire", "SOLID_HEALTH_QUESTIONNAIRE_PACKAGE_VERSION"],
           ];
 
@@ -89,7 +89,7 @@ jobs:
                 echo "Waiting for ${package_name}@${package_version} (attempt ${attempt}/60)."
                 all_available=false
               fi
-            done < <(node -e "const p = require('./package.json').dependencies; for (const name of ['@hoelk-f/solid-data-manager', '@hoelk-f/semantic-data-catalog', '@hoelk-f/solid-health-app', '@hoelk-f/solid-chatbot', '@hoelk-f/solid-tours', '@hoelk-f/solid-health-questionnaire']) console.log(name + '|' + p[name]);")
+            done < <(node -e "const p = require('./package.json').dependencies; for (const name of ['@hoelk-f/solid-data-manager', '@hoelk-f/semantic-data-catalog', '@hoelk-f/solid-health-app', '@hoelk-f/solid-chatbot', '@hoelk-f/city-tours', '@hoelk-f/solid-health-questionnaire']) console.log(name + '|' + p[name]);")
 
             if [ "$all_available" = true ]; then
               exit 0

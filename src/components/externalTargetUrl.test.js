@@ -70,7 +70,7 @@ test("trims a configured embedded dataspace partition", () => {
 test("does not add a dataspace partition to unrelated applications", () => {
   const target = new URL(
     buildExternalTargetUrl({
-      activeLink: { slug: "solid-tours", url: "/solid-tours/" },
+      activeLink: { slug: "city-tours", url: "/city-tours/" },
       language: "en",
       origin: "https://dataspace.example",
       dataspaceId: "test",

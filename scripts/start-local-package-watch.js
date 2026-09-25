@@ -14,7 +14,7 @@ const defaultSourceDirs = [
   "/solid-data-manager/dist",
   "/semantic-data-catalog/dist",
   "/solid-health-app/dist",
-  "/solid-tours/dist",
+  "/city-tours/dist",
   "/solid-health-questionnaire/dist",
   "/solid-chatbot/dist",
 ];

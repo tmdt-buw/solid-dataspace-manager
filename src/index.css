@@ -91,7 +91,7 @@ body.dataspace-shell-active #root {
   overflow: hidden;
 }
 
-html.solid-tours-route,
+html.city-tours-route,
 html.catalog-route,
 html.health-questionnaire-route {
   height: var(--dataspace-viewport-height);
@@ -99,7 +99,7 @@ html.health-questionnaire-route {
   overflow: hidden;
 }
 
-body.solid-tours-route,
+body.city-tours-route,
 body.catalog-route,
 body.health-questionnaire-route {
   height: var(--dataspace-scaled-vh);
@@ -107,7 +107,7 @@ body.health-questionnaire-route {
   overflow: hidden;
 }
 
-body.solid-tours-route #root,
+body.city-tours-route #root,
 body.catalog-route #root,
 body.health-questionnaire-route #root {
   height: 100%;

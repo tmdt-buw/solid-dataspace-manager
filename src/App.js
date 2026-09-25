@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import session from "./solidSession";
 import "@hoelk-f/solid-data-manager/embed.css";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import SemanticSearchPage from "./components/SemanticSearchPage";
 import {
@@ -20,11 +20,11 @@ import {
   setSession as setHealthAppSession,
   healthAppVersion,
 } from "@hoelk-f/solid-health-app/embed";
-import "@hoelk-f/solid-tours/embed.css";
+import "@hoelk-f/city-tours/embed.css";
 import {
-  SolidToursEmbed,
+  CityToursEmbed,
   toursAppVersion,
-} from "@hoelk-f/solid-tours/embed";
+} from "@hoelk-f/city-tours/embed";
 import "@hoelk-f/solid-health-questionnaire/embed.css";
 import {
   SolidHealthQuestionnaireEmbed,
@@ -571,16 +571,21 @@ const App = () => {
     </div>
   );
 
-  const SolidToursPage = () => (
-    <div className="solid-tours-embed">
-      <div className="solid-tours-header toolbar--title">
+  const LegacyCityToursRedirect = () => {
+    const location = useLocation();
+    return <Navigate to={{ ...location, pathname: "/web/city-tours" }} replace />;
+  };
+
+  const CityToursPage = () => (
+    <div className="city-tours-embed">
+      <div className="city-tours-header toolbar--title">
         <div className="crumb">
           <FontAwesomeIcon icon={faRoute} className="crumb-icon" />
-          <span>Solid Tours</span>
+          <span>City Tours</span>
         </div>
         <span className="integrated-version">{toursAppVersion}</span>
       </div>
-      <SolidToursEmbed webId={webId} language={language} session={session} />
+      <CityToursEmbed webId={webId} language={language} session={session} />
     </div>
   );
 
@@ -645,7 +650,8 @@ const App = () => {
                   }
                 />
                 <Route path="/web/solid-health-app/*" element={<HealthAppPage />} />
-                <Route path="/web/solid-tours" element={<SolidToursPage />} />
+                <Route path="/web/city-tours" element={<CityToursPage />} />
+                <Route path="/web/solid-tours" element={<LegacyCityToursRedirect />} />
                 <Route path="/web/solid-health-questionnaire" element={<HealthQuestionnairePage />} />
                 <Route path="/web/solid-chatbot" element={<ChatbotPage />} />
                 <Route path="/web/:slug" element={<ExternalHost />} />

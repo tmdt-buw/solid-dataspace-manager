@@ -39,7 +39,7 @@ const defaultAppIconKeys = {
   "environmental-monitoring": "temperature",
   "solid-health-app": "health",
   "solid-health-questionnaire": "questionnaire",
-  "solid-tours": "tour",
+  "city-tours": "tour",
   "solid-chatbot": "rocketchat",
 };
 

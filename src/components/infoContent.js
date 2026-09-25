@@ -130,7 +130,7 @@ export const INFO_APPLICATION_DETAILS = {
       "Synchronize selected Google Fit metrics such as steps, calories, sleep, heart rate and weight into your personal Pod.",
     dataNote: "Selected metrics stored in your Pod",
   },
-  "solid-tours": {
+  "city-tours": {
     eyebrow: "Routes & activities",
     description:
       "Draw or import routes, record walking and cycling activities, exchange catalog routes and explicitly donate completed-tour data.",
@@ -211,7 +211,7 @@ export const INFO_DATA_BOUNDARIES = [
 
 export const INFO_CURRENT_SCOPE = [
   "Embedded applications reuse the Manager's authenticated Solid session. Several applications also provide a standalone build with their own sign-in.",
-  "Solid Tours draws and imports routes, but it does not record live GPS tracks or call a routing service.",
+  "City Tours draws and imports routes, but it does not record live GPS tracks or call a routing service.",
   "The Health Questionnaire is an orientation tool. Its score thresholds are product assumptions, not clinically validated cutoffs.",
   "Chatbot processing uses Ollama, Qdrant and a configured Qwen/vLLM endpoint. Server-side indexing currently works reliably for anonymously readable sources.",
 ];

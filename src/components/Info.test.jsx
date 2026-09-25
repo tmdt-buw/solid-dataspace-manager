@@ -42,9 +42,9 @@ const configuredApplications = [
     linkType: "internal",
   },
   {
-    id: "solid-tours",
-    title: "Solid Tours",
-    href: "/web/solid-tours",
+    id: "city-tours",
+    title: "City Tours",
+    href: "/web/city-tours",
     iconKey: "tour",
     linkType: "internal",
   },

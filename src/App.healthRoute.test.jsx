@@ -102,7 +102,7 @@ jest.mock("@hoelk-f/semantic-data-catalog/embed.css", () => ({}), {
 jest.mock("@hoelk-f/solid-health-app/embed.css", () => ({}), {
   virtual: true,
 });
-jest.mock("@hoelk-f/solid-tours/embed.css", () => ({}), {
+jest.mock("@hoelk-f/city-tours/embed.css", () => ({}), {
   virtual: true,
 });
 jest.mock("@hoelk-f/solid-health-questionnaire/embed.css", () => ({}), {
@@ -138,8 +138,8 @@ jest.mock(
   { virtual: true }
 );
 jest.mock(
-  "@hoelk-f/solid-tours/embed",
-  () => ({ SolidToursEmbed: () => null, toursAppVersion: "test" }),
+  "@hoelk-f/city-tours/embed",
+  () => ({ CityToursEmbed: () => <div data-testid="city-tours-embed" />, toursAppVersion: "test" }),
   { virtual: true }
 );
 jest.mock(
@@ -167,3 +167,17 @@ describe.each([
     expect(await screen.findByTestId("health-app-embed")).toHaveTextContent(path);
   });
 });
+
+describe.each(["/web/city-tours", "/web/solid-tours", "/web/solid-tours/"])(
+  "City Tours host route at %s",
+  (path) => {
+    test("renders City Tours and preserves bookmark parameters on the canonical route", async () => {
+      window.history.replaceState({}, "", `${path}?tour=example#map`);
+      render(<App />);
+      expect(await screen.findByTestId("city-tours-embed")).toBeInTheDocument();
+      expect(window.location.pathname).toBe("/web/city-tours");
+      expect(window.location.search).toBe("?tour=example");
+      expect(window.location.hash).toBe("#map");
+    });
+  }
+);
