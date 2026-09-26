@@ -866,3 +866,15 @@ body {
     border-radius: 12px;
   }
 }
+
+/* City Tours fills the host's available row; its own panels manage scrolling. */
+.city-tours-embed { height: 100%; min-height: 0; }
+.city-tours-embed > .city-tours-app { min-height: 0; display: flex; flex-direction: column; }
+.city-tours-embed .tours-shell { flex: 1; min-height: 0; display: flex; }
+.city-tours-embed .city-tours-app--embedded .route-workspace { height: 100%; min-height: 0; }
+@media (max-width: 700px) {
+  .layout--city-tours > .main > .container { padding: 8px; }
+  .city-tours-header { min-height: 48px; padding: 8px 12px; }
+  .city-tours-header .crumb { font-size: 1.1rem; }
+  .layout--city-tours .app-footer { display: none; }
+}

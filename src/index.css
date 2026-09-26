@@ -1,5 +1,5 @@
 :root {
-  --dataspace-ui-scale: 0.7;
+  --dataspace-ui-scale: 1;
   --dataspace-viewport-height: 100vh;
   --dataspace-scaled-vw: calc(100vw / var(--dataspace-ui-scale));
   --dataspace-scaled-vh: calc(var(--dataspace-viewport-height) / var(--dataspace-ui-scale));

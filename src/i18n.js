@@ -17,6 +17,8 @@ export const PROFILE_LANGUAGE_PREDICATE =
   "https://w3id.org/solid-dataspace-manager#preferredLanguage";
 
 const enToDe = {
+  "Open navigation": "Navigation öffnen",
+  "Close navigation": "Navigation schließen",
   "Semantic Search": "Semantische Suche",
   Language: "Sprache",
   English: "Englisch",
@@ -167,8 +169,8 @@ const enToDe = {
   "This will delete all catalog metadata in your pod and recreate a fresh catalog structure.":
     "Dadurch werden alle Katalog-Metadaten in deinem Pod gelöscht und eine frische Katalogstruktur erstellt.",
   "grant number": "Förderkennzeichen",
-  "Expand sidebar": "Sidebar ausklappen",
-  "Collapse sidebar": "Sidebar einklappen",
+  "Expand sidebar": "Seitenleiste ausklappen",
+  "Collapse sidebar": "Seitenleiste einklappen",
   "Catalog downloads": "Katalog-Downloads",
   "Loading connections...": "Verbindungen werden geladen...",
   "No Solid inbox found for this profile.": "Keine Solid-Inbox für dieses Profil gefunden.",

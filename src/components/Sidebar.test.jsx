@@ -1,5 +1,6 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { I18nProvider } from "../i18n";
 import Sidebar from "./Sidebar";
 import ContentLoadingState from "./ContentLoadingState";
 import ExternalHost from "./ExternalHost";
@@ -21,6 +22,15 @@ jest.mock(
 );
 
 afterEach(() => jest.restoreAllMocks());
+
+test("translates navigation and toggles the mobile menu explicitly", () => {
+  render(<I18nProvider language="de"><Sidebar webId="" /></I18nProvider>);
+  expect(screen.getByRole("link", { name: "Zugriffsanfragen" })).toHaveAttribute("href", "/notifications");
+  const toggle = screen.getByRole("button", { name: "Navigation öffnen" });
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(toggle);
+  expect(screen.getByRole("button", { name: "Navigation schließen" })).toHaveAttribute("aria-expanded", "true");
+});
 
 test.each([
   ["solid-data-manager", "Solid Data Manager", "folder"],

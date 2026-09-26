@@ -7,6 +7,7 @@ import {
   faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
 import session from "../solidSession";
+import { useI18n } from "../i18n";
 import {
   getSolidDataset,
   getContainedResourceUrlAll,
@@ -46,7 +47,10 @@ function Sidebar({
   statisticsAdmin = false,
 }) {
   const { pathname } = useLocation();
+  const { t } = useI18n();
   const isActive = (to) => pathname === to || (to !== "/" && pathname.startsWith(`${to}/`));
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  useEffect(() => setMobileMenuOpen(false), [pathname]);
   const [unreadRequests, setUnreadRequests] = useState(0);
   const [unreadDecisions, setUnreadDecisions] = useState(0);
 
@@ -153,7 +157,7 @@ function Sidebar({
   };
 
   return (
-    <aside className={`sidebar${collapsed ? " is-collapsed" : ""}`}>
+    <aside className={`sidebar${collapsed ? " is-collapsed" : ""}${mobileMenuOpen ? " is-mobile-open" : ""}`}>
       <div className="sb-brand">
         <div className="sb-logo">
           <img
@@ -166,34 +170,35 @@ function Sidebar({
           type="button"
           className="sb-collapse"
           onClick={onToggle}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={t(collapsed ? "Expand sidebar" : "Collapse sidebar")}
+          title={t(collapsed ? "Expand sidebar" : "Collapse sidebar")}
         >
           <FontAwesomeIcon icon={collapsed ? faChevronRight : faChevronLeft} />
         </button>
       </div>
 
-      <nav className="sb-nav">
-        <div className="sb-section">General</div>
+      <button type="button" className="sb-mobile-toggle" aria-expanded={mobileMenuOpen} aria-controls="dataspace-navigation" onClick={() => setMobileMenuOpen((open) => !open)}>{t(mobileMenuOpen ? "Close navigation" : "Open navigation")}</button>
+      <nav id="dataspace-navigation" className="sb-nav" aria-label={t("Navigation")}>
+        <div className="sb-section">{t("General")}</div>
 
-        <Link to="/" className={"sb-link" + (isActive("/") ? " active" : "")} title="Solid Data Manager">
+        <Link to="/" className={"sb-link" + (isActive("/") ? " active" : "")} title={t("Solid Data Manager")}>
           <FontAwesomeIcon icon={navigationIcons["solid-data-manager"]} />
-          <span>Solid Data Manager</span>
+          <span>{t("Solid Data Manager")}</span>
         </Link>
 
         <Link
           to="/transactions"
           className={"sb-link" + (isActive("/transactions") ? " active" : "")}
-          title="Transaction History"
+          title={t("Transaction History")}
         >
           <FontAwesomeIcon icon={navigationIcons.transactions} />
-          <span>Transaction History</span>
+          <span>{t("Transaction History")}</span>
         </Link>
 
         <Link
           to="/notifications"
           className={"sb-link" + (isActive("/notifications") ? " active" : "")}
-          title="Access Requests"
+          title={t("Access Requests")}
         >
           <span className="sb-icon">
             <FontAwesomeIcon icon={navigationIcons.notifications} />
@@ -203,13 +208,13 @@ function Sidebar({
               </span>
             )}
           </span>
-          <span>Access Requests</span>
+          <span>{t("Access Requests")}</span>
         </Link>
 
         <Link
           to="/decisions"
           className={"sb-link" + (isActive("/decisions") ? " active" : "")}
-          title="Access Decisions"
+          title={t("Access Decisions")}
         >
           <span className="sb-icon">
             <FontAwesomeIcon icon={navigationIcons.decisions} />
@@ -219,32 +224,32 @@ function Sidebar({
               </span>
             )}
           </span>
-          <span>Access Decisions</span>
+          <span>{t("Access Decisions")}</span>
         </Link>
 
         <Link
           to="/profile"
           className={"sb-link" + (isActive("/profile") ? " active" : "")}
-          title="Profile Manager"
+          title={t("Profile Manager")}
         >
           <FontAwesomeIcon icon={navigationIcons.profile} />
-          <span>Profile Manager</span>
+          <span>{t("Profile Manager")}</span>
         </Link>
 
-        <Link to="/info" className={"sb-link" + (isActive("/info") ? " active" : "")} title="Information">
+        <Link to="/info" className={"sb-link" + (isActive("/info") ? " active" : "")} title={t("Information")}>
           <FontAwesomeIcon icon={navigationIcons.info} />
-          <span>Information</span>
+          <span>{t("Information")}</span>
         </Link>
 
-        <div className="sb-section">Consume and Provide</div>
+        <div className="sb-section">{t("Consume and Provide")}</div>
 
         <Link
           to="/catalog"
           className={"sb-link" + (isActive("/catalog") ? " active" : "")}
-          title="Semantic Data Catalog"
+          title={t("Semantic Data Catalog")}
         >
           <FontAwesomeIcon icon={navigationIcons.catalog} />
-          <span>Semantic Data Catalog</span>
+          <span>{t("Semantic Data Catalog")}</span>
         </Link>
 
         <Link
@@ -268,21 +273,21 @@ function Sidebar({
         <Link
           to="/data-connection"
           className={"sb-link" + (isActive("/data-connection") ? " active" : "")}
-          title="Data Connection"
+          title={t("Data Connection")}
         >
           <FontAwesomeIcon icon={navigationIcons["data-connection"]} />
-          <span>Data Connection</span>
+          <span>{t("Data Connection")}</span>
         </Link>
 
         {applicationApps.length > 0 && (
           <>
             <Link to="/semantic-search" className={"sb-link" + (isActive("/semantic-search") ? " active" : "")}
-          title="Semantic Search">
+          title={t("Semantic Search")}>
           <FontAwesomeIcon icon={navigationIcons["semantic-search"]} />
-          <span>Semantic Search</span>
+          <span>{t("Semantic Search")}</span>
         </Link>
 
-        <div className="sb-section">Applications</div>
+        <div className="sb-section">{t("Applications")}</div>
             {applicationApps.map((app) => {
               const icon = getAppIcon(app.iconKey);
 
@@ -292,18 +297,18 @@ function Sidebar({
                     key={app.id}
                     to={app.href}
                     className={"sb-link" + (isActive(app.href) ? " active" : "")}
-                    title={app.title}
+                    title={t(app.title)}
                   >
                     <FontAwesomeIcon icon={icon} />
-                    <span>{app.title}</span>
+                    <span>{t(app.title)}</span>
                   </Link>
                 );
               }
 
               return (
-                <a key={app.id} href={app.href} className="sb-link" title={app.title}>
+                <a key={app.id} href={app.href} className="sb-link" title={t(app.title)}>
                   <FontAwesomeIcon icon={icon} />
-                  <span>{app.title}</span>
+                  <span>{t(app.title)}</span>
                 </a>
               );
             })}
@@ -312,33 +317,33 @@ function Sidebar({
 
         {statisticsAdmin && (
           <>
-            <div className="sb-section">Administration</div>
+            <div className="sb-section">{t("Administration")}</div>
             <Link
               to="/statistics"
               className={"sb-link" + (isActive("/statistics") ? " active" : "")}
-              title="Statistics Dashboard"
+              title={t("Statistics Dashboard")}
             >
               <FontAwesomeIcon icon={navigationIcons.statistics} />
-              <span>Statistics Dashboard</span>
+              <span>{t("Statistics Dashboard")}</span>
             </Link>
           </>
         )}
 
-        <div className="sb-section">Miscellaneous</div>
+        <div className="sb-section">{t("Miscellaneous")}</div>
         <Link
           to="/pod-provider"
           className={"sb-link" + (isActive("/pod-provider") ? " active" : "")}
-          title="Solid Pod Provider"
+          title={t("Solid Pod Provider")}
         >
           <FontAwesomeIcon icon={navigationIcons["pod-provider"]} />
-          <span>Solid Pod Provider</span>
+          <span>{t("Solid Pod Provider")}</span>
         </Link>
       </nav>
 
       <div className="sb-bottom">
-        <button onClick={handleLogout} className="icon-pill danger" title="Logout">
+        <button onClick={handleLogout} className="icon-pill danger" title={t("Logout")}>
           <FontAwesomeIcon icon={faRightFromBracket} />
-          <span>Logout</span>
+          <span>{t("Logout")}</span>
         </button>
       </div>
     </aside>
