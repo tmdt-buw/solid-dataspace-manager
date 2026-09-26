@@ -12,10 +12,10 @@ import { LDP } from "@inrupt/vocab-common-rdf";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBell,
-  faRotateRight,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
-import ConfirmModal from "./ConfirmModal";
+import AccessConfirmDialog from "./AccessConfirmDialog";
+import { AccessInboxHeader, AccessStatus, AccessEmptyState, AccessInboxSource, AccessPagination } from "./AccessInboxUi";
 import ContentLoadingState from "./ContentLoadingState";
 import { getSyncWorkerConfig } from "../config/runtimeConfig";
 import {
@@ -233,18 +233,15 @@ const DecisionInbox = ({ webId }) => {
   }, [page, safePage]);
 
   return (
-    <div className="notifications">
-      <div className="notifications-header toolbar--title">
-        <div className="crumb">
-          <FontAwesomeIcon icon={faBell} className="crumb-icon" />
-          <span>{t("Access Decisions")}</span>
-        </div>
-        <button className="pill-btn" onClick={loadDecisions} disabled={loading}>
-          <FontAwesomeIcon icon={faRotateRight} />
-          <span>{t("Refresh")}</span>
-        </button>
-      </div>
-      <div className="notifications-filters">
+    <section className="notifications access-inbox">
+      <AccessInboxHeader
+        icon={faBell}
+        title="Access Decisions"
+        description="Decisions on your access requests."
+        loading={loading}
+        onRefresh={loadDecisions}
+      />
+      <div className="notifications-filters" role="group" aria-label={t("Filter decisions")}>
         <label className="notifications-toggle">
           <input
             type="checkbox"
@@ -254,7 +251,7 @@ const DecisionInbox = ({ webId }) => {
               setPage(1);
             }}
           />
-          {t("Hide closed")}
+          <span>{t("Hide closed")}</span>
         </label>
         <label className="notifications-toggle">
           <input
@@ -265,28 +262,24 @@ const DecisionInbox = ({ webId }) => {
               setPage(1);
             }}
           />
-          Show previous scenario runs
+          <span>{t("Show previous scenario runs")}</span>
         </label>
-        <div className="notifications-count">
+        <span className="notifications-count" aria-live="polite">
           {t(`Showing ${filteredDecisions.length} decision(s)`)}
-        </div>
+        </span>
       </div>
 
-      {error && <div className="notifications-error">{error}</div>}
-      {inboxUrl && (
-        <div className="notifications-inbox">
-          Inbox: <a href={inboxUrl}>{inboxUrl}</a>
-        </div>
-      )}
+      {error && <div className="notifications-error" role="alert">{t(error)}</div>}
 
       {loading ? (
         <ContentLoadingState
           title={t("Access Decisions")}
           message={t("Loading your personal access decisions workspace …")}
           appId="decisions"
+          variant="compact"
         />
       ) : filteredDecisions.length === 0 ? (
-        <div className="notifications-empty">{t("No access decisions found.")}</div>
+        !error && <AccessEmptyState title="No access decisions found." />
       ) : (
         <div className="notifications-list">
           {pagedDecisions.map((item) => {
@@ -295,84 +288,65 @@ const DecisionInbox = ({ webId }) => {
               serviceWebId
             );
             return (
-              <div className="notification-card" key={item.id}>
-              <div className="notification-head">
-                <div>
-                  <div className="notification-title" translate="no">
-                    {item.datasetTitle || t("Untitled dataset")}
+              <article className="notification-card" data-status={item.decision} key={item.id}>
+                <header className="notification-head">
+                  <div className="notification-heading">
+                    <h2 className="notification-title" translate="no">
+                      {item.datasetTitle || t("Untitled dataset")}
+                    </h2>
+                    <p className="notification-subtitle">
+                      {t("ID:")} <span translate="no">{item.datasetIdentifier || "N/A"}</span>
+                    </p>
                   </div>
-                  <div className="notification-subtitle">
-                    {t("ID:")} {item.datasetIdentifier || "N/A"}
+                  <div className="notification-actions-inline">
+                    <AccessStatus status={item.decision || "unknown"} label={getDisplayDecision(item.decision)} />
+                    <button
+                      className="access-icon-button access-icon-button--danger"
+                      type="button"
+                      onClick={() => openDeleteDecisionConfirm(item)}
+                      title={t("Delete decision")}
+                      aria-label={t("Delete decision")}
+                    >
+                      <FontAwesomeIcon icon={faTrash} aria-hidden="true" />
+                    </button>
                   </div>
-                </div>
-                <div className="notification-actions-inline">
-                  <span className={`status-pill status-${item.decision || "pending"}`}>
-                    {getDisplayDecision(item.decision)}
-                  </span>
-                  <button
-                    className="icon-btn icon-btn--danger"
-                    type="button"
-                    onClick={() => openDeleteDecisionConfirm(item)}
-                    title="Delete decision"
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                </div>
-              </div>
+                </header>
 
-              <div className="notification-meta">
-                {trustedEnvironmental && (
-                  <div>
-                    <strong>Application:</strong>{" "}
-                    {t(ENVIRONMENTAL_REQUEST.displayName)}
+                <dl className="notification-meta">
+                  {trustedEnvironmental && (
+                    <div><dt>{t("Application:")}</dt><dd>{t(ENVIRONMENTAL_REQUEST.displayName)}</dd></div>
+                  )}
+                  <div><dt>{t("Decided:")}</dt><dd>{formatDateTime(item.decidedAt || item.createdAt, language)}</dd></div>
+                  <div><dt>{t("Expires:")}</dt><dd>{formatDateTime(item.expiresAt, language)}</dd></div>
+                  <div><dt>{t("Provider:")}</dt><dd translate="no">{getProviderRoot(item, webId)}</dd></div>
+                  {trustedEnvironmental && (
+                    <>
+                      <div className="notification-meta__wide"><dt>{t("Purpose:")}</dt><dd>{t(ENVIRONMENTAL_CONSENT.purpose)}</dd></div>
+                      <div><dt>{t("Access:")}</dt><dd>{t(ENVIRONMENTAL_CONSENT.access)}</dd></div>
+                    </>
+                  )}
+                </dl>
+
+                {item.decisionComment && (
+                  <div className="notification-message">
+                    <strong>{t("Comment:")}</strong><p translate="no">{item.decisionComment}</p>
                   </div>
                 )}
-                <div>
-                  <strong>{t("Decided:")}</strong> {formatDateTime(item.decidedAt || item.createdAt, language)}
-                </div>
-                <div><strong>{t("Expires:")}</strong> {formatDateTime(item.expiresAt, language)}</div>
-                <div><strong>{t("Provider:")}</strong> {getProviderRoot(item, webId)}</div>
-                {trustedEnvironmental && (
-                  <>
-                    <div><strong>{t("Purpose:")}</strong> {t(ENVIRONMENTAL_CONSENT.purpose)}</div>
-                    <div><strong>{t("Access:")}</strong> {t(ENVIRONMENTAL_CONSENT.access)}</div>
-                  </>
-                )}
-              </div>
-
-              {item.decisionComment && (
-                <div className="notification-message">
-                  <strong>{t("Comment:")}</strong> <span translate="no">{item.decisionComment}</span>
-                </div>
-              )}
-
-              </div>
+              </article>
             );
           })}
         </div>
       )}
       {!loading && filteredDecisions.length > pageSize && (
-        <div className="notifications-pagination">
-          <button
-            className="pill-btn"
-            disabled={safePage <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            Prev
-          </button>
-          <span className="notifications-page">
-            Page {safePage} of {totalPages}
-          </span>
-          <button
-            className="pill-btn"
-            disabled={safePage >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          >
-            Next
-          </button>
-        </div>
+        <AccessPagination
+          page={safePage}
+          totalPages={totalPages}
+          onPrevious={() => setPage((p) => Math.max(1, p - 1))}
+          onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+        />
       )}
-      <ConfirmModal
+      <AccessInboxSource url={inboxUrl} />
+      <AccessConfirmDialog
         show={confirmOpen}
         title={confirmTitle}
         message={confirmMessage}
@@ -380,7 +354,7 @@ const DecisionInbox = ({ webId }) => {
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleConfirm}
       />
-    </div>
+    </section>
   );
 };
 

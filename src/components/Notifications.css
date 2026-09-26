@@ -1,321 +1,799 @@
-.notifications {
+.access-inbox {
+  --access-ink: #142642;
+  --access-muted: #52617a;
+  --access-border: #dce4ee;
+  --access-soft: #f4f7fa;
+  --access-accent: #1759ad;
+  --access-positive: #12614b;
+  --access-warning: #835609;
+  --access-danger: #a92f29;
   display: flex;
   flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 1240px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 0.5rem 0 1rem;
+  color: var(--access-ink);
+}
+
+.access-inbox .access-inbox__header,
+.access-inbox .access-inbox__heading {
+  display: flex;
+  align-items: center;
   gap: 1rem;
+  min-width: 0;
 }
 
-.notifications-header {
-  display: flex;
-  align-items: center;
+.access-inbox .access-inbox__header {
   justify-content: space-between;
-  margin-bottom: 0.5rem;
+  padding: 0.5rem 0;
 }
 
-.notifications-header.toolbar--title {
-  min-height: 56px;
-  padding-top: 10px;
-  padding-bottom: 10px;
+.access-inbox .access-inbox__heading > div {
+  min-width: 0;
 }
 
-.notifications-header.toolbar--title .pill-btn {
-  min-height: 34px;
-  padding-top: 0;
-  padding-bottom: 0;
+.access-inbox .access-inbox__mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 3rem;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid #ccdbee;
+  border-radius: 0.875rem;
+  background: #eaf1fa;
+  color: var(--access-accent);
+  font-size: 1.25rem;
 }
 
-.notifications-filters {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
+.access-inbox .access-inbox__eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--access-accent);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.notifications-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  color: var(--text);
+.access-inbox h1 {
+  margin: 0;
+  font-size: clamp(1.4rem, 2.2vw, 1.875rem);
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
 }
 
-.notifications-count {
-  color: var(--muted);
-  font-size: 0.9rem;
+.access-inbox .access-inbox__description {
+  margin: 0.375rem 0 0;
+  color: var(--access-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
 }
 
-.notifications-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.notifications-error {
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  background: #ffecec;
-  color: #b71c1c;
-  border: 1px solid #f7c0c0;
-}
-
-.notifications-inbox {
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.notifications-inbox a {
-  color: var(--primary);
-  text-decoration: none;
-}
-
-.notifications-inbox a:hover {
-  text-decoration: underline;
-}
-
-.notifications-empty {
-  padding: 1.25rem;
-  border-radius: 14px;
-  background: #fff;
-  border: 1px dashed var(--border);
-  color: var(--muted);
-  text-align: center;
-}
-
-.notifications-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.notification-card {
-  background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  border-radius: 20px;
-  padding: 1.1rem 1.3rem;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-}
-
-.notification-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding-bottom: 0.65rem;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-}
-
-.notification-actions-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.icon-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  background: #ffffff;
-  color: #0f172a;
+.access-inbox .access-button,
+.access-inbox .access-icon-button,
+.access-inbox .btn-approve,
+.access-inbox .btn-deny {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--access-border);
+  border-radius: 0.625rem;
+  background: var(--card, #fff);
+  color: var(--access-ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.4;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  transition: background-color 140ms ease, border-color 140ms ease;
 }
 
-.icon-btn:hover {
-  background: #f1f5f9;
-  border-color: rgba(148, 163, 184, 0.6);
-  transform: translateY(-1px);
+.access-inbox .access-button:hover:not(:disabled),
+.access-inbox .access-icon-button:hover:not(:disabled) {
+  background: #edf2f8;
+  border-color: #aebfd4;
 }
 
-.icon-btn--danger {
-  color: #b91c1c;
+.access-inbox .access-inbox__header > .access-button {
+  flex: 0 0 auto;
 }
 
-.notification-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text);
+.access-inbox .access-button--quiet {
+  color: var(--access-muted);
+  background: transparent;
+  border-color: transparent;
 }
 
-.notification-subtitle {
-  font-size: 0.9rem;
-  color: var(--muted);
+.access-inbox .access-icon-button {
+  flex: 0 0 44px;
+  width: 44px;
+  padding: 0;
 }
 
-.status-pill {
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 700;
+.access-inbox .access-icon-button--danger {
+  color: var(--access-muted);
+  background: transparent;
+  border-color: transparent;
 }
 
-.status-pending {
-  background: #fff6db;
-  color: #a46b00;
+.access-inbox .access-icon-button--danger:hover:not(:disabled) {
+  color: var(--access-danger);
+  background: #fff1f0;
+  border-color: #edc8c5;
 }
 
-.status-approved {
-  background: #e3f4e8;
-  color: #2e7d32;
-}
-
-.status-denied,
-.status-expired,
-.status-revoked {
-  background: #fde7e7;
-  color: #c62828;
-}
-
-.notification-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  font-size: 0.92rem;
-  color: #1f2937;
-}
-
-.notification-webid {
-  word-break: break-all;
-}
-
-.notification-message {
-  padding: 0.8rem 0.95rem;
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
-  border-radius: 14px;
-  color: #1f2a44;
-}
-
-.notification-card--consent {
-  border-color: rgba(37, 99, 235, 0.38);
-}
-
-.notification-consent {
-  display: grid;
-  gap: 0.6rem;
-  padding: 0.9rem 1rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 14px;
-  color: #172554;
-  line-height: 1.45;
-}
-
-.notification-consent__invalid {
-  padding: 0.75rem;
-  border-radius: 10px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
-  font-weight: 600;
-}
-
-.notification-decision {
-  background: #f8fafc;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 14px;
-  padding: 0.8rem 0.95rem;
-  display: grid;
-  gap: 0.35rem;
-  font-size: 0.9rem;
-}
-
-.notification-actions {
-  display: grid;
-  gap: 0.85rem;
-  padding: 0.9rem;
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  background: rgba(255, 255, 255, 0.75);
-}
-
-.notification-actions .notification-inputs {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.notification-inputs {
-  display: grid;
-  gap: 0.65rem;
-}
-
-.notification-inputs label {
-  display: grid;
-  gap: 0.35rem;
-  font-weight: 600;
-  color: var(--text);
-  font-size: 0.9rem;
-}
-
-.notification-inputs textarea,
-.notification-inputs input {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.9rem;
-  font-family: inherit;
-}
-
-.notification-inputs textarea {
-  min-height: 90px;
-  resize: vertical;
-}
-
-.notification-note {
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-.notification-buttons {
-  display: flex;
-  gap: 0.6rem;
-}
-
-.btn-approve,
-.btn-deny {
-  border: none;
-  border-radius: 12px;
-  padding: 0.6rem 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.btn-approve {
-  background: #e3f4e8;
-  color: #2e7d32;
-}
-
-.btn-deny {
-  background: #fde7e7;
-  color: #c62828;
-}
-
-.btn-approve:disabled,
-.btn-deny:disabled {
-  opacity: 0.6;
+.access-inbox button:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.notifications-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 0.5rem;
+.access-inbox :is(button, a, input, textarea):focus-visible {
+  outline: 3px solid var(--access-accent);
+  outline-offset: 3px;
 }
 
-.notifications-page {
-  color: var(--muted);
-  font-size: 0.9rem;
+.access-inbox .notifications-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--access-border);
+  border-radius: 0.75rem;
+  background: var(--card, #fff);
+}
+
+.access-inbox .notifications-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 44px;
+  color: var(--access-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.access-inbox .notifications-toggle input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  flex: 0 0 1rem;
+  accent-color: var(--access-accent);
+}
+
+.access-inbox .notifications-count {
+  margin-left: auto;
+  color: var(--access-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.access-inbox .notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.access-inbox .dataspace-content-loading--compact {
+  min-height: 18rem;
+  border: 1px solid var(--access-border);
+  border-radius: 0.875rem;
+}
+
+.access-inbox .notification-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+  padding: 1.5rem;
+  border: 1px solid var(--access-border);
+  border-left: 3px solid #94a3b8;
+  border-radius: 0.875rem;
+  background: var(--card, #fff);
+  box-shadow: 0 2px 6px rgba(20, 38, 66, 0.025);
+}
+
+.access-inbox .notification-card[data-status="pending"] {
+  border-left-color: #c48b29;
+}
+
+.access-inbox .notification-card[data-status="approved"] {
+  border-left-color: #258069;
+}
+
+.access-inbox .notification-card:is([data-status="denied"], [data-status="revoked"]) {
+  border-left-color: #c26962;
+}
+
+.access-inbox .notification-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.access-inbox .notification-heading {
+  min-width: 0;
+}
+
+.access-inbox .notification-title {
+  margin: 0;
+  color: var(--access-ink);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1.5;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+
+.access-inbox .notification-subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--access-muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.access-inbox .notification-actions-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.access-inbox .access-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 0 0 auto;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--access-border);
+  border-radius: 0.5rem;
+  background: var(--access-soft);
+  color: var(--access-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.access-inbox .access-status--pending {
+  background: #fff8e8;
+  border-color: #eeddb5;
+  color: var(--access-warning);
+}
+
+.access-inbox .access-status--approved {
+  background: #edf8f3;
+  border-color: #c8e7d9;
+  color: var(--access-positive);
+}
+
+.access-inbox :is(.access-status--denied, .access-status--revoked) {
+  background: #fff1f0;
+  border-color: #efd3d0;
+  color: var(--access-danger);
+}
+
+.access-inbox .notification-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
+  margin: 0;
+  padding-top: 1rem;
+  border-top: 1px solid #edf0f4;
+}
+
+.access-inbox .notification-meta > div {
+  min-width: 0;
+}
+
+.access-inbox .notification-meta__wide {
+  grid-column: 1 / -1;
+}
+
+.access-inbox .notification-meta dt {
+  margin: 0 0 0.375rem;
+  color: var(--access-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.access-inbox .notification-meta dd {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.access-inbox .notification-meta__wide dd {
+  font-size: 0.8125rem;
+}
+
+.access-inbox .notification-message {
+  padding: 0.875rem 1rem;
+  border-left: 2px solid #bdcde0;
+  border-radius: 0 0.5rem 0.5rem 0;
+  background: var(--access-soft);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.access-inbox .notification-message strong {
+  display: block;
+  margin-bottom: 0.375rem;
+  color: var(--access-muted);
+  font-size: 0.75rem;
+}
+
+.access-inbox .notification-message p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.access-inbox .notification-decision {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+  padding: 1rem;
+  border: 1px solid var(--access-border);
+  border-radius: 0.625rem;
+  background: var(--access-soft);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.access-inbox .notification-decision > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.access-inbox .notification-decision strong {
+  color: var(--access-muted);
+}
+
+.access-inbox .notification-decision__comment {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+
+.access-inbox .notification-consent {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #d8e4f2;
+  border-radius: 0.75rem;
+  background: #f5f8fc;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.access-inbox .notification-consent__item {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.access-inbox .notification-consent__item strong {
+  font-size: 0.8125rem;
+}
+
+.access-inbox .notification-consent__notice {
+  padding-top: 1rem;
+  border-top: 1px solid #d8e4f2;
+  color: #354864;
+  font-size: 0.8125rem;
+}
+
+.access-inbox .notification-consent__notice p {
+  margin: 0.375rem 0 0;
+}
+
+.access-inbox :is(.notification-consent__invalid, .notifications-error) {
+  padding: 1rem;
+  border: 1px solid #e4bbb7;
+  border-radius: 0.625rem;
+  background: #fff1f0;
+  color: #8b2722;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.access-inbox .notification-actions {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--access-border);
+}
+
+.access-inbox .notification-actions h3 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.access-inbox .notification-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.access-inbox .notification-inputs:empty {
+  display: none;
+}
+
+.access-inbox .notification-inputs label {
+  display: grid;
+  min-width: 0;
+  gap: 0.5rem;
+  color: var(--access-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.access-inbox .notification-inputs :is(input, textarea) {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #bdcadb;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: var(--card, #fff);
+  color: var(--access-ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.access-inbox .notification-inputs textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+.access-inbox .notification-inputs textarea::placeholder {
+  color: #65758a;
+  opacity: 1;
+}
+
+.access-inbox .notification-buttons {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.access-inbox .btn-approve {
+  background: var(--access-ink);
+  border-color: var(--access-ink);
+  color: #fff;
+}
+
+.access-inbox .btn-approve:hover:not(:disabled) {
+  background: #25476e;
+  border-color: #25476e;
+}
+
+.access-inbox .btn-deny {
+  color: var(--access-danger);
+  border-color: #e3c9c6;
+}
+
+.access-inbox .btn-deny:hover:not(:disabled) {
+  background: #fff1f0;
+  border-color: #cf9f99;
+}
+
+.access-inbox .notification-actions--compact {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.access-inbox .notification-actions--compact .notification-inputs {
+  display: flex;
+  flex: 1;
+}
+
+.access-inbox .notification-actions--compact .notification-inputs:empty {
+  display: none;
+}
+
+.access-inbox .notification-actions--compact .notification-buttons {
+  margin-left: auto;
+}
+
+.access-inbox .notifications-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  border: 1px solid var(--access-border);
+  border-radius: 0.875rem;
+  background: var(--card, #fff);
+  text-align: center;
+}
+
+.access-inbox .notifications-empty__icon {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.25rem;
+  border-radius: 50%;
+  background: #eaf1fa;
+  color: var(--access-accent);
+  font-size: 1.25rem;
+}
+
+.access-inbox .notifications-empty h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+
+.access-inbox .notifications-empty p {
+  margin: 0;
+  color: var(--access-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.access-inbox .notifications-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.access-inbox .notifications-page {
+  color: var(--access-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.access-inbox .notifications-inbox {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.375rem 0.75rem;
+  padding: 0.25rem 0;
+  color: var(--access-muted);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+}
+
+.access-inbox .notifications-inbox a {
+  min-width: 0;
+  color: var(--access-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.access-inbox .notifications-inbox a:hover {
+  color: var(--access-accent);
+}
+
+.access-inbox .access-confirm {
+  width: min(32rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  margin: auto;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid var(--access-border);
+  border-radius: 1rem;
+  background: var(--card, #fff);
+  color: var(--access-ink);
+  box-shadow: 0 24px 80px rgba(20, 38, 66, 0.25);
+}
+
+.access-inbox .access-confirm::backdrop {
+  background: rgba(15, 30, 51, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.access-inbox .access-confirm__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1.25rem 0;
+}
+
+.access-inbox .access-confirm__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  background: #fff1f0;
+  color: var(--access-danger);
+}
+
+.access-inbox .access-confirm__header h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.access-inbox .access-confirm__header .access-icon-button {
+  margin-left: auto;
+  border-color: transparent;
+}
+
+.access-inbox .access-confirm__body {
+  padding: 0.5rem 1.5rem 1rem;
+  color: var(--access-muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.access-inbox .access-confirm__body p {
+  margin: 0.75rem 0 0;
+}
+
+.access-inbox .access-confirm__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--access-border);
+  background: var(--access-soft);
+}
+
+.access-inbox .access-button--danger {
+  color: #fff;
+  background: var(--access-danger);
+  border-color: var(--access-danger);
+}
+
+.access-inbox .access-button--danger:hover:not(:disabled) {
+  color: #fff;
+  background: #88221e;
+  border-color: #88221e;
+}
+
+@media (max-width: 52rem) {
+  .access-inbox .notifications-count {
+    margin-left: 0;
+  }
+
+  .access-inbox .notification-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 38rem) {
+  .access-inbox {
+    gap: 1rem;
+  }
+
+  .access-inbox .access-inbox__header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .access-inbox .access-inbox__heading {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .access-inbox .access-inbox__mark {
+    flex-basis: 2.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1rem;
+  }
+
+  .access-inbox .notifications-filters {
+    align-items: stretch;
+    gap: 0.25rem 0.75rem;
+    padding: 0.625rem 0.875rem;
+  }
+
+  .access-inbox .notifications-toggle {
+    width: 100%;
+  }
+
+  .access-inbox .notifications-count {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    flex: 1;
+  }
+
+  .access-inbox .notification-card {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .access-inbox .notification-head {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .access-inbox .notification-actions-inline {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .access-inbox .notification-meta {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.875rem;
+  }
+
+  .access-inbox .notification-inputs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .access-inbox .notification-buttons > button {
+    flex: 1;
+  }
+
+  .access-inbox .notification-actions--compact .notification-buttons {
+    width: 100%;
+  }
+
+  .access-inbox .notification-actions--compact .notification-inputs label {
+    width: 100%;
+  }
+
+  .access-inbox .notification-consent {
+    padding: 1rem;
+  }
+
+  .access-inbox .notification-consent__item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
+
+  .access-inbox .notifications-pagination .access-button {
+    padding-inline: 0.625rem;
+  }
+
+  .access-inbox .access-confirm__header {
+    gap: 0.5rem;
+    padding-inline: 1rem;
+  }
+
+  .access-inbox .access-confirm__icon {
+    display: none;
+  }
+
+  .access-inbox .access-confirm__body, .access-inbox .access-confirm__footer {
+    padding-inline: 1rem;
+  }
+}
+
+@media (max-width: 23rem) {
+  .access-inbox .access-inbox__heading {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .access-inbox button {
+    transition: none;
+  }
 }

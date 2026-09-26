@@ -25,8 +25,9 @@ import {
 } from "@inrupt/solid-client";
 import { DCAT, DCTERMS, LDP } from "@inrupt/vocab-common-rdf";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faInbox, faRotateRight, faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
-import DeleteConfirmModal from "./DeleteConfirmModal";
+import { faInbox, faTrash, faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
+import AccessConfirmDialog from "./AccessConfirmDialog";
+import { AccessInboxHeader, AccessStatus, AccessEmptyState, AccessInboxSource, AccessPagination } from "./AccessInboxUi";
 import ContentLoadingState from "./ContentLoadingState";
 import { getSyncWorkerConfig } from "../config/runtimeConfig";
 import {
@@ -76,12 +77,6 @@ const getDisplayStatus = (status) => {
   if (status === "archived") return "Archived";
   if (status === "pending") return "Pending";
   return status || "Pending";
-};
-
-const getStatusClass = (status) => {
-  if (status === "approved") return "status-approved";
-  if (status === "denied" || status === "revoked" || status === "expired") return "status-denied";
-  return "status-pending";
 };
 
 const Notifications = ({ webId }) => {
@@ -460,18 +455,15 @@ const Notifications = ({ webId }) => {
   }, [page, safePage]);
 
   return (
-    <div className="notifications">
-      <div className="notifications-header toolbar--title">
-        <div className="crumb">
-          <FontAwesomeIcon icon={faInbox} className="crumb-icon" />
-          <span>{t("Access Requests")}</span>
-        </div>
-        <button className="pill-btn" onClick={loadNotifications} disabled={loading}>
-          <FontAwesomeIcon icon={faRotateRight} />
-          <span>{t("Refresh")}</span>
-        </button>
-      </div>
-      <div className="notifications-filters">
+    <section className="notifications access-inbox">
+      <AccessInboxHeader
+        icon={faInbox}
+        title="Access Requests"
+        description="Manage access to your data."
+        loading={loading}
+        onRefresh={loadNotifications}
+      />
+      <div className="notifications-filters" role="group" aria-label={t("Filter requests")}>
         <label className="notifications-toggle">
           <input
             type="checkbox"
@@ -481,7 +473,7 @@ const Notifications = ({ webId }) => {
               setPage(1);
             }}
           />
-          {t("Hide closed")}
+          <span>{t("Hide closed")}</span>
         </label>
         <label className="notifications-toggle">
           <input
@@ -492,38 +484,36 @@ const Notifications = ({ webId }) => {
               setPage(1);
             }}
           />
-          Show previous scenario runs
+          <span>{t("Show previous scenario runs")}</span>
         </label>
-        <div className="notifications-count">
+        <span className="notifications-count" aria-live="polite">
           {t(`Showing ${filteredNotifications.length} request(s)`)}
-        </div>
+        </span>
         <button
-          className="pill-btn"
+          className="access-button access-button--quiet"
+          type="button"
           onClick={openClearClosedConfirm}
           disabled={
             clearingRevoked ||
             !notifications.some((item) => CLOSED_STATUSES.has(item.status))
           }
         >
+          <FontAwesomeIcon icon={faTrash} aria-hidden="true" />
           {clearingRevoked ? t("Clearing...") : t("Clear closed")}
         </button>
       </div>
 
-      {error && <div className="notifications-error">{error}</div>}
-      {inboxUrl && (
-        <div className="notifications-inbox">
-          Inbox: <a href={inboxUrl}>{inboxUrl}</a>
-        </div>
-      )}
+      {error && <div className="notifications-error" role="alert">{t(error)}</div>}
 
       {loading ? (
         <ContentLoadingState
           title={t("Access Requests")}
           message={t("Loading your personal access requests workspace …")}
           appId="notifications"
+          variant="compact"
         />
       ) : filteredNotifications.length === 0 ? (
-        <div className="notifications-empty">{t("No access requests found.")}</div>
+        !error && <AccessEmptyState title="No access requests found." />
       ) : (
         <div className="notifications-list">
           {pagedNotifications.map((item) => {
@@ -536,127 +526,88 @@ const Notifications = ({ webId }) => {
               ...(item.catalogValidationErrors || []),
             ];
             return (
-              <div
-                className={`notification-card${
-                  trustedEnvironmental ? " notification-card--consent" : ""
-                }`}
+              <article
+                className={`notification-card${trustedEnvironmental ? " notification-card--consent" : ""}`}
+                data-status={item.status}
                 key={item.id}
               >
-              <div className="notification-head">
-                <div>
-                  <div className="notification-title" translate="no">
-                    {trustedEnvironmental
-                      ? t(ENVIRONMENTAL_CONSENT.title)
-                      : item.datasetTitle || t("Untitled dataset")}
+                <header className="notification-head">
+                  <div className="notification-heading">
+                    <h2 className="notification-title" translate="no">
+                      {trustedEnvironmental
+                        ? t(ENVIRONMENTAL_CONSENT.title)
+                        : item.datasetTitle || t("Untitled dataset")}
+                    </h2>
+                    <p className="notification-subtitle" translate="no">
+                      {trustedEnvironmental
+                        ? item.datasetTitle || t("Tour activity")
+                        : `${t("ID:")} ${item.datasetIdentifier || "N/A"}`}
+                    </p>
                   </div>
-                  <div className="notification-subtitle" translate="no">
-                    {trustedEnvironmental
-                      ? item.datasetTitle || t("Tour activity")
-                      : `${t("ID:")} ${item.datasetIdentifier || "N/A"}`}
-                  </div>
-                </div>
-                <span className={`status-pill ${getStatusClass(item.status)}`}>
-                  {t(getDisplayStatus(item.status))}
-                </span>
-              </div>
+                  <AccessStatus status={item.status || "pending"} label={getDisplayStatus(item.status)} />
+                </header>
 
-              <div className="notification-meta">
-                <div>
-                  <strong>Requester:</strong>{" "}
-                  {trustedEnvironmental
-                    ? ENVIRONMENTAL_REQUEST.displayName
-                    : <span translate="no">{item.requesterName || "N/A"}</span>}
-                </div>
-                {!trustedEnvironmental && (
-                  <>
-                  <div><strong>Email:</strong> {item.requesterEmail || "N/A"}</div>
-                  <div className="notification-webid">
-                    <strong>WebID:</strong> {item.requesterWebId || "N/A"}
-                  </div>
-                </>
-                )}
-                <div><strong>{t("Requested:")}</strong> {formatDateTime(item.createdAt, language)}</div>
-              </div>
-
-              {trustedEnvironmental ? (
-                <div className="notification-consent">
-                  <div><strong>{t("Data:")}</strong> {t(ENVIRONMENTAL_CONSENT.data)}</div>
-                  <div><strong>{t("Purpose:")}</strong> {t(ENVIRONMENTAL_CONSENT.purpose)}</div>
-                  <div><strong>{t("Access:")}</strong> {t(ENVIRONMENTAL_CONSENT.access)}</div>
-                  <div><strong>{t("Note:")}</strong> {t(ENVIRONMENTAL_CONSENT.notice)}</div>
-                  {validationErrors.length > 0 && (
-                    <div className="notification-consent__invalid" role="alert">
-                      {t("This request cannot be approved:")}{" "}
-                      {validationErrors.map((error) => t(error)).join(" ")}
-                    </div>
-                  )}
-                </div>
-              ) : item.message ? (
-                <div className="notification-message">
-                  <strong>{t("Message:")}</strong> <span translate="no">{item.message}</span>
-                </div>
-              ) : null}
-
-              {item.status !== "pending" && (
-                <div className="notification-decision">
+                <dl className="notification-meta">
                   <div>
-                    <strong>{t("Decision:")}</strong> {t(getDisplayStatus(item.status))}
+                    <dt>{t("Requester:")}</dt>
+                    <dd translate="no">{trustedEnvironmental ? ENVIRONMENTAL_REQUEST.displayName : item.requesterName || "N/A"}</dd>
                   </div>
-                  <div><strong>{t("Decided At:")}</strong> {formatDateTime(item.decidedAt, language)}</div>
-                  {item.decisionComment && (
-                    <div><strong>{t("Comment:")}</strong> <span translate="no">{item.decisionComment}</span></div>
+                  <div>
+                    <dt>{t("Requested:")}</dt>
+                    <dd>{formatDateTime(item.createdAt, language)}</dd>
+                  </div>
+                  {!trustedEnvironmental && (
+                    <>
+                      <div><dt>{t("Email:")}</dt><dd translate="no">{item.requesterEmail || "N/A"}</dd></div>
+                      <div className="notification-meta__wide"><dt>WebID</dt><dd translate="no">{item.requesterWebId || "N/A"}</dd></div>
+                    </>
                   )}
-                </div>
-              )}
+                </dl>
 
-              {item.status === "pending" && (
-                <div className="notification-actions">
-                  <div className="notification-inputs">
-                    <label>
-                      {t("Comment")}
-                      <textarea
-                        value={decisionNotes[item.id] || ""}
-                        onChange={(e) =>
-                          setDecisionNotes((prev) => ({ ...prev, [item.id]: e.target.value }))
-                        }
-                        placeholder={t("Optional comment...")}
-                      />
-                    </label>
-                    <label>
-                      {t("Expiry (optional)")}
-                      <input
-                        type="datetime-local"
-                        value={decisionExpiry[item.id] || ""}
-                        onChange={(e) =>
-                          setDecisionExpiry((prev) => ({ ...prev, [item.id]: e.target.value }))
-                        }
-                      />
-                    </label>
+                {trustedEnvironmental ? (
+                  <div className="notification-consent">
+                    <div className="notification-consent__item"><strong>{t("Data:")}</strong><span>{t(ENVIRONMENTAL_CONSENT.data)}</span></div>
+                    <div className="notification-consent__item"><strong>{t("Purpose:")}</strong><span>{t(ENVIRONMENTAL_CONSENT.purpose)}</span></div>
+                    <div className="notification-consent__item"><strong>{t("Access:")}</strong><span>{t(ENVIRONMENTAL_CONSENT.access)}</span></div>
+                    <div className="notification-consent__notice"><strong>{t("Note:")}</strong><p>{t(ENVIRONMENTAL_CONSENT.notice)}</p></div>
+                    {validationErrors.length > 0 && (
+                      <div className="notification-consent__invalid" role="alert">
+                        {t("This request cannot be approved:")}{" "}
+                        {validationErrors.map((error) => t(error)).join(" ")}
+                      </div>
+                    )}
                   </div>
-                  <div className="notification-buttons">
-                    <button
-                      className="btn-approve"
-                      onClick={() => handleDecision(item, "approved")}
-                      disabled={
-                        processingId === item.id || validationErrors.length > 0
-                      }
-                    >
-                      <FontAwesomeIcon icon={faCheck} /> {t("Approve")}
-                    </button>
-                    <button
-                      className="btn-deny"
-                      onClick={() => handleDecision(item, "denied")}
-                      disabled={processingId === item.id}
-                    >
-                      <FontAwesomeIcon icon={faXmark} /> {t("Deny")}
-                    </button>
+                ) : item.message ? (
+                  <div className="notification-message">
+                    <strong>{t("Message:")}</strong><p translate="no">{item.message}</p>
                   </div>
-                </div>
-              )}
-              {item.status !== "pending" && (
-                <div className="notification-actions">
-                  <div className="notification-inputs">
-                    {item.status !== "approved" && (
+                ) : null}
+
+                {item.status !== "pending" && (
+                  <div className="notification-decision">
+                    <div><strong>{t("Decision:")}</strong><span>{t(getDisplayStatus(item.status))}</span></div>
+                    <div><strong>{t("Decided At:")}</strong><span>{formatDateTime(item.decidedAt, language)}</span></div>
+                    {item.decisionComment && (
+                      <div className="notification-decision__comment"><strong>{t("Comment:")}</strong><span translate="no">{item.decisionComment}</span></div>
+                    )}
+                  </div>
+                )}
+
+                {item.status === "pending" && (
+                  <div className="notification-actions">
+                    <h3>{t("Your decision")}</h3>
+                    <div className="notification-inputs">
+                      <label>
+                        {t("Comment")}
+                        <textarea
+                          rows={2}
+                          value={decisionNotes[item.id] || ""}
+                          onChange={(e) =>
+                            setDecisionNotes((prev) => ({ ...prev, [item.id]: e.target.value }))
+                          }
+                          placeholder={t("Optional comment...")}
+                        />
+                      </label>
                       <label>
                         {t("Expiry (optional)")}
                         <input
@@ -667,64 +618,90 @@ const Notifications = ({ webId }) => {
                           }
                         />
                       </label>
-                    )}
-                  </div>
-                  <div className="notification-buttons">
-                    {item.status !== "approved" ? (
+                    </div>
+                    <div className="notification-buttons">
                       <button
                         className="btn-approve"
+                        type="button"
                         onClick={() => handleDecision(item, "approved")}
-                        disabled={
-                          processingId === item.id || validationErrors.length > 0
-                        }
+                        disabled={processingId === item.id || validationErrors.length > 0}
                       >
-                        <FontAwesomeIcon icon={faCheck} /> {t("Approve")}
+                        <FontAwesomeIcon icon={faCheck} aria-hidden="true" /> {t("Approve")}
                       </button>
-                    ) : (
                       <button
                         className="btn-deny"
-                        onClick={() => handleDecision(item, "revoked")}
+                        type="button"
+                        onClick={() => handleDecision(item, "denied")}
                         disabled={processingId === item.id}
                       >
-                        <FontAwesomeIcon icon={faXmark} /> {t("Revoke")}
+                        <FontAwesomeIcon icon={faXmark} aria-hidden="true" /> {t("Deny")}
                       </button>
-                    )}
+                    </div>
                   </div>
-                </div>
-              )}
-              </div>
+                )}
+                {item.status !== "pending" && (
+                  <div className="notification-actions notification-actions--compact">
+                    <div className="notification-inputs">
+                      {item.status !== "approved" && (
+                        <label>
+                          {t("Expiry (optional)")}
+                          <input
+                            type="datetime-local"
+                            value={decisionExpiry[item.id] || ""}
+                            onChange={(e) =>
+                              setDecisionExpiry((prev) => ({ ...prev, [item.id]: e.target.value }))
+                            }
+                          />
+                        </label>
+                      )}
+                    </div>
+                    <div className="notification-buttons">
+                      {item.status !== "approved" ? (
+                        <button
+                          className="btn-approve"
+                          type="button"
+                          onClick={() => handleDecision(item, "approved")}
+                          disabled={processingId === item.id || validationErrors.length > 0}
+                        >
+                          <FontAwesomeIcon icon={faCheck} aria-hidden="true" /> {t("Approve")}
+                        </button>
+                      ) : (
+                        <button
+                          className="btn-deny"
+                          type="button"
+                          onClick={() => handleDecision(item, "revoked")}
+                          disabled={processingId === item.id}
+                        >
+                          <FontAwesomeIcon icon={faXmark} aria-hidden="true" /> {t("Revoke")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </article>
             );
           })}
         </div>
       )}
       {!loading && filteredNotifications.length > pageSize && (
-        <div className="notifications-pagination">
-          <button
-            className="pill-btn"
-            disabled={safePage <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            Prev
-          </button>
-          <span className="notifications-page">
-            {t(`Page ${safePage} of ${totalPages}`)}
-          </span>
-          <button
-            className="pill-btn"
-            disabled={safePage >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          >
-            {t("Next")}
-          </button>
-        </div>
+        <AccessPagination
+          page={safePage}
+          totalPages={totalPages}
+          onPrevious={() => setPage((p) => Math.max(1, p - 1))}
+          onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+        />
       )}
-      <DeleteConfirmModal
+      <AccessInboxSource url={inboxUrl} />
+      <AccessConfirmDialog
         show={confirmOpen}
-        count={notifications.filter((item) => CLOSED_STATUSES.has(item.status)).length}
+        title="Delete closed requests"
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleConfirm}
-      />
-    </div>
+      >
+        <p>{t(`Delete ${notifications.filter((item) => CLOSED_STATUSES.has(item.status)).length} closed request(s)?`)}</p>
+        <p>{t("This will permanently delete the closed requests from your inbox.")}</p>
+      </AccessConfirmDialog>
+    </section>
   );
 };
 

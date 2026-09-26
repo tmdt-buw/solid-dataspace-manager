@@ -17,6 +17,20 @@ export const PROFILE_LANGUAGE_PREDICATE =
   "https://w3id.org/solid-dataspace-manager#preferredLanguage";
 
 const enToDe = {
+  "Access management": "Zugriffsverwaltung",
+  "Manage access to your data.": "Verwalte den Zugriff auf deine Daten.",
+  "Decisions on your access requests.": "Entscheidungen zu deinen Zugriffsanfragen.",
+  "Adjust the filters or refresh your inbox.": "Passe die Filter an oder aktualisiere deine Inbox.",
+  "Your decision": "Deine Entscheidung",
+  "Filter requests": "Anfragen filtern",
+  "Filter decisions": "Entscheidungen filtern",
+  "Show previous scenario runs": "Frühere Szenario-Durchläufe anzeigen",
+  "Pagination": "Seitennavigation",
+  "Archived": "Archiviert",
+  "Revoked": "Widerrufen",
+  "Expired": "Abgelaufen",
+  "Unknown": "Unbekannt",
+  "Email:": "E-Mail:",
   "Open navigation": "Navigation öffnen",
   "Close navigation": "Navigation schließen",
   "Semantic Search": "Semantische Suche",
