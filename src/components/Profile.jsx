@@ -119,7 +119,7 @@ function RO({ label, value }) {
   return (
     <div className="pf-ro">
       <div className="pf-label">{label}</div>
-      <div className="pf-value">{value || <span className="pf-muted">—</span>}</div>
+      <div className="pf-value" translate="no">{value || <span className="pf-muted">—</span>}</div>
     </div>
   );
 }
@@ -130,7 +130,7 @@ const ListEditor = memo(function ListEditor({ values, setValues, readOnly, profi
       {values.map((val) => (
         <div key={val.id} className="pf-listRow">
           {readOnly ? (
-            <div className="pf-chip">{val.value}</div>
+            <div className="pf-chip" translate="no">{val.value}</div>
           ) : (
             <>
               <input
@@ -697,7 +697,7 @@ export default function Profile({ webId }) {
           <div className="pf-podFields">
             <div className="pf-ro">
               <div className="pf-label">Pod URL</div>
-              <div className="pf-value">
+              <div className="pf-value" translate={solidPodUrl ? "no" : undefined}>
                 {solidPodUrl ? (
                   <a href={solidPodUrl} target="_blank" rel="noopener noreferrer">
                     {solidPodUrl}
@@ -709,7 +709,7 @@ export default function Profile({ webId }) {
             </div>
             <div className="pf-ro">
               <div className="pf-label">Web ID</div>
-              <div className="pf-value">
+              <div className="pf-value" translate={webId ? "no" : undefined}>
                 {webId ? (
                   <a href={webId} target="_blank" rel="noopener noreferrer">
                     {webId}
@@ -733,7 +733,7 @@ export default function Profile({ webId }) {
         <div className="pf-card__body">
           <div className="pf-ro">
             <div className="pf-label">Identifier</div>
-            <div className="pf-value">
+            <div className="pf-value" translate={credentialToken?.id ? "no" : undefined}>
               {credentialToken?.id || <span className="pf-muted">No token found</span>}
             </div>
           </div>
@@ -823,7 +823,7 @@ export default function Profile({ webId }) {
         {!editContact ? (
           <div>
             <div className="pf-subtitle"><FontAwesomeIcon icon={faEnvelope}/> Email</div>
-            {emails.length ? emails.map((m) => <div key={m.id} className="pf-chip">{m.value}</div>) : <div className="pf-muted">—</div>}
+            {emails.length ? emails.map((m) => <div key={m.id} className="pf-chip" translate="no">{m.value}</div>) : <div className="pf-muted">—</div>}
           </div>
         ) : (
           <div>
@@ -848,7 +848,7 @@ export default function Profile({ webId }) {
         <div className="pf-card__body">
           <div className="pf-ro">
             <div className="pf-label">Inbox URL</div>
-            <div className="pf-value">
+            <div className="pf-value" translate={inboxUrl ? "no" : undefined}>
               {inboxUrl ? (
                 <a href={inboxUrl} target="_blank" rel="noopener noreferrer">
                   {inboxUrl}
@@ -896,7 +896,7 @@ export default function Profile({ webId }) {
         <div className="pf-card__body">
           <div className="pf-ro">
             <div className="pf-label">Catalog URL</div>
-            <div className="pf-value">
+            <div className="pf-value" translate={catalogContainerUrl ? "no" : undefined}>
               {catalogContainerUrl ? (
                 <a href={catalogContainerUrl} target="_blank" rel="noopener noreferrer">
                   {catalogContainerUrl}

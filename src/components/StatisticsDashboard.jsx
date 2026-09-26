@@ -431,7 +431,7 @@ function QualityPanel({ title, entity, showSemanticModel = false }) {
             <tbody>
               {entity.quality.fields.map((field) => (
                 <tr key={field.key}>
-                  <td>{field.key}</td>
+                  <td translate="no">{field.key}</td>
                   <td>
                     {formatNumber(field.filled, language)} / {formatNumber(
                       field.total,
@@ -866,7 +866,7 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
                         (instance, index) => (
                           <tr key={`${instance.id}-${index}`}>
                             <td>
-                              <strong>{instance.label}</strong>
+                              <strong translate="no">{instance.label}</strong>
                               {instance.id !== instance.label && (
                                 <small>{instance.id}</small>
                               )}
@@ -907,7 +907,7 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
                     visibleDatasets.map((dataset) => (
                       <tr key={dataset.datasetUrl || dataset.title}>
                         <td>
-                          <strong>{dataset.title}</strong>
+                          <strong translate="no">{dataset.title}</strong>
                           {dataset.datasetUrl && <small>{dataset.datasetUrl}</small>}
                         </td>
                         <td>{formatNumber(dataset.total, language)}</td>

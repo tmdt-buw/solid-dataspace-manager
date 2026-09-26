@@ -27,7 +27,7 @@ const enToDe = {
   "Consume and Provide": "Konsumieren und Bereitstellen",
   Applications: "Anwendungen",
   Miscellaneous: "Sonstiges",
-  "Solid Data Manager": "Solid Datenmanager",
+  "Solid Data Manager": "Solid Data Manager",
   "Transaction History": "Transaktionsverlauf",
   "Access Requests": "Zugriffsanfragen",
   "Access Decisions": "Zugriffsentscheidungen",
@@ -102,6 +102,7 @@ const enToDe = {
   "Solid Pod": "Solid-Pod",
   "Pod URL": "Pod-URL",
   "Web ID": "WebID",
+  WebID: "WebID",
   "Not available": "Nicht verfügbar",
   "Credential Token": "Anmeldetoken",
   Identifier: "Kennung",
@@ -148,7 +149,7 @@ const enToDe = {
   "Members (WebIDs)": "Mitglieder (WebIDs)",
   Save: "Speichern",
   "Saving...": "Wird gespeichert...",
-  "Savingâ€¦": "Wird gespeichert...",
+  "Saving…": "Wird gespeichert...",
   "Profile saved.": "Profil gespeichert.",
   "Profile save failed.": "Profil konnte nicht gespeichert werden.",
   "Profile could not be loaded.": "Profil konnte nicht geladen werden.",
@@ -473,29 +474,29 @@ Object.assign(enToDe, {
     "Richte deine gemeinsame Solid-Inbox, deinen Katalog und die Registry-Einstellungen ein, damit Zugriffsanfragen und Metadaten mit deinem Pod funktionieren.",
   "Set up Data Connection": "Datenverbindung einrichten",
   "Prepare the private Pod folder, credential token, and background worker access required for automated data connections.":
-    "Bereite den privaten Pod-Ordner, das Anmeldetoken und den Zugriff des Hintergrund-Workers vor, die fÃ¼r automatisierte Datenverbindungen benÃ¶tigt werden.",
+    "Bereite den privaten Pod-Ordner, das Anmeldetoken und den Zugriff des Hintergrund-Workers vor, die für automatisierte Datenverbindungen benötigt werden.",
   "Connections folder": "Verbindungsordner",
   "Stores connection settings privately in your Solid Pod.":
     "Speichert Verbindungseinstellungen privat in deinem Solid-Pod.",
   "Credential token": "Anmeldetoken",
   "Lets the background worker authenticate as your WebID.":
-    "ErmÃ¶glicht dem Hintergrund-Worker die Authentifizierung als deine WebID.",
+    "Ermöglicht dem Hintergrund-Worker die Authentifizierung als deine WebID.",
   "Background sync worker": "Hintergrund-Sync-Worker",
   "Registers the participant and grants access only to connection data.":
-    "Registriert den Teilnehmer und gewÃ¤hrt nur Zugriff auf Verbindungsdaten.",
+    "Registriert den Teilnehmer und gewährt nur Zugriff auf Verbindungsdaten.",
   Ready: "Bereit",
   Required: "Erforderlich",
-  "Checking setup...": "Einrichtung wird geprÃ¼ft...",
+  "Checking setup...": "Einrichtung wird geprüft...",
   "Setting up...": "Wird eingerichtet...",
   "Retry setup": "Einrichtung erneut versuchen",
   "The background sync worker is not configured for this Dataspace instance.":
-    "Der Hintergrund-Sync-Worker ist fÃ¼r diese Dataspace-Instanz nicht konfiguriert.",
+    "Der Hintergrund-Sync-Worker ist für diese Dataspace-Instanz nicht konfiguriert.",
   "The background sync worker service WebID is missing.":
     "Die Service-WebID des Hintergrund-Sync-Workers fehlt.",
   "A WebID is required for Data Connection setup.":
-    "FÃ¼r die Einrichtung der Datenverbindung ist eine WebID erforderlich.",
+    "Für die Einrichtung der Datenverbindung ist eine WebID erforderlich.",
   "Account login is required to create the Data Connection credential token. Please sign out and sign in again.":
-    "Zum Erstellen des Anmeldetokens fÃ¼r die Datenverbindung ist eine Kontoanmeldung erforderlich. Bitte melde dich ab und erneut an.",
+    "Zum Erstellen des Anmeldetokens für die Datenverbindung ist eine Kontoanmeldung erforderlich. Bitte melde dich ab und erneut an.",
   "Inbox, Catalog, Registry, Connections & Token":
     "Inbox, Katalog, Registry, Verbindungen und Token",
   "Inbox, Catalog, Registry, Connections, Statistics & Token":
@@ -617,7 +618,7 @@ Object.assign(enToDe, {
     "Die Katalog-Metadaten werden in einem",
   "container in your pod.": "Container in deinem Pod erstellt.",
   "The private registry will always be created in your pod root under":
-    "Die private Registry wird immer in deinem Pod-Root unter",
+    "Die private Registry wird immer in deinem Pod Root unter",
   "Connection settings will be stored in your pod under":
     "Verbindungseinstellungen werden in deinem Pod unter",
   ". The background sync worker will be granted access to this container so it can update selected data sources without an open browser tab.":
@@ -652,7 +653,7 @@ Object.assign(enToDe, {
   "https://api.example.org or 192.168.1.20":
     "https://api.example.org oder 192.168.1.20",
   Catalog: "Katalog",
-  Inbox: "Eingang",
+  Inbox: "Inbox",
   Comment: "Kommentar",
   expired: "abgelaufen",
   "Create pod": "Pod erstellen",
@@ -948,7 +949,7 @@ Object.assign(enToDe, {
     "Das Anmeldeprotokoll, das eine Solid-Sitzung authentifiziert und mit einer WebID verknüpft.",
   WAC: "WAC",
   "Web Access Control rules define which agents may read, append, write or control a Pod resource.":
-    "Web-Access-Control-Regeln legen fest, welche Akteure eine Pod-Ressource lesen, ergänzen, schreiben oder kontrollieren dürfen.",
+    "Web-Access-Control-Regeln legen fest, welche Akteure eine Pod-Ressource lesen (Read), Daten anhängen (Append), Daten schreiben (Write) oder Zugriffsrechte verwalten (Control) dürfen.",
   "The Pod location used to receive access requests, decisions and other linked-data notifications.":
     "Der Pod-Speicherort für Zugriffsanfragen, Entscheidungen und andere Linked-Data-Benachrichtigungen.",
   "Catalog & registry": "Katalog und Registry",
@@ -1151,14 +1152,14 @@ export function translateText(value, language) {
   const target = normalizeLanguage(language);
 
   if (target === "de") {
-    if (enToDe[body]) return withOriginalWhitespace(value, enToDe[body]);
-    if (deToEn[body]) return value;
+    if (Object.prototype.hasOwnProperty.call(enToDe, body)) return withOriginalWhitespace(value, enToDe[body]);
+    if (Object.prototype.hasOwnProperty.call(deToEn, body)) return value;
     const dynamic = translateDynamicText(body, target);
     return dynamic ? withOriginalWhitespace(value, dynamic) : value;
   }
 
-  if (deToEn[body]) return withOriginalWhitespace(value, deToEn[body]);
-  if (enToDe[body]) return value;
+  if (Object.prototype.hasOwnProperty.call(deToEn, body)) return withOriginalWhitespace(value, deToEn[body]);
+  if (Object.prototype.hasOwnProperty.call(enToDe, body)) return value;
   const dynamic = translateDynamicText(body, target);
   return dynamic ? withOriginalWhitespace(value, dynamic) : value;
 }
@@ -1184,6 +1185,11 @@ function translateAttributes(element, language) {
 }
 
 function translateNode(node, language) {
+  // User data and code are not UI copy. Respect the HTML translation boundary
+  // across embedded apps as well as in the standalone document.
+  // https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate
+  const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+  if (element?.closest('[translate="no"], .notranslate, [data-i18n-skip], [contenteditable]:not([contenteditable="false"])')) return;
   if (!node) return;
 
   if (node.nodeType === Node.TEXT_NODE) {

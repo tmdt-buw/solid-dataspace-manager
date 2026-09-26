@@ -733,7 +733,7 @@ function DeleteTokenModal({
           <div className="spp-deleteSummary">
             <FontAwesomeIcon icon={faTriangleExclamation} />
             <div>
-              <strong>{token.name}</strong>
+              <strong translate="no">{token.name}</strong>
               {token.webId ? <span>{token.webId}</span> : null}
             </div>
           </div>
@@ -1576,7 +1576,7 @@ export default function SolidPodProvider({ webId }) {
                       <article className="spp-item spp-item--token">
                         <div className="spp-item__main">
                           <span className="spp-item__label">Token name</span>
-                          <strong>{item.name}</strong>
+                          <strong translate="no">{item.name}</strong>
                         </div>
                         {item.webId ? (
                           <div className="spp-item__main">

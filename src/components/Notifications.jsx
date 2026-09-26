@@ -544,12 +544,12 @@ const Notifications = ({ webId }) => {
               >
               <div className="notification-head">
                 <div>
-                  <div className="notification-title">
+                  <div className="notification-title" translate="no">
                     {trustedEnvironmental
                       ? t(ENVIRONMENTAL_CONSENT.title)
                       : item.datasetTitle || t("Untitled dataset")}
                   </div>
-                  <div className="notification-subtitle">
+                  <div className="notification-subtitle" translate="no">
                     {trustedEnvironmental
                       ? item.datasetTitle || t("Tour activity")
                       : `${t("ID:")} ${item.datasetIdentifier || "N/A"}`}
@@ -565,7 +565,7 @@ const Notifications = ({ webId }) => {
                   <strong>Requester:</strong>{" "}
                   {trustedEnvironmental
                     ? ENVIRONMENTAL_REQUEST.displayName
-                    : item.requesterName || "N/A"}
+                    : <span translate="no">{item.requesterName || "N/A"}</span>}
                 </div>
                 {!trustedEnvironmental && (
                   <>
@@ -593,7 +593,7 @@ const Notifications = ({ webId }) => {
                 </div>
               ) : item.message ? (
                 <div className="notification-message">
-                  <strong>{t("Message:")}</strong> {item.message}
+                  <strong>{t("Message:")}</strong> <span translate="no">{item.message}</span>
                 </div>
               ) : null}
 
@@ -604,7 +604,7 @@ const Notifications = ({ webId }) => {
                   </div>
                   <div><strong>{t("Decided At:")}</strong> {formatDateTime(item.decidedAt, language)}</div>
                   {item.decisionComment && (
-                    <div><strong>{t("Comment:")}</strong> {item.decisionComment}</div>
+                    <div><strong>{t("Comment:")}</strong> <span translate="no">{item.decisionComment}</span></div>
                   )}
                 </div>
               )}

@@ -298,7 +298,7 @@ const DecisionInbox = ({ webId }) => {
               <div className="notification-card" key={item.id}>
               <div className="notification-head">
                 <div>
-                  <div className="notification-title">
+                  <div className="notification-title" translate="no">
                     {item.datasetTitle || t("Untitled dataset")}
                   </div>
                   <div className="notification-subtitle">
@@ -342,7 +342,7 @@ const DecisionInbox = ({ webId }) => {
 
               {item.decisionComment && (
                 <div className="notification-message">
-                  <strong>{t("Comment:")}</strong> {item.decisionComment}
+                  <strong>{t("Comment:")}</strong> <span translate="no">{item.decisionComment}</span>
                 </div>
               )}
 

@@ -450,7 +450,7 @@ const TransactionHistory = ({ webId }) => {
                     {item.direction}
                   </span>
                   <span className="mono">{getPartnerRoot(item)}</span>
-                  <span>{item.datasetTitle || item.datasetIdentifier || "Untitled"}</span>
+                  <span translate={item.datasetTitle || item.datasetIdentifier ? "no" : undefined}>{item.datasetTitle || item.datasetIdentifier || "Untitled"}</span>
                   <span>{formatDateTime(item.decidedAt || item.createdAt)}</span>
                   <span>{formatDateTime(item.expiresAt)}</span>
                 </div>

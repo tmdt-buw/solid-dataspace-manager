@@ -1465,7 +1465,7 @@ function DataConnection({ webId }) {
                   <img src={HOME_ASSISTANT_LOGO} alt="Home Assistant logo" />
                 </span>
                 <span className="data-connection-card__copy">
-                  <strong>{connection.name || "Home Assistant"}</strong>
+                  <strong translate="no">{connection.name || "Home Assistant"}</strong>
                   <span className="data-connection-card__endpoint">
                     {connection.endpoint || connection.url}
                   </span>
@@ -1506,7 +1506,7 @@ function DataConnection({ webId }) {
                   <FontAwesomeIcon icon={faServer} />
                 </span>
                 <span className="data-connection-card__copy">
-                  <strong>{connection.name}</strong>
+                  <strong translate="no">{connection.name}</strong>
                   <span className="data-connection-card__endpoint">
                     {connection.endpoint || connection.url}
                   </span>
