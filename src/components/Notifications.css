@@ -534,29 +534,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.access-inbox .notifications-inbox {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.375rem 0.75rem;
-  padding: 0.25rem 0;
-  color: var(--access-muted);
-  font-size: 0.6875rem;
-  line-height: 1.6;
-}
-
-.access-inbox .notifications-inbox a {
-  min-width: 0;
-  color: var(--access-muted);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  overflow-wrap: anywhere;
-}
-
-.access-inbox .notifications-inbox a:hover {
-  color: var(--access-accent);
-}
-
 .access-inbox .access-confirm {
   width: min(32rem, calc(100% - 2rem));
   max-height: calc(100% - 2rem);

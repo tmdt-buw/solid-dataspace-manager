@@ -27,7 +27,7 @@ import { DCAT, DCTERMS, LDP } from "@inrupt/vocab-common-rdf";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faInbox, faTrash, faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
 import AccessConfirmDialog from "./AccessConfirmDialog";
-import { AccessInboxHeader, AccessStatus, AccessEmptyState, AccessInboxSource, AccessPagination } from "./AccessInboxUi";
+import { AccessInboxHeader, AccessStatus, AccessEmptyState, AccessPagination } from "./AccessInboxUi";
 import ContentLoadingState from "./ContentLoadingState";
 import { getSyncWorkerConfig } from "../config/runtimeConfig";
 import {
@@ -81,7 +81,6 @@ const getDisplayStatus = (status) => {
 
 const Notifications = ({ webId }) => {
   const { language, t } = useI18n();
-  const [inboxUrl, setInboxUrl] = useState("");
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -282,12 +281,10 @@ const Notifications = ({ webId }) => {
     try {
       const inbox = await resolveInboxUrl();
       if (!inbox) {
-        setInboxUrl("");
         setNotifications([]);
         setError("No Solid inbox found for this profile.");
         return;
       }
-      setInboxUrl(inbox);
 
       const inboxDataset = await getSolidDataset(inbox, { fetch: noCacheFetch });
       const resourceUrls = getContainedResourceUrlAll(inboxDataset);
@@ -691,7 +688,6 @@ const Notifications = ({ webId }) => {
           onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
         />
       )}
-      <AccessInboxSource url={inboxUrl} />
       <AccessConfirmDialog
         show={confirmOpen}
         title="Delete closed requests"

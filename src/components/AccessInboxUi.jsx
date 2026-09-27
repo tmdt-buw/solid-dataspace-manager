@@ -2,7 +2,7 @@ import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowLeft, faArrowRight, faArrowRotateLeft, faBoxArchive,
-  faCheck, faClock, faInbox, faLink, faRotateRight, faXmark,
+  faCheck, faClock, faInbox, faRotateRight, faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "../i18n";
 
@@ -52,17 +52,6 @@ export function AccessEmptyState({ title }) {
       <span className="notifications-empty__icon" aria-hidden="true"><FontAwesomeIcon icon={faInbox} /></span>
       <h2>{t(title)}</h2>
       <p>{t("Adjust the filters or refresh your inbox.")}</p>
-    </div>
-  );
-}
-
-export function AccessInboxSource({ url }) {
-  if (!url) return null;
-  return (
-    <div className="notifications-inbox">
-      <FontAwesomeIcon icon={faLink} aria-hidden="true" />
-      <span>Inbox</span>
-      <a href={url} translate="no">{url}</a>
     </div>
   );
 }

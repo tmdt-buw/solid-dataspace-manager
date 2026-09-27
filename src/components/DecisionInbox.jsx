@@ -15,7 +15,7 @@ import {
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
 import AccessConfirmDialog from "./AccessConfirmDialog";
-import { AccessInboxHeader, AccessStatus, AccessEmptyState, AccessInboxSource, AccessPagination } from "./AccessInboxUi";
+import { AccessInboxHeader, AccessStatus, AccessEmptyState, AccessPagination } from "./AccessInboxUi";
 import ContentLoadingState from "./ContentLoadingState";
 import { getSyncWorkerConfig } from "../config/runtimeConfig";
 import {
@@ -96,7 +96,6 @@ const getProviderRoot = (item, webId) => {
 
 const DecisionInbox = ({ webId }) => {
   const { language, t } = useI18n();
-  const [inboxUrl, setInboxUrl] = useState("");
   const [decisions, setDecisions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -145,12 +144,10 @@ const DecisionInbox = ({ webId }) => {
     try {
       const inbox = await resolveInboxUrl();
       if (!inbox) {
-        setInboxUrl("");
         setDecisions([]);
         setError("No Solid inbox found for this profile.");
         return;
       }
-      setInboxUrl(inbox);
 
       const inboxDataset = await getSolidDataset(inbox, { fetch: noCacheFetch });
       const resourceUrls = getContainedResourceUrlAll(inboxDataset);
@@ -345,7 +342,6 @@ const DecisionInbox = ({ webId }) => {
           onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
         />
       )}
-      <AccessInboxSource url={inboxUrl} />
       <AccessConfirmDialog
         show={confirmOpen}
         title={confirmTitle}
