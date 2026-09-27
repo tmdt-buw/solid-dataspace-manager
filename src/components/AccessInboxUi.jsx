@@ -9,20 +9,19 @@ import { useI18n } from "../i18n";
 export function AccessInboxHeader({ icon, title, description, loading, onRefresh }) {
   const { t } = useI18n();
   return (
-    <header className="access-inbox__header">
-      <div className="access-inbox__heading">
-        <span className="access-inbox__mark" aria-hidden="true"><FontAwesomeIcon icon={icon} /></span>
-        <div>
-          <p className="access-inbox__eyebrow">{t("Access management")}</p>
-          <h1>{t(title)}</h1>
-          <p className="access-inbox__description">{t(description)}</p>
-        </div>
-      </div>
-      <button className="access-button" type="button" onClick={onRefresh} disabled={loading}>
-        <FontAwesomeIcon icon={faRotateRight} aria-hidden="true" />
-        {t("Refresh")}
-      </button>
-    </header>
+    <>
+      <header className="toolbar toolbar--title access-inbox__header">
+        <h1 className="crumb">
+          <FontAwesomeIcon icon={icon} className="crumb-icon" aria-hidden="true" />
+          <span>{t(title)}</span>
+        </h1>
+        <button className="pill-btn" type="button" onClick={onRefresh} disabled={loading}>
+          <FontAwesomeIcon icon={faRotateRight} aria-hidden="true" />
+          {t("Refresh")}
+        </button>
+      </header>
+      <p className="access-inbox__description">{t(description)}</p>
+    </>
   );
 }
 
