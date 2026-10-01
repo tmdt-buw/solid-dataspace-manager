@@ -135,8 +135,6 @@ function normalizeApp(app, index) {
     ["Solid Health App", "Solid Gesundheits-App"].includes(app.title)
   ) {
     app = { ...app, title: "Health App" };
-  } else if (app?.id === "solid-chatbot" && app.title === "Solid Chatbot") {
-    app = { ...app, title: "Chatbot" };
   }
   return {
     id: app?.id || `app-${index}`,

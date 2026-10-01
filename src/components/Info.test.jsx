@@ -55,13 +55,6 @@ const configuredApplications = [
     iconKey: "questionnaire",
     linkType: "internal",
   },
-  {
-    id: "solid-chatbot",
-    title: "Chatbot",
-    href: "/web/solid-chatbot",
-    iconKey: "rocketchat",
-    linkType: "internal",
-  },
 ];
 
 function renderInfo(language = "en") {
@@ -90,15 +83,12 @@ describe("Information page", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByText("stadt-wuppertal")).toBeInTheDocument();
-    expect(screen.getByText("5 active")).toBeInTheDocument();
+    expect(screen.getByText("4 active")).toBeInTheDocument();
     expect(screen.getByText("10 minute cycle")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Open Health Questionnaire" })
     ).toHaveAttribute("href", "/web/solid-health-questionnaire");
-    expect(screen.getByRole("link", { name: "Open Chatbot" })).toHaveAttribute(
-      "href",
-      "/web/solid-chatbot"
-    );
+    expect(screen.queryByRole("link", { name: "Open Chatbot" })).not.toBeInTheDocument();
     expect(screen.queryByText("Urban Heat Monitoring")).not.toBeInTheDocument();
   });
 
@@ -117,7 +107,7 @@ describe("Information page", () => {
         level: 2,
       })
     ).toBeInTheDocument();
-    expect(screen.getByText("5 aktiv")).toBeInTheDocument();
+    expect(screen.getByText("4 aktiv")).toBeInTheDocument();
     expect(screen.getByText("10 Minuten-Takt")).toBeInTheDocument();
     expect(screen.getAllByText("Umweltmonitoring").length).toBeGreaterThan(0);
     expect(

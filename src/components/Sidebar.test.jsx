@@ -64,7 +64,7 @@ test.each([
     .toBe(sidebarIcon.querySelector("path").getAttribute("d"));
 });
 
-test.each(["database", "rocketchat", "unknown-icon"])(
+test.each(["database", "unknown-icon"])(
   "honors the configured %s sidebar icon in the iframe loading screen",
   (iconKey) => {
     jest.spyOn(runtimeConfig, "getAppsBySection").mockReturnValue([{

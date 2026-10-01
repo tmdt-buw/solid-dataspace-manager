@@ -30,15 +30,8 @@ import {
   SolidHealthQuestionnaireEmbed,
   healthQuestionnaireVersion,
 } from "@hoelk-f/solid-health-questionnaire/embed";
-import "@hoelk-f/solid-chatbot/embed.css";
-import {
-  ChatbotEmbed,
-  setSession as setChatbotSession,
-  chatbotVersion,
-} from "@hoelk-f/solid-chatbot/embed";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBookOpen, faClipboardCheck, faHeartPulse, faRoute } from "@fortawesome/free-solid-svg-icons";
-import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import "./App.css";
 import ExternalHost from "./components/ExternalHost";
 import Info from "./components/Info";
@@ -240,7 +233,6 @@ const App = () => {
     setDataManagerSession(session);
     setCatalogSession(session);
     setHealthAppSession(session);
-    setChatbotSession(session);
   }, []);
 
   useEffect(() => {
@@ -545,19 +537,6 @@ const App = () => {
   );
   };
 
-  const ChatbotPage = () => (
-    <div className="solid-chatbot-embed">
-      <div className="chatbot-header toolbar--title">
-        <div className="crumb">
-          <FontAwesomeIcon icon={faRocketchat} className="crumb-icon" />
-          <span>Chatbot</span>
-        </div>
-        <span className="integrated-version">{chatbotVersion}</span>
-      </div>
-      <ChatbotEmbed webId={webId} session={session} language={language} />
-    </div>
-  );
-
   const HealthAppPage = () => (
     <div className="solid-health-app-embed">
       <div className="health-app-header toolbar--title">
@@ -653,7 +632,6 @@ const App = () => {
                 <Route path="/web/city-tours" element={<CityToursPage />} />
                 <Route path="/web/solid-tours" element={<LegacyCityToursRedirect />} />
                 <Route path="/web/solid-health-questionnaire" element={<HealthQuestionnairePage />} />
-                <Route path="/web/solid-chatbot" element={<ChatbotPage />} />
                 <Route path="/web/:slug" element={<ExternalHost />} />
               </Routes>
             </div>

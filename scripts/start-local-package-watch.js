@@ -16,7 +16,6 @@ const defaultSourceDirs = [
   "/solid-health-app/dist",
   "/city-tours/dist",
   "/solid-health-questionnaire/dist",
-  "/solid-chatbot/dist",
 ];
 
 const sourceDirs = (process.env.LOCAL_PACKAGE_WATCH_DIRS || defaultSourceDirs.join(";"))

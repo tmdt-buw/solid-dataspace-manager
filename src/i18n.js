@@ -78,7 +78,6 @@ const enToDe = {
   "Failed to update access decision:": "Zugriffsentscheidung konnte nicht aktualisiert werden:",
   "Health App": "Gesundheits-App",
   "Health Questionnaire": "Gesundheitsfragebogen",
-  "Chatbot": "Chatbot",
   Logout: "Abmelden",
   Login: "Anmelden",
   Open: "Öffnen",
@@ -930,12 +929,10 @@ Object.assign(enToDe, {
   "Integration state": "Integrationszustand",
   "Some integrations keep tokens or interface selections in browser storage and contact configured sources such as Google Fit, Home Assistant, custom APIs or Open-Meteo.":
     "Einige Integrationen speichern Token oder Oberflächenauswahlen im Browser und kontaktieren konfigurierte Quellen wie Google Fit, Home Assistant, eigene APIs oder Open-Meteo.",
+  "The sync worker keeps operational state, PLASMA and Node-RED use service storage, and movement donations are aggregated.":
+    "Der Sync-Worker verwaltet Betriebszustände, PLASMA und Node-RED nutzen eigenen Dienstspeicher und Bewegungsspenden werden aggregiert.",
   "Purpose-bound services": "Zweckgebundene Dienste",
   "Transparent processing": "Transparente Verarbeitung",
-  "The sync worker keeps operational state while writing selected connection data to Pods, PLASMA uses modeling services, movement donations are aggregated, and the chatbot maintains a per-user source index.":
-    "Der Sync-Worker verwaltet Betriebszustände und schreibt ausgewählte Verbindungsdaten in Pods, PLASMA nutzt Modellierungsdienste, Bewegungsspenden werden aggregiert und der Chatbot führt einen getrennten Quellenindex pro Nutzer.",
-  "The sync worker keeps operational state, PLASMA and Node-RED use service storage, movement donations are aggregated, and chatbot embeddings are kept in per-WebID Qdrant indexes.":
-    "Der Sync-Worker verwaltet Betriebszustände, PLASMA und Node-RED nutzen eigenen Dienstspeicher, Bewegungsspenden werden aggregiert und Chatbot-Embeddings liegen in nach WebID getrennten Qdrant-Indizes.",
   "Access is contextual, not global": "Zugriff gilt kontextbezogen, nicht global",
   "Solid-OIDC authenticates the session. WAC permissions determine whether that authenticated agent may access a specific Pod resource.":
     "Solid-OIDC authentifiziert die Sitzung. WAC-Berechtigungen bestimmen, ob dieser authentifizierte Akteur auf eine bestimmte Pod-Ressource zugreifen darf.",
@@ -947,10 +944,6 @@ Object.assign(enToDe, {
     "City Tours zeichnet und importiert Routen, erfasst jedoch keine Live-GPS-Spuren und ruft keinen Routingdienst auf.",
   "The Health Questionnaire is an orientation tool. Its score thresholds are product assumptions, not clinically validated cutoffs.":
     "Der Gesundheitsfragebogen dient zur Orientierung. Seine Bewertungsgrenzen sind Produktannahmen und keine klinisch validierten Grenzwerte.",
-  "The Chatbot service can currently index anonymously readable sources reliably; selected-source references and retrieval indexes remain separated by WebID.":
-    "Der Chatbot-Dienst kann derzeit anonym lesbare Quellen zuverlässig indexieren; ausgewählte Quellenverweise und Retrieval-Indizes bleiben nach WebID getrennt.",
-  "Chatbot processing uses Ollama, Qdrant and a configured Qwen/vLLM endpoint. Server-side indexing currently works reliably for anonymously readable sources.":
-    "Die Chatbot-Verarbeitung nutzt Ollama, Qdrant und einen konfigurierten Qwen-/vLLM-Endpunkt. Die serverseitige Indexierung funktioniert derzeit zuverlässig für anonym lesbare Quellen.",
   "Solid in plain language": "Solid einfach erklärt",
   "The concepts used throughout this workspace, without protocol jargon.":
     "Die in diesem Arbeitsbereich verwendeten Begriffe – ohne Protokolljargon.",

@@ -16,9 +16,6 @@ jest.mock("@hoelk-f/city-tours/embed.css", () => ({}), {
 jest.mock("@hoelk-f/solid-health-questionnaire/embed.css", () => ({}), {
   virtual: true,
 });
-jest.mock("@hoelk-f/solid-chatbot/embed.css", () => ({}), {
-  virtual: true,
-});
 
 jest.mock(
   "@hoelk-f/solid-data-manager/embed",
@@ -47,11 +44,6 @@ jest.mock(
 jest.mock(
   "@hoelk-f/solid-health-questionnaire/embed",
   () => ({ SolidHealthQuestionnaireEmbed: () => null, healthQuestionnaireVersion: "test" }),
-  { virtual: true }
-);
-jest.mock(
-  "@hoelk-f/solid-chatbot/embed",
-  () => ({ ChatbotEmbed: () => null, setSession: jest.fn(), chatbotVersion: "test" }),
   { virtual: true }
 );
 

@@ -151,15 +151,6 @@ body {
   overscroll-behavior-y: auto;
 }
 
-.solid-chatbot-embed {
-  position: relative;
-  width: 100%;
-  min-height: auto;
-  padding-bottom: 0;
-  --dataspace-scrollbar-thumb: #7c6fad;
-  --dataspace-scrollbar-thumb-hover: #4c3f78;
-}
-
 .solid-health-app-embed {
   position: relative;
   width: 100%;
@@ -253,39 +244,7 @@ body {
   transform: translateX(-50%);
 }
 
-.solid-chatbot-embed .page--embedded {
-  width: 100%;
-  height: calc(var(--dataspace-scaled-vh, 100vh) - 230px);
-  min-height: 620px;
-  padding: 18px;
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-}
-
-.solid-chatbot-embed .main {
-  width: 100%;
-  margin-left: 0;
-}
-
-.solid-chatbot-embed .chat-shell {
-  width: 100%;
-  box-shadow: none;
-  border-radius: 14px;
-}
-
-.solid-chatbot-embed .sub-header {
-  box-shadow: none;
-}
-
 .catalog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.chatbot-header {
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -17,7 +17,7 @@ export const externalLinks = [
     slug: "environmental-monitoring",
     title: "Environmental Monitoring",
     url: "/environmental-monitoring/",
-    version: "0.3.15",
+    version: "0.3.16",
     hideOpenButton: true,
   },
   {
@@ -25,13 +25,6 @@ export const externalLinks = [
     title: "Health App",
     url: "/solid-health-app/",
     version: "0.1.25",
-    hideOpenButton: true,
-  },
-  {
-    slug: "solid-chatbot",
-    title: "Chatbot",
-    url: "/solid-chatbot/",
-    version: "0.1.15",
     hideOpenButton: true,
   },
 ];

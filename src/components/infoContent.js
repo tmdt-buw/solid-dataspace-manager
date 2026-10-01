@@ -142,12 +142,6 @@ export const INFO_APPLICATION_DETAILS = {
       "Answer 18 questions across five health areas and keep the completed assessment privately in your Pod. It is not a medical diagnosis.",
     dataNote: "Owner-only assessment results in your Pod",
   },
-  "solid-chatbot": {
-    eyebrow: "Source-grounded assistant",
-    description:
-      "Select compatible files from your own or connected Pods and use them as sources for a user-isolated RAG workspace.",
-    dataNote: "Source selection in the Pod; per-user vector index",
-  },
 };
 
 export const INFO_FLOW_STEPS = [
@@ -205,7 +199,7 @@ export const INFO_DATA_BOUNDARIES = [
     title: "Purpose-bound services",
     label: "Transparent processing",
     description:
-      "The sync worker keeps operational state, PLASMA and Node-RED use service storage, movement donations are aggregated, and chatbot embeddings are kept in per-WebID Qdrant indexes.",
+      "The sync worker keeps operational state, PLASMA and Node-RED use service storage, and movement donations are aggregated.",
   },
 ];
 
@@ -213,7 +207,6 @@ export const INFO_CURRENT_SCOPE = [
   "Embedded applications reuse the Manager's authenticated Solid session. Several applications also provide a standalone build with their own sign-in.",
   "City Tours draws and imports routes, but it does not record live GPS tracks or call a routing service.",
   "The Health Questionnaire is an orientation tool. Its score thresholds are product assumptions, not clinically validated cutoffs.",
-  "Chatbot processing uses Ollama, Qdrant and a configured Qwen/vLLM endpoint. Server-side indexing currently works reliably for anonymously readable sources.",
 ];
 
 export const INFO_GLOSSARY = [

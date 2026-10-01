@@ -41,16 +41,6 @@ window.__APP_CONFIG__ = {
       "visible": true,
       "order": 24,
       "linkType": "internal"
-    },
-    {
-      "id": "solid-chatbot",
-      "title": "Chatbot",
-      "href": "/web/solid-chatbot",
-      "section": "applications",
-      "iconKey": "rocketchat",
-      "visible": true,
-      "order": 25,
-      "linkType": "internal"
     }
   ],
   "providers": [

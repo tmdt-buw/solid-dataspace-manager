@@ -3,7 +3,6 @@ import {
   faDiagramProject, faFolder, faHeartPulse, faHexagonNodes, faInbox,
   faInfo, faLink, faMagnifyingGlass, faRoute, faServer, faTableColumns, faTemperatureHigh, faUser,
 } from "@fortawesome/free-solid-svg-icons";
-import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import { getAppsBySection } from "./runtimeConfig";
 
 // Sidebar and loading screens share the same icon definitions (not title text).
@@ -32,7 +31,6 @@ const appIcons = {
   questionnaire: faClipboardCheck,
   tour: faRoute,
   server: faServer,
-  rocketchat: faRocketchat,
 };
 
 const defaultAppIconKeys = {
@@ -40,7 +38,6 @@ const defaultAppIconKeys = {
   "solid-health-app": "health",
   "solid-health-questionnaire": "questionnaire",
   "city-tours": "tour",
-  "solid-chatbot": "rocketchat",
 };
 
 export function getAppIcon(iconKey) {

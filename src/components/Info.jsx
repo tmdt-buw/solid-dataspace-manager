@@ -23,7 +23,6 @@ import {
   faUser,
   faUserGear,
 } from "@fortawesome/free-solid-svg-icons";
-import { faRocketchat } from "@fortawesome/free-brands-svg-icons";
 import { useI18n } from "../i18n";
 import {
   getAppsBySection,
@@ -65,7 +64,6 @@ const applicationIcons = {
   health: faHeartPulse,
   tour: faRoute,
   questionnaire: faClipboardCheck,
-  rocketchat: faRocketchat,
   server: faServer,
   database: faDatabase,
   default: faDatabase,
