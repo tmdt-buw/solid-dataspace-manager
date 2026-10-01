@@ -480,7 +480,7 @@ export default function OnboardingWizard({
       session.fetch,
       registryConfig.privateRegistry
     );
-    const { catalogUrl: configuredUrl } = await ensureCatalogStructure(session, {
+    const { catalogUrl: configuredUrl } = await ensureCatalogStructure(webId, session.fetch, {
       title,
       registryConfig,
     });

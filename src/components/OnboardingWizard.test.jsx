@@ -21,6 +21,7 @@ jest.mock("@inrupt/solid-client", () => {
   return {
     ...actual,
     createContainerAt: jest.fn(async () => ({})),
+    deleteFile: jest.fn(async () => undefined),
     getSolidDataset: (...args) => mockGetSolidDataset(...args),
     getSolidDatasetWithAcl: jest.fn(async () => ({ resource: true })),
     getResourceAcl: jest.fn(() => ({})),
@@ -112,6 +113,7 @@ describe("OnboardingWizard shared Dataspace setup", () => {
       catalogUrl: "https://pod.example/alice/catalog/cat.ttl#it",
     });
     solidCatalog.ensurePrivateRegistryContainer.mockResolvedValue({});
+    solidCatalog.loadRegistryMembersFromContainer.mockResolvedValue([]);
     solidCatalog.saveRegistryConfig.mockResolvedValue({});
     const dataset = profileDataset();
     mockGetSolidDataset.mockResolvedValue(dataset);
@@ -191,13 +193,72 @@ describe("OnboardingWizard shared Dataspace setup", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     const solidCatalog = jest.requireMock("../solidCatalog");
     expect(solidCatalog.ensureCatalogStructure).toHaveBeenCalledWith(
-      expect.objectContaining({ fetch: expect.any(Function) }),
+      WEB_ID,
+      jest.requireMock("../solidSession").default.fetch,
       expect.objectContaining({
         title: "Alice's Catalog",
         registryConfig: expect.objectContaining({ mode: "private" }),
       })
     );
   });
+
+
+  test.each(["private", "research"])(
+    "finishes Pod setup with the real catalog function in %s mode",
+    async (mode) => {
+      const onComplete = jest.fn();
+      const solidCatalog = jest.requireMock("../solidCatalog");
+      solidCatalog.loadRegistryConfig.mockResolvedValue({
+        mode,
+        registries: mode === "research" ? ["https://registry.example/public/"] : [],
+        privateRegistry: "https://pod.example/alice/registry/",
+      });
+      solidCatalog.ensureCatalogStructure.mockImplementationOnce(
+        jest.requireActual("../solidCatalog").ensureCatalogStructure
+      );
+      mockSessionFetch.mockResolvedValue({ ok: true, status: 200 });
+      mockGetSolidDataset.mockImplementation(async (url) => {
+        if (url === WEB_ID.split("#")[0]) return profileDataset();
+        if (url === "https://pod.example/alice/catalog/cat.ttl") {
+          throw Object.assign(new Error("Not found"), { statusCode: 404 });
+        }
+        return {
+          ...createSolidDataset(),
+          internal_resourceInfo: { sourceIri: url, isRawData: false },
+        };
+      });
+
+      render(
+        <OnboardingWizard
+          webId={WEB_ID}
+          statisticsConfig={STATISTICS_CONFIG}
+          onComplete={onComplete}
+          onCancel={jest.fn()}
+        />
+      );
+      fireEvent.click(await screen.findByRole("checkbox", {
+        name: /I agree that finishing will create and update my usage statistics/i,
+      }));
+      if (mode === "research") {
+        fireEvent.click(screen.getByRole("checkbox", {
+          name: "I understand that finishing will register me in the selected registries.",
+        }));
+      }
+      fireEvent.click(screen.getByRole("button", { name: "Finish" }));
+
+      await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+      expect(mockSaveSolidDatasetAt).toHaveBeenCalledWith(
+        "https://pod.example/alice/catalog/cat.ttl",
+        expect.anything(),
+        { fetch: jest.requireMock("../solidSession").default.fetch }
+      );
+      expect(mockSessionFetch).toHaveBeenCalledWith(
+        mode === "private" ? "https://pod.example/alice/registry/" : "https://registry.example/public/",
+        expect.objectContaining({ method: "POST", body: expect.stringContaining(WEB_ID) })
+      );
+      expect(screen.queryByText(/is not a valid URL|Invalid URL/)).not.toBeInTheDocument();
+    }
+  );
 
   test("collects and stores usage statistics consent during Pod setup", async () => {
     const onComplete = jest.fn();
