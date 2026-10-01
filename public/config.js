@@ -93,7 +93,7 @@ window.__APP_CONFIG__ = {
     ],
     "workerWebId": "https://solid-community-server.tmdt.info/solidserviceworker/profile/card#me",
     "podBaseUrl": "https://solid-community-server.tmdt.info/solidtestpod/statistics/",
-    "eventsUrl": "https://solid-community-server.tmdt.info/solidtestpod/statistics/events/catalog-instances/test/downloads/",
+    "eventsUrl": "https://solid-community-server.tmdt.info/solidtestpod/statistics/events/catalog-instances/stadt-wuppertal/downloads/",
     "timezone": "Europe/Berlin",
     "activityResourcePath": "statistics/activity/activity.ttl"
   }
