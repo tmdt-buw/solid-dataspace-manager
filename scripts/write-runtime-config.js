@@ -42,7 +42,13 @@ function parseBooleanEnv(name) {
   return parseBooleanValue(process.env[name]);
 }
 
+const legacyContinuousWebIds = parseJsonEnv("APP_CITY_TOURS_LEGACY_CONTINUOUS_WEBIDS_JSON", []);
+if (!Array.isArray(legacyContinuousWebIds) || legacyContinuousWebIds.some(id => typeof id !== "string" || !/^https:\/\//.test(id))) {
+  throw new Error("APP_CITY_TOURS_LEGACY_CONTINUOUS_WEBIDS_JSON must be an array of HTTPS WebIDs.");
+}
+
 const config = {
+  cityToursLegacyContinuousWebIds: legacyContinuousWebIds,
   dataspaceId: process.env.APP_DATASPACE_ID || "",
   plasmaUrl:
     process.env.APP_PLASMA_URL ||

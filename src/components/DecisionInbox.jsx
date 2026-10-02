@@ -20,6 +20,7 @@ import ContentLoadingState from "./ContentLoadingState";
 import { getSyncWorkerConfig } from "../config/runtimeConfig";
 import {
   ENVIRONMENTAL_CONSENT,
+  environmentalConsent,
   ENVIRONMENTAL_REQUEST,
   filterPreviousScenarioRuns,
   isTrustedEnvironmentalRequest,
@@ -318,7 +319,7 @@ const DecisionInbox = ({ webId }) => {
                   <div><dt>{t("Provider:")}</dt><dd translate="no">{getProviderRoot(item, webId)}</dd></div>
                   {trustedEnvironmental && (
                     <>
-                      <div className="notification-meta__wide"><dt>{t("Purpose:")}</dt><dd>{t(ENVIRONMENTAL_CONSENT.purpose)}</dd></div>
+                      <div className="notification-meta__wide"><dt>{t("Purpose:")}</dt><dd>{t(environmentalConsent(item).purpose)}</dd></div>
                       <div><dt>{t("Access:")}</dt><dd>{t(ENVIRONMENTAL_CONSENT.access)}</dd></div>
                     </>
                   )}

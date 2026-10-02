@@ -1,4 +1,5 @@
 window.__APP_CONFIG__ = {
+  "cityToursLegacyContinuousWebIds": [],
   "dataspaceId": "stadt-wuppertal",
   "plasmaUrl": "/plasma/modelings",
   "apps": [

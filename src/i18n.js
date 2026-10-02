@@ -53,6 +53,8 @@ const enToDe = {
   "Environmental Monitoring": "Umweltmonitoring",
   "Environmental Monitoring wants to use your completed tours":
     "Environmental Monitoring möchte deine gemachten Touren verwenden",
+  "All completed routes and activity values, including future City Tours activities until you revoke the donation": "Alle abgeschlossenen Routen und Aktivitätswerte, einschließlich zukünftiger Aktivitäten in City Tours bis zum Widerruf der Datenspende",
+  "With your consent, Environmental Monitoring may continuously read all completed City Tours activities, including future activities, and display their routes and calculated values publicly. This continues until you revoke the donation. Your source data in your Pod remains protected.": "Mit deiner Zustimmung darf Environmental Monitoring fortlaufend alle abgeschlossenen Aktivitäten in City Tours einschließlich zukünftiger Aktivitäten lesen und deren Routen sowie berechnete Werte öffentlich anzeigen. Dies gilt bis zum Widerruf der Datenspende. Die Quelldaten in deinem Pod bleiben geschützt.",
   "All donated completed routes and their calculated activity values":
     "Alle gespendeten gemachten Routen und ihre berechneten Aktivitätswerte",
   "Public display of approved donated routes and their derived activity values without direct identifiers in Environmental Monitoring.":

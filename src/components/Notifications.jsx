@@ -32,6 +32,7 @@ import ContentLoadingState from "./ContentLoadingState";
 import { getSyncWorkerConfig } from "../config/runtimeConfig";
 import {
   ENVIRONMENTAL_CONSENT,
+  environmentalConsent,
   ENVIRONMENTAL_REQUEST,
   SDM,
   buildAccessDecisionTurtle,
@@ -563,8 +564,8 @@ const Notifications = ({ webId }) => {
 
                 {trustedEnvironmental ? (
                   <div className="notification-consent">
-                    <div className="notification-consent__item"><strong>{t("Data:")}</strong><span>{t(ENVIRONMENTAL_CONSENT.data)}</span></div>
-                    <div className="notification-consent__item"><strong>{t("Purpose:")}</strong><span>{t(ENVIRONMENTAL_CONSENT.purpose)}</span></div>
+                    <div className="notification-consent__item"><strong>{t("Data:")}</strong><span>{t(environmentalConsent(item).data)}</span></div>
+                    <div className="notification-consent__item"><strong>{t("Purpose:")}</strong><span>{t(environmentalConsent(item).purpose)}</span></div>
                     <div className="notification-consent__item"><strong>{t("Access:")}</strong><span>{t(ENVIRONMENTAL_CONSENT.access)}</span></div>
                     <div className="notification-consent__notice"><strong>{t("Note:")}</strong><p>{t(ENVIRONMENTAL_CONSENT.notice)}</p></div>
                     {validationErrors.length > 0 && (

@@ -49,6 +49,7 @@ export const SDM = Object.freeze({
   dataCategory: `${SDM_NS}dataCategory`,
   outputVisibility: `${SDM_NS}outputVisibility`,
   publicationScope: `${SDM_NS}publicationScope`,
+  donationMode: `${SDM_NS}donationMode`,
 });
 
 export const ENVIRONMENTAL_REQUEST = Object.freeze({
@@ -70,6 +71,15 @@ export const ENVIRONMENTAL_CONSENT = Object.freeze({
   notice:
     "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.",
 });
+
+export const ENVIRONMENTAL_CONTINUOUS_CONSENT = Object.freeze({
+  ...ENVIRONMENTAL_CONSENT,
+  data: "All completed routes and activity values, including future City Tours activities until you revoke the donation",
+  purpose: "With your consent, Environmental Monitoring may continuously read all completed City Tours activities, including future activities, and display their routes and calculated values publicly. This continues until you revoke the donation. Your source data in your Pod remains protected.",
+});
+
+export const environmentalConsent = (item) => item?.donationMode === "continuous"
+  ? ENVIRONMENTAL_CONTINUOUS_CONSENT : ENVIRONMENTAL_CONSENT;
 
 export const DCT_CREATED = "http://purl.org/dc/terms/created";
 export const DCT_TITLE = "http://purl.org/dc/terms/title";
@@ -114,6 +124,7 @@ const commonFields = (thing) => {
     dataCategory: getStringNoLocale(thing, SDM.dataCategory) || "",
     outputVisibility: getStringNoLocale(thing, SDM.outputVisibility) || "",
     publicationScope: getStringNoLocale(thing, SDM.publicationScope) || "dataspace",
+    donationMode: getStringNoLocale(thing, SDM.donationMode) || "snapshot",
   };
 };
 
@@ -206,9 +217,12 @@ export function validateTrustedEnvironmentalRequest(item, serviceWebId, ownerWeb
   }
   // A distinct purpose makes older clients reject shared requests instead of
   // approving them without the updated public-display explanation.
-  const expectedPurpose = publicationScope === "shared"
+  const donationMode = item.donationMode || "snapshot";
+  if (!["snapshot", "continuous"].includes(donationMode)) errors.push("Unsupported donation mode.");
+  const basePurpose = publicationScope === "shared"
     ? ENVIRONMENTAL_REQUEST.sharedPurpose
     : ENVIRONMENTAL_REQUEST.purpose;
+  const expectedPurpose = `${basePurpose}${donationMode === "continuous" ? "-continuous" : ""}`;
   if (item.purpose !== expectedPurpose) errors.push("Unsupported purpose.");
   if (item.dataCategory !== ENVIRONMENTAL_REQUEST.dataCategory) {
     errors.push("Unsupported data category.");
@@ -306,6 +320,7 @@ export function buildAccessDecisionTurtle({
     ["dataCategory", item.dataCategory],
     ["outputVisibility", item.outputVisibility],
     ["publicationScope", item.publicationScope],
+    ["donationMode", item.donationMode],
     ["decisionComment", note],
     ["expiresAt", expiresAt],
   ];

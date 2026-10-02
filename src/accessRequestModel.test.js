@@ -9,6 +9,7 @@ import { RDF } from "@inrupt/vocab-common-rdf";
 import {
   ACL_READ,
   ENVIRONMENTAL_CONSENT,
+  environmentalConsent,
   ENVIRONMENTAL_REQUEST,
   LEGACY_FULL_ACCESS,
   READ_ONLY_ACCESS,
@@ -299,4 +300,23 @@ test("keeps only the newest scenario run unless history is requested", () => {
     "legacy",
   ]);
   expect(filterPreviousScenarioRuns(items, true)).toEqual(items);
+});
+
+
+test("continuous consent explicitly includes future activities and survives decisions", () => {
+  let thing = environmentalThing(SDM.AccessRequest);
+  thing = setStringNoLocale(thing, SDM.donationMode, "continuous");
+  thing = setStringNoLocale(thing, SDM.purpose, `${ENVIRONMENTAL_REQUEST.purpose}-continuous`);
+  const item = parseAccessRequestThing("https://pod.example/laura/inbox/continuous", thing);
+  expect(validateTrustedEnvironmentalRequest(item, SERVICE_WEBID, OWNER_WEBID)).toEqual([]);
+  expect(environmentalConsent(item).data).toMatch(/future.*until you revoke/);
+  expect(buildAccessDecisionTurtle({ item, decision: "approved", decidedAt: "2026-10-02T10:00:00Z" }))
+    .toContain('sdm:donationMode "continuous"');
+  expect(validateTrustedEnvironmentalRequest({ ...item, donationMode: "snapshot" }, SERVICE_WEBID, OWNER_WEBID))
+    .toContain("Unsupported purpose.");
+  expect(validateTrustedEnvironmentalRequest({ ...item, purpose: ENVIRONMENTAL_REQUEST.purpose }, SERVICE_WEBID, OWNER_WEBID))
+    .toContain("Unsupported purpose.");
+  const decision = parseAccessDecisionThing("https://pod.example/worker/inbox/decision", addUrl(thing, RDF.type, SDM.AccessDecision));
+  expect(decision.donationMode).toBe("continuous");
+  expect(environmentalConsent({})).toBe(ENVIRONMENTAL_CONSENT);
 });
