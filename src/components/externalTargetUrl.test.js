@@ -78,3 +78,17 @@ test("does not add a dataspace partition to unrelated applications", () => {
   );
   expect(target.searchParams.get("dataspaceId")).toBeNull();
 });
+
+
+test("changes the embedded document URL when the displayed monitoring version changes", () => {
+  const target = (version) => new URL(buildExternalTargetUrl({
+    activeLink: { ...environmentalLink, version },
+    language: "en",
+    origin: "https://dataspace.example",
+    dataspaceId: "test",
+  }));
+  expect(target("0.3.17").href).not.toBe(target("0.3.18").href);
+  expect(target("0.3.18").searchParams.get("v")).toBe("0.3.18");
+  expect(target("0.3.18").searchParams.get("dataspaceId")).toBe("test");
+  expect(target("0.3.18").searchParams.get("lang")).toBe("en");
+});

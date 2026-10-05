@@ -17,7 +17,7 @@ export const externalLinks = [
     slug: "environmental-monitoring",
     title: "Environmental Monitoring",
     url: "/environmental-monitoring/",
-    version: "0.3.17",
+    version: "0.3.18",
     hideOpenButton: true,
   },
   {

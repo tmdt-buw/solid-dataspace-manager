@@ -23,6 +23,9 @@ export function buildExternalTargetUrl({
         "dataspaceId",
         normalizedDataspaceId || UNCONFIGURED_DATASPACE_ID
       );
+      // The host version label must select the same release inside the iframe.
+      // Otherwise a cached entry HTML can keep loading an older hashed bundle.
+      if (activeLink.version) url.searchParams.set("v", activeLink.version);
     }
     return url.toString();
   } catch {
