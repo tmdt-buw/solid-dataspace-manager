@@ -33,7 +33,8 @@ const DATASET_CONTAINER = "catalog/ds/";
 const SERIES_CONTAINER = "catalog/series/";
 const RECORDS_CONTAINER = "catalog/records/";
 const CATALOG_DOC = "catalog/cat.ttl";
-const SDP_NS = "https://w3id.org/solid-dcat-profile#";
+const SDP_NS = "http://purl.org/sdp/terms#";
+export const LEGACY_SDP_CATALOG = "https://w3id.org/solid-dcat-profile#catalog";
 export const SDP_CATALOG = `${SDP_NS}catalog`;
 const SDM_NS = "https://w3id.org/solid-dataspace-manager#";
 const SDM_REGISTRY_MODE = `${SDM_NS}registryMode`;
@@ -164,6 +165,7 @@ const setCatalogLinkInProfile = async (webId, catalogUrl, fetch) => {
   profileThing = removeAll(profileThing, SDP_CATALOG);
   profileThing = removeAll(profileThing, DCAT.catalog);
   profileThing = setUrl(profileThing, SDP_CATALOG, catalogUrl);
+  profileThing = setUrl(profileThing, LEGACY_SDP_CATALOG, catalogUrl);
   const updatedProfile = setThing(profileDataset, profileThing);
   await saveSolidDatasetAt(profileDocUrl, updatedProfile, { fetch });
 };
@@ -499,7 +501,7 @@ export const resolveCatalogUrl = async (webId, fetch) => {
     const profileDoc = await getSolidDataset(profileDocUrl, { fetch });
     const profileThing = getThing(profileDoc, webId);
     const profileCatalog = profileThing
-      ? getUrl(profileThing, SDP_CATALOG) || getUrl(profileThing, DCAT.catalog)
+      ? getUrl(profileThing, SDP_CATALOG) || getUrl(profileThing, LEGACY_SDP_CATALOG) || getUrl(profileThing, DCAT.catalog)
       : null;
     if (profileCatalog) return profileCatalog;
   } catch (err) {

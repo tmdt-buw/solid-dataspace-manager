@@ -41,6 +41,7 @@ import {
   resolveCatalogUrl,
   saveRegistryConfig,
   SDP_CATALOG,
+  LEGACY_SDP_CATALOG,
 } from "../solidCatalog";
 import { ensurePodStorageLink } from "../solidStorage";
 import {
@@ -212,7 +213,7 @@ export default function OnboardingWizard({
         !statisticsEnabled || hasStatisticsConsent(me);
       setStatisticsAcknowledged(statisticsConsentGranted);
 
-      const profileCatalog = getUrl(me, SDP_CATALOG) || "";
+      const profileCatalog = getUrl(me, SDP_CATALOG) || getUrl(me, LEGACY_SDP_CATALOG) || "";
       let catalogResolved = profileCatalog;
       let hasCatalog = false;
       const catalogContainerUrl = `${getPodRoot(webId)}catalog/`;

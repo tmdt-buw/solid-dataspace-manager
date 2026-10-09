@@ -62,6 +62,7 @@ import {
   loadRegistryConfig,
   resolveCatalogUrl,
   SDP_CATALOG,
+  LEGACY_SDP_CATALOG,
 } from "./solidCatalog";
 import {
   getFundingGrantNumber,
@@ -385,7 +386,7 @@ const App = () => {
         const missingEmail = allEmails.length === 0;
         const missingInbox = !inbox;
 
-        const profileCatalog = getUrl(me, SDP_CATALOG) || "";
+        const profileCatalog = getUrl(me, SDP_CATALOG) || getUrl(me, LEGACY_SDP_CATALOG) || "";
         let missingCatalog = !profileCatalog;
         if (profileCatalog) {
           try {
