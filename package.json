@@ -1,6 +1,6 @@
 {
   "name": "pod_browser",
-  "version": "0.3.93",
+  "version": "0.3.94",
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
@@ -11,11 +11,11 @@
     "@fortawesome/free-regular-svg-icons": "^7.0.0",
     "@fortawesome/free-solid-svg-icons": "^7.0.0",
     "@fortawesome/react-fontawesome": "^0.2.3",
-    "@hoelk-f/semantic-data-catalog": "0.8.81",
+    "@hoelk-f/semantic-data-catalog": "0.8.82",
     "@hoelk-f/solid-data-manager": "0.4.19",
     "@hoelk-f/solid-health-app": "0.1.25",
     "@hoelk-f/solid-health-questionnaire": "0.1.8",
-    "@hoelk-f/city-tours": "0.1.20",
+    "@hoelk-f/city-tours": "0.1.21",
     "@inrupt/solid-client": "^2.1.2",
     "@inrupt/solid-client-authn-browser": "^3.1.0",
     "@inrupt/vocab-common-rdf": "^1.0.5",
@@ -38,13 +38,14 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "prestart": "node scripts/write-runtime-config.js",
-    "prebuild": "node scripts/write-runtime-config.js",
+    "prestart": "node scripts/build-legal-pages.cjs && node scripts/write-runtime-config.js",
+    "prebuild": "node scripts/build-legal-pages.cjs && node scripts/write-runtime-config.js",
     "start": "react-scripts start",
     "start:local-packages": "node scripts/start-local-package-watch.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "build:legal": "node scripts/build-legal-pages.cjs"
   },
   "eslintConfig": {
     "extends": [

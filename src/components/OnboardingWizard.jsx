@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import LegalLinks from "./LegalLinks";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   getSolidDataset,
@@ -861,6 +862,7 @@ export default function OnboardingWizard({
             {saving ? "Saving..." : step === 3 ? "Finish" : "Next"}
           </button>
         </div>
+        <footer className="onboarding-legal"><LegalLinks /></footer>
       </div>
     </div>
   );

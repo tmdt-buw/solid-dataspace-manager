@@ -396,9 +396,9 @@ body {
   height: 88px;
   min-height: 88px;
   flex: 0 0 88px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
   gap: 10px;
   background: rgba(255, 255, 255, 0.94);
   border-top: 1px solid var(--border);
@@ -409,6 +409,14 @@ body {
   backdrop-filter: blur(10px);
 }
 
+.app-footer__identity {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
 .app-footer__meta {
   display: inline-flex;
   align-items: center;
@@ -417,15 +425,15 @@ body {
 }
 
 .app-footer__funding {
-  position: absolute;
-  right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
+  grid-column: 3;
+  justify-self: end;
+  margin-right: 24px;
+  min-width: 0;
   display: flex;
   flex-direction: row-reverse;
   align-items: center;
   gap: 18px;
-  max-width: 42%;
+  max-width: 100%;
   overflow: hidden;
 }
 
@@ -835,5 +843,10 @@ body {
   .layout--city-tours > .main > .container { padding: 8px; }
   .city-tours-header { min-height: 48px; padding: 8px 12px; }
   .city-tours-header .crumb { font-size: 1.1rem; }
-  .layout--city-tours .app-footer { display: none; }
+}
+
+/* Keep legal links visible alongside the funding information at narrow widths. */
+@media (max-width: 1100px) {
+  .app-footer { display: flex; justify-content: center; height: auto; flex-basis: auto; flex-wrap: wrap; padding: 12px; }
+  .app-footer__funding { margin-right: 0; max-width: 100%; flex-wrap: wrap; justify-content: center; }
 }

@@ -36,6 +36,7 @@ import "./App.css";
 import ExternalHost from "./components/ExternalHost";
 import Info from "./components/Info";
 import LoginScreen from "./components/LoginScreen";
+import LegalLinks from "./components/LegalLinks";
 import ProfilePage from "./components/ProfilePage";
 import Notifications from "./components/Notifications";
 import DecisionInbox from "./components/DecisionInbox";
@@ -479,6 +480,7 @@ const App = () => {
                 We are connecting to your Solid Pod and verifying required profile details.
               </p>
               <LoadingParticleCloud />
+              <footer className="onboarding-legal"><LegalLinks /></footer>
             </div>
           </div>
         </div>
@@ -638,10 +640,13 @@ const App = () => {
             </div>
           </div>
           <footer className="app-footer">
-            <div className="app-footer__meta">
-              <span>&copy; 2026 TMDT</span>
-              <span className="app-footer__separator">&middot;</span>
-              <span className="app-footer__version">{appVersion}</span>
+            <div className="app-footer__identity">
+              <div className="app-footer__meta">
+                <span>&copy; 2026 TMDT</span>
+                <span className="app-footer__separator">&middot;</span>
+                <span className="app-footer__version">{appVersion}</span>
+              </div>
+              <LegalLinks />
             </div>
             {(fundingLogos.length > 0 || fundingGrantNumber) && (
               <div className="app-footer__funding" aria-label="Funding logos">

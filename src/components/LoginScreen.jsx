@@ -12,6 +12,7 @@ import { LanguageSelect } from "../i18n";
 import "../LoginScreen.css";
 import "./LanguageSelect.css";
 import LoginParticleCloud from "./LoginParticleCloud";
+import LegalLinks from "./LegalLinks";
 import { getBranding, getEnabledProviders } from "../config/runtimeConfig";
 import {
   clearStoredAccountToken,
@@ -451,6 +452,9 @@ export default function LoginScreen({ onLogin }) {
             </button>
           </div>
         </div>
+        <footer className="login-legal">
+          <LegalLinks />
+        </footer>
       </div>
 
       {authModalOpen ? (
@@ -681,6 +685,9 @@ export default function LoginScreen({ onLogin }) {
                 <div className="login-modal__error">{registerError}</div>
               ) : null}
 
+              <div className="registration-legal">
+                <LegalLinks />
+              </div>
               <div className="login-modal__actions">
                 {registerStep === 2 ? (
                   <button

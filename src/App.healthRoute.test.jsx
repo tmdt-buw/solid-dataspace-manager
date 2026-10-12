@@ -67,6 +67,7 @@ jest.mock("./config/runtimeConfig", () => ({
 jest.mock("./i18n", () => ({
   dispatchLanguageChange: jest.fn(),
   I18nProvider: ({ children }) => children,
+  useI18n: () => ({ language: "en" }),
   normalizeLanguage: (language) => language,
   resolveInitialLanguageSource: () => ({ language: "en", source: "default" }),
   writeStoredLanguage: jest.fn(),
@@ -170,6 +171,8 @@ describe.each(["/web/city-tours", "/web/solid-tours", "/web/solid-tours/"])(
       expect(window.location.pathname).toBe("/web/city-tours");
       expect(window.location.search).toBe("?tour=example");
       expect(window.location.hash).toBe("#map");
+      expect(screen.getByRole("link", { name: /Privacy notice/ })).toHaveAttribute("href", "/legal/en/privacy.html");
+      expect(screen.getByRole("link", { name: /Legal notice/ })).toHaveAttribute("href", "/legal/en/imprint.html");
     });
   }
 );
