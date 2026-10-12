@@ -35,6 +35,22 @@ Runs the test suite once.
 
 Builds the app for production to the `build` folder.
 
+### Production routing and legal pages
+
+The Docker image serves `build/` with the checked-in `serve.json`. Use this configuration when previewing the production build:
+
+```sh
+npm run build
+npx serve@14.2.6 --config serve.json -l 3301
+# In a second terminal:
+npm run check:production-routes -- http://127.0.0.1:3301
+```
+
+Do not add `serve -s`: that option prepends a catch-all rewrite ahead of the legal-page aliases.
+The configuration keeps the `.html` links and explicitly serves their extensionless aliases before the application's fallback. The fallback excludes `/legal/**` because `serve` applies rewrite rules recursively. Both must work because browsers may have cached the previous permanent redirects. The static German and English legal pages are public and do not require a Solid session.
+
+Routing changes require rebuilding and redeploying the Manager image; the existing Caddy proxy can stay unchanged.
+
 ### `npm run eject`
 
 Ejects the build configuration. This is a one-way operation.

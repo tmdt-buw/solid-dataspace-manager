@@ -1,0 +1,28 @@
+{
+  "public": "build",
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "directoryListing": false,
+  "rewrites": [
+    {
+      "source": "/legal/de/imprint",
+      "destination": "/legal/de/imprint.html"
+    },
+    {
+      "source": "/legal/de/privacy",
+      "destination": "/legal/de/privacy.html"
+    },
+    {
+      "source": "/legal/en/imprint",
+      "destination": "/legal/en/imprint.html"
+    },
+    {
+      "source": "/legal/en/privacy",
+      "destination": "/legal/en/privacy.html"
+    },
+    {
+      "source": "!/legal/**",
+      "destination": "/index.html"
+    }
+  ]
+}

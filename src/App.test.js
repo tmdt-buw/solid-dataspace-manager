@@ -59,4 +59,12 @@ import App from "./App";
 test("renders login screen", () => {
   render(<App />);
   expect(screen.getAllByText(/Solid Dataspace/i).length).toBeGreaterThan(0);
+  expect(screen.getByRole("link", { name: /Privacy notice|Datenschutzerkl\u00e4rung/ })).toHaveAttribute(
+    "href",
+    expect.stringMatching(/^\/legal\/(de|en)\/privacy\.html$/)
+  );
+  expect(screen.getByRole("link", { name: /Legal notice|Impressum/ })).toHaveAttribute(
+    "href",
+    expect.stringMatching(/^\/legal\/(de|en)\/imprint\.html$/)
+  );
 });

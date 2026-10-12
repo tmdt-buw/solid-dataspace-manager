@@ -27,9 +27,9 @@ RUN --mount=type=secret,id=npm_token \
 COPY . .
 
 RUN npm run build \
-    && npm install -g serve
+    && npm install -g serve@14.2.6
 
 ENV PORT=3001
 EXPOSE 3001
 
-CMD ["sh", "-c", "node scripts/write-runtime-config.js && serve -s build -l ${PORT:-3001}"]
+CMD ["sh", "-c", "node scripts/write-runtime-config.js && serve --config serve.json -l ${PORT:-3001}"]

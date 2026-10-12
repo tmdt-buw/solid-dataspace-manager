@@ -640,13 +640,15 @@ const App = () => {
             </div>
           </div>
           <footer className="app-footer">
+            <div className="app-footer__legal">
+              <LegalLinks />
+            </div>
             <div className="app-footer__identity">
               <div className="app-footer__meta">
                 <span>&copy; 2026 TMDT</span>
                 <span className="app-footer__separator">&middot;</span>
                 <span className="app-footer__version">{appVersion}</span>
               </div>
-              <LegalLinks />
             </div>
             {(fundingLogos.length > 0 || fundingGrantNumber) && (
               <div className="app-footer__funding" aria-label="Funding logos">

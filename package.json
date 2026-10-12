@@ -1,6 +1,6 @@
 {
   "name": "pod_browser",
-  "version": "0.3.94",
+  "version": "0.3.95",
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
@@ -45,7 +45,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "build:legal": "node scripts/build-legal-pages.cjs"
+    "build:legal": "node scripts/build-legal-pages.cjs",
+    "check:production-routes": "node scripts/check-production-routes.cjs"
   },
   "eslintConfig": {
     "extends": [

@@ -409,6 +409,12 @@ body {
   backdrop-filter: blur(10px);
 }
 
+.app-footer__legal {
+  grid-column: 1;
+  min-width: 0;
+  padding-left: 24px;
+}
+
 .app-footer__identity {
   grid-column: 2;
   display: flex;
@@ -847,6 +853,18 @@ body {
 
 /* Keep legal links visible alongside the funding information at narrow widths. */
 @media (max-width: 1100px) {
-  .app-footer { display: flex; justify-content: center; height: auto; flex-basis: auto; flex-wrap: wrap; padding: 12px; }
-  .app-footer__funding { margin-right: 0; max-width: 100%; flex-wrap: wrap; justify-content: center; }
+  .app-footer {
+    grid-template-columns: minmax(0, 1fr) auto;
+    height: auto;
+    flex-basis: auto;
+    padding: 12px 24px;
+  }
+  .app-footer__legal { padding-left: 0; }
+  .app-footer__funding { grid-column: 1 / -1; margin-right: 0; flex-wrap: wrap; }
+}
+
+@media (max-width: 600px) {
+  .app-footer { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+  .app-footer__identity { grid-column: 1; justify-self: start; }
+  .app-footer__funding { justify-self: start; justify-content: flex-start; }
 }
