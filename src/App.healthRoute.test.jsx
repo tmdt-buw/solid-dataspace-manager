@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 const mockWebId = "https://pod.example/alice/profile/card#me";
 
@@ -67,7 +67,7 @@ jest.mock("./config/runtimeConfig", () => ({
 jest.mock("./i18n", () => ({
   dispatchLanguageChange: jest.fn(),
   I18nProvider: ({ children }) => children,
-  useI18n: () => ({ language: "en" }),
+  useI18n: () => ({ language: "en", t: (text) => text }),
   normalizeLanguage: (language) => language,
   resolveInitialLanguageSource: () => ({ language: "en", source: "default" }),
   writeStoredLanguage: jest.fn(),
@@ -117,7 +117,11 @@ jest.mock(
 );
 jest.mock(
   "@hoelk-f/semantic-data-catalog/embed",
-  () => ({ CatalogEmbed: () => null, setSession: jest.fn(), catalogVersion: "test" }),
+  () => ({
+    CatalogEmbed: ({ onSemanticSearch }) => <button onClick={onSemanticSearch}>Search catalog semantically</button>,
+    SemanticSearchEmbed: () => <div data-testid="semantic-search-embed" />,
+    setSession: jest.fn(), catalogVersion: "test",
+  }),
   { virtual: true }
 );
 jest.mock(
@@ -147,6 +151,18 @@ jest.mock(
 );
 
 import App from "./App";
+
+test("catalog keeps its header and version while linking to the semantic search route", async () => {
+  window.history.replaceState({}, "", "/catalog");
+  const { container } = render(<App />);
+  const search = await screen.findByRole("button", { name: "Search catalog semantically" });
+  expect(container.querySelector('.catalog-header')).toHaveTextContent('Semantic Data Catalog');
+  expect(container.querySelector('.integrated-version')).toHaveTextContent('test');
+  fireEvent.click(search);
+  expect(window.location.pathname).toBe('/semantic-search');
+  expect(screen.getByTestId('semantic-search-embed')).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Search catalog semantically" })).not.toBeInTheDocument();
+});
 
 describe.each([
   "/web/solid-health-app",

@@ -868,3 +868,24 @@ body {
   .app-footer__identity { grid-column: 1; justify-self: start; }
   .app-footer__funding { justify-self: start; justify-content: flex-start; }
 }
+
+/* The responsive catalog owns its content; the existing title/version stays above it. */
+.data-catalog-embed .catalog-app--embedded {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.data-catalog-embed .catalog-workspace {
+  zoom: calc(1 / var(--dataspace-ui-scale, 1));
+}
+.data-catalog-embed .catalog-detail-inline .detail-download-button,
+.data-catalog-embed .catalog-detail-inline .dataset-detail-request-button {
+  background: #1769e8 !important;
+  border-color: #1769e8 !important;
+  color: #fff !important;
+  box-shadow: none;
+}
+.data-catalog-embed .catalog-detail-inline .detail-download-button:hover:not(:disabled) {
+  background: #125acb !important;
+}

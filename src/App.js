@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import session from "./solidSession";
 import "@hoelk-f/solid-data-manager/embed.css";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import SemanticSearchPage from "./components/SemanticSearchPage";
 import {
@@ -516,6 +516,7 @@ const App = () => {
 
   const CatalogPage = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     return (
     <div className="data-catalog-embed">
       <div className="catalog-header toolbar--title">
@@ -528,6 +529,7 @@ const App = () => {
       <div className="catalog-frame">
         <SemanticDataCatalogEmbed
           datasetUrl={new URLSearchParams(location.search).get("dataset")}
+          onSemanticSearch={() => navigate("/semantic-search")}
           webId={webId}
           language={language}
           statisticsConfig={{
