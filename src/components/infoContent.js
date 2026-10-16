@@ -74,7 +74,7 @@ export const INFO_TOOL_GROUPS = [
         id: "catalog",
         title: "Semantic Data Catalog",
         description: "Publish and discover datasets, series and their metadata.",
-        to: "/catalog",
+        to: "/web/catalog",
         iconKey: "catalog",
       },
       {

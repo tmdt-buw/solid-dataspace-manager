@@ -26,6 +26,7 @@ afterEach(() => jest.restoreAllMocks());
 test("translates navigation and toggles the mobile menu explicitly", () => {
   render(<I18nProvider language="de"><Sidebar webId="" /></I18nProvider>);
   expect(screen.getByRole("link", { name: "Zugriffsanfragen" })).toHaveAttribute("href", "/notifications");
+  expect(screen.queryByRole("link", { name: "Semantische Suche" })).not.toBeInTheDocument();
   const toggle = screen.getByRole("button", { name: "Navigation öffnen" });
   expect(toggle).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(toggle);

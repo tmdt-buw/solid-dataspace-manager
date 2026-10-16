@@ -1,9 +1,9 @@
+import { accountLoginRedirect } from "./accountLoginHandoff";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import session from "./solidSession";
 import "@hoelk-f/solid-data-manager/embed.css";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
-import SemanticSearchPage from "./components/SemanticSearchPage";
 import {
   DataManagerEmbed,
   setSession as setDataManagerSession,
@@ -105,13 +105,14 @@ const App = () => {
     setWebId(auth.webId || "");
   }, [getAuthState]);
 
-  const loginToSolid = useCallback(async (issuer) => {
+  const loginToSolid = useCallback(async (issuer, accountToken) => {
     if (!issuer) return;
 
     await session.login({
       oidcIssuer: issuer,
       redirectUrl: `${window.location.origin}/`,
       clientName: "Solid Dataspace",
+      handleRedirect: accountLoginRedirect(issuer, accountToken, languageRef.current),
     });
   }, []);
 
@@ -516,7 +517,6 @@ const App = () => {
 
   const CatalogPage = () => {
     const location = useLocation();
-    const navigate = useNavigate();
     return (
     <div className="data-catalog-embed">
       <div className="catalog-header toolbar--title">
@@ -529,7 +529,6 @@ const App = () => {
       <div className="catalog-frame">
         <SemanticDataCatalogEmbed
           datasetUrl={new URLSearchParams(location.search).get("dataset")}
-          onSemanticSearch={() => navigate("/semantic-search")}
           webId={webId}
           language={language}
           statisticsConfig={{
@@ -612,8 +611,8 @@ const App = () => {
             <div className="route-content">
               <Routes>
                 <Route path="/" element={<DataManagerPage />} />
-                <Route path="/catalog" element={<CatalogPage />} />
-                <Route path="/semantic-search" element={<SemanticSearchPage language={language} />} />
+                <Route path="/web/catalog" element={<CatalogPage />} />
+                <Route path="/semantic-search" element={<Navigate to="/web/catalog?view=semantic-search" replace />} />
                 <Route path="/data-connection" element={<DataConnection webId={webId} />} />
                 <Route path="/transactions" element={<TransactionHistory webId={webId} />} />
                 <Route path="/notifications" element={<Notifications webId={webId} />} />

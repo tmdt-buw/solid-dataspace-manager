@@ -1,0 +1,20 @@
+.legal-modal { width: min(960px, calc(100vw - 48px)); height: min(900px, calc(100dvh - 48px)); max-width: none; max-height: none; margin: auto; padding: 0; border: 1px solid #e5eaf2; border-radius: 18px; background: #fff; color: #14213b; overflow: hidden; box-shadow: 0 24px 100px #10234230; font-family: "Manrope", "Segoe UI", sans-serif; text-align: left; zoom: calc(1 / var(--dataspace-ui-scale, 1)); }
+.legal-modal *, .legal-modal *::before, .legal-modal *::after { box-sizing: border-box; }
+.legal-modal::backdrop { background: #14264266; backdrop-filter: blur(3px); }
+body:has(.legal-modal[open]) { overflow: hidden; }
+.legal-modal-content { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.legal-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex: 0 0 auto; padding: 12px 24px; border-bottom: 1px solid #e5eaf2; }
+.legal-modal-header h2 { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.4; }
+.legal-modal-header button { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border: 1px solid #e5eaf2; border-radius: 9px; background: #fff; color: #60728f; font-size: 26px; }
+.legal-modal-body { flex: 1 1 auto; min-height: 0; padding: 20px 24px; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; font-size: 15px; line-height: 1.75; overflow-wrap: anywhere; }
+.legal-modal-body h3 { margin: 28px 0 10px; font-size: 18px; line-height: 1.5; font-weight: 700; }
+.legal-modal-body p { margin: 0 0 14px; }
+.legal-modal-body .legal-modal-revision { color: #60728f; font-size: 13px; }
+.legal-modal-body a { color: #164d86; text-decoration: underline; text-underline-offset: 3px; }
+.legal-modal :is(button, a, [tabindex]):focus-visible { outline: 3px solid #76aaff; outline-offset: 3px; }
+@media (max-width: 699px) {
+  .legal-modal { width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; border-radius: 0; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .legal-modal-header { padding: 10px 16px; }
+  .legal-modal-header h2 { font-size: 16px; }
+  .legal-modal-body { padding: 16px; font-size: 16px; }
+}

@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
 const mockWebId = "https://pod.example/alice/profile/card#me";
 
@@ -118,7 +118,7 @@ jest.mock(
 jest.mock(
   "@hoelk-f/semantic-data-catalog/embed",
   () => ({
-    CatalogEmbed: ({ onSemanticSearch }) => <button onClick={onSemanticSearch}>Search catalog semantically</button>,
+    CatalogEmbed: () => <div data-testid="catalog-embed" />,
     SemanticSearchEmbed: () => <div data-testid="semantic-search-embed" />,
     setSession: jest.fn(), catalogVersion: "test",
   }),
@@ -152,16 +152,15 @@ jest.mock(
 
 import App from "./App";
 
-test("catalog keeps its header and version while linking to the semantic search route", async () => {
-  window.history.replaceState({}, "", "/catalog");
+test.each(["/web/catalog", "/semantic-search"])("opens the catalog host, preserving legacy semantic-search bookmarks: %s", async path => {
+  window.history.replaceState({}, "", path);
   const { container } = render(<App />);
-  const search = await screen.findByRole("button", { name: "Search catalog semantically" });
+  await screen.findByTestId('catalog-embed');
   expect(container.querySelector('.catalog-header')).toHaveTextContent('Semantic Data Catalog');
   expect(container.querySelector('.integrated-version')).toHaveTextContent('test');
-  fireEvent.click(search);
-  expect(window.location.pathname).toBe('/semantic-search');
-  expect(screen.getByTestId('semantic-search-embed')).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Search catalog semantically" })).not.toBeInTheDocument();
+  expect(window.location.pathname).toBe('/web/catalog');
+  if (path === '/semantic-search') expect(window.location.search).toBe('?view=semantic-search');
+  expect(screen.queryByTestId('semantic-search-embed')).not.toBeInTheDocument();
 });
 
 describe.each([
@@ -187,8 +186,8 @@ describe.each(["/web/city-tours", "/web/solid-tours", "/web/solid-tours/"])(
       expect(window.location.pathname).toBe("/web/city-tours");
       expect(window.location.search).toBe("?tour=example");
       expect(window.location.hash).toBe("#map");
-      expect(screen.getByRole("link", { name: /Privacy notice/ })).toHaveAttribute("href", "/legal/en/privacy.html");
-      expect(screen.getByRole("link", { name: /Legal notice/ })).toHaveAttribute("href", "/legal/en/imprint.html");
+      expect(screen.getByRole("button", { name: /Privacy notice/ })).toHaveAttribute("aria-haspopup", "dialog");
+      expect(screen.getByRole("button", { name: /Legal notice/ })).toHaveAttribute("aria-haspopup", "dialog");
     });
   }
 );

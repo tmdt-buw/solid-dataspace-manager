@@ -2,6 +2,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const content = require("../legal/content.json");
+// Generated module keeps every modal on the same canonical legal text as the public documents.
+fs.writeFileSync(path.resolve(__dirname, "../src/legalContent.generated.json"), JSON.stringify(content, null, 2) + "\n");
 const escape = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
 function link(item) {
   if (!/^(https:\/\/|mailto:)/.test(item.url)) throw new Error(`Unsupported legal link: ${item.url}`);

@@ -337,8 +337,8 @@ export default function LoginScreen({ onLogin }) {
       }
 
       setAccountPassword("");
+      await onLogin(authIssuer, token);
       setAuthModalOpen(false);
-      onLogin(authIssuer);
     } catch (err) {
       setAuthError(err?.message || "Account login failed.");
     } finally {

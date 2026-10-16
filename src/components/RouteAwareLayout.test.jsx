@@ -77,7 +77,7 @@ describe("RouteAwareLayout", () => {
   });
 
   test("clips the catalog document and removes the scroll lock after navigation", async () => {
-    mockPathname = "/catalog";
+    mockPathname = "/web/catalog";
     const { container, rerender, unmount } = render(
       <RouteAwareLayout className="layout">Catalog</RouteAwareLayout>
     );

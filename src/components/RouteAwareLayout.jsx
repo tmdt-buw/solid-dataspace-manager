@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom";
 const CITY_TOURS_PATH = "/web/city-tours";
 const CITY_TOURS_DOCUMENT_CLASS = "city-tours-route";
 const DATA_MANAGER_PATH = "/";
-const CATALOG_PATH = "/catalog";
+const CATALOG_PATH = "/web/catalog";
 const CATALOG_DOCUMENT_CLASS = "catalog-route";
 const HEALTH_QUESTIONNAIRE_PATH = "/web/solid-health-questionnaire";
 const HEALTH_QUESTIONNAIRE_DOCUMENT_CLASS = "health-questionnaire-route";

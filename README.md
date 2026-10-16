@@ -37,6 +37,8 @@ Builds the app for production to the `build` folder.
 
 ### Production routing and legal pages
 
+Legal notice and privacy notice open in accessible dialogs from login, registration, onboarding and the shared app footer. `legal/content.json` remains the canonical bilingual text. `scripts/build-legal-pages.cjs` generates `src/legalContent.generated.json` for the dialogs alongside the public documents; do not edit the generated module directly. Existing public URLs remain available for bookmarks and the Community Solid Server.
+
 The Docker image serves `build/` with the checked-in `serve.json`. Use this configuration when previewing the production build:
 
 ```sh

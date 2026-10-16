@@ -46,7 +46,7 @@ async function main() {
   }
   const app = await (await request("/")).text();
   assert.ok(app.includes('id="root"'));
-  for (const route of ["/catalog", "/profile", "/web/city-tours", "/web/solid-health-app/detail/steps"]) {
+  for (const route of ["/web/catalog", "/profile", "/web/city-tours", "/web/solid-health-app/detail/steps"]) {
     assert.equal(await (await request(route)).text(), app, `${route}: SPA fallback failed`);
   }
   console.log(`Passed ${checks} production HTTP checks: bilingual legal pages, cached aliases, assets and app routes.`);

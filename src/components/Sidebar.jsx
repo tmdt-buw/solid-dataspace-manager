@@ -244,8 +244,8 @@ function Sidebar({
         <div className="sb-section">{t("Consume and Provide")}</div>
 
         <Link
-          to="/catalog"
-          className={"sb-link" + (isActive("/catalog") ? " active" : "")}
+          to="/web/catalog"
+          className={"sb-link" + (isActive("/web/catalog") ? " active" : "")}
           title={t("Semantic Data Catalog")}
         >
           <FontAwesomeIcon icon={navigationIcons.catalog} />
@@ -281,13 +281,7 @@ function Sidebar({
 
         {applicationApps.length > 0 && (
           <>
-            <Link to="/semantic-search" className={"sb-link" + (isActive("/semantic-search") ? " active" : "")}
-          title={t("Semantic Search")}>
-          <FontAwesomeIcon icon={navigationIcons["semantic-search"]} />
-          <span>{t("Semantic Search")}</span>
-        </Link>
-
-        <div className="sb-section">{t("Applications")}</div>
+            <div className="sb-section">{t("Applications")}</div>
             {applicationApps.map((app) => {
               const icon = getAppIcon(app.iconKey);
 
