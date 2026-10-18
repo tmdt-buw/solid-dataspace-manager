@@ -1,3 +1,5 @@
+import WorkspaceLogin from "./components/WorkspaceLogin";
+import { revokeWorkspaceSession } from "./workspaceAccess";
 import { accountLoginRedirect } from "./accountLoginHandoff";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import session from "./solidSession";
@@ -131,13 +133,14 @@ const App = () => {
 
     await session.login({
       oidcIssuer: issuer,
-      redirectUrl: `${window.location.origin}/`,
+      redirectUrl: window.location.pathname === "/workspace-login" ? window.location.href : `${window.location.origin}/`,
       clientName: "Solid Dataspace",
       handleRedirect: accountLoginRedirect(issuer, accountToken, languageRef.current),
     });
   }, []);
 
   const logoutFromSolid = useCallback(async () => {
+    await revokeWorkspaceSession();
     await session.logout({ logoutType: "app" });
     setWebId("");
     setSessionActive(false);
@@ -633,6 +636,7 @@ const App = () => {
             <div className="route-content">
               <ConfiguredAppGate><Routes>
                 <Route path="/" element={<DataManagerPage />} />
+                <Route path="/workspace-login" element={<WorkspaceLogin />} />
                 <Route path="/web/catalog" element={<CatalogPage />} />
                 <Route path="/semantic-search" element={<Navigate to="/web/catalog?view=semantic-search" replace />} />
                 <Route path="/data-connection" element={<DataConnection webId={webId} />} />
@@ -659,7 +663,7 @@ const App = () => {
                 <Route path="/web/city-tours" element={<CityToursPage />} />
                 <Route path="/web/solid-tours" element={<LegacyCityToursRedirect />} />
                 <Route path="/web/solid-health-questionnaire" element={<HealthQuestionnairePage />} />
-                <Route path="/web/:slug" element={<ExternalHost />} />
+                <Route path="/web/:slug" element={<ExternalHost webId={webId} />} />
               </Routes></ConfiguredAppGate>
             </div>
           </div>

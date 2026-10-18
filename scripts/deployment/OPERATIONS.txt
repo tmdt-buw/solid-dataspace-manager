@@ -107,3 +107,38 @@ Der Test hat einen eigenen Account-Handoff; login-test.caddy wird generiert und
 im gemeinsamen Caddy nur fuer die exakten Test-Origins eingebunden.
 Test bleibt ohne produktive Schreibjobs. Jeder Verwaltungsdienst ist auf seine eigene Umgebung begrenzt.
 Details, Wiederherstellung und Sicherheitsgrenzen: admin-service/README.md.
+
+Review-Korrekturen vom 18.10.2026 (zuerst auf Test):
+  Node-RED und PLASMA verwenden die normale Solid-Anmeldung. HTTP und WebSockets
+  laufen ueber admin-api; es werden keine Admin-Rechte fuer Arbeitsbereiche
+  verlangt. Angemeldete Personen teilen weiterhin den Arbeitsbereich des Profils.
+  public.accessGateway:true aktiviert diese Routen. Dies ist eine vom Betreiber
+  verwaltete Deployment-Einstellung und kein abschaltbarer Admin-Formularwert.
+  admin-api und Worker benoetigen dieselbe zufaellige Schluesseldatei (mindestens
+  32 Bytes), read-only als /run/secrets/worker-access-key gemountet und ueber
+  WORKER_ACCESS_KEY_FILE angegeben. Niemals in public/config.js oder Git ablegen.
+  Participant-Anfragen verwenden Solid DPoP und sind auf die eigene WebID
+  beschraenkt. Cache-Endpunkte bleiben oeffentlich lesbar. Test bleibt read-only.
+  Vor einer produktiven Veroeffentlichung Gateway, API, Worker, Manager und die
+  gemeinsame Schluesseldatei zusammen bereitstellen. Die Produktivprofile wurden
+  durch diese Testaktivierung nicht umgestellt.
+
+  Custom-API-/Home-Assistant-Verbindungen akzeptieren oeffentliche HTTP(S)-Ziele,
+  gepruefte DNS-Adressen, keine Redirects und begrenzte Antwortgroessen. Interne
+  Ziele ausschliesslich durch Betreiber in WORKER_ALLOWED_INTERNAL_ORIGINS als
+  JSON-Array exakter Origins freigeben; keine allgemeine Freigabe privater Netze.
+  Worker-Zugriffe bleiben innerhalb des jeweiligen Teilnehmer-Pods.
+
+  Statistik-Aenderungen erzeugen STATISTICS_PROFILES_JSON fuer den Worker.
+  Ein gemeinsam genutzter Statistik-Speicher verlangt identische Leserechte;
+  getrennte Rechte benoetigen getrennte Speicherpfade. ACLs werden vor Aenderung
+  unter /data/statistics-acl-backups gesichert. Ein Journal merkt auch teilweise
+  geaenderte Ziele fuer eine Ruecknahme. Die Administration prueft die bestaetigte
+  Worker-Konfiguration, bevor sie eine Aktivierung als erfolgreich meldet.
+  Es wurden im Test keine produktiven Statistik-ACLs geaendert.
+
+  Release-Updates pruefen Compose und Images vor Aktivierung und sichern Compose.
+  Bei Start- oder Bereitschaftsfehlern werden die vorherigen Images wieder gestartet;
+  zuvor gestoppte Dienste werden gestoppt. Ergebnisse stehen im jeweiligen Backup
+  unter result.json. Bei rollback-failed ist eine manuelle Pruefung erforderlich.
+  Diese Ruecknahme betrifft Dienstversionen und Konfiguration, keine Pod-Daten.

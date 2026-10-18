@@ -1,3 +1,4 @@
+import { createAccessGateway } from "./access.mjs";
 import http from "node:http";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -13,6 +14,7 @@ export function createAdminServer({
   issuers,
   authenticate,
   environment,
+  accessGateway,
 }) {
   const limits = new Map();
   const authenticators = new Map(),
@@ -108,6 +110,7 @@ export function createAdminServer({
     { maxHeaderSize: 40000, requestTimeout: 15000, headersTimeout: 10000 },
     async (req, res) => {
       try {
+        if (accessGateway && await accessGateway.handle(req, res)) return;
         if (req.url === "/health" && req.method === "GET") {
           send(res, 200, { status: "ok" });
           return;
@@ -299,7 +302,9 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
+  const accessGateway = createAccessGateway({ source: process.env.ADMIN_SOURCE, environment: process.env.ADMIN_ENVIRONMENT, keyFile: process.env.WORKER_ACCESS_KEY_FILE });
   const server = createAdminServer({
+    accessGateway,
     source: process.env.ADMIN_SOURCE,
     environment: process.env.ADMIN_ENVIRONMENT,
     profiles: (process.env.ADMIN_PROFILES || "test").split(","),
@@ -307,6 +312,8 @@ if (
     identityHosts: process.env.ADMIN_IDENTITY_HOSTS.split(","),
     issuers: process.env.ADMIN_ISSUERS.split(","),
   });
+  server.on("upgrade", accessGateway.upgrade);
+  server.on("close", accessGateway.close);
   server.listen(Number(process.env.PORT || 3012), "0.0.0.0", () =>
     console.log("Dataspace admin API ready"),
   );

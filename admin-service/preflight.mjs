@@ -180,9 +180,14 @@ if (
       if (input.services.includes("semantic-data-catalog-backend"))
         paths.push("/api/health");
       if (input.services.some((s) => s.endsWith("-node-red")))
-        paths.push("/node-red/");
+        paths.push(input.profile.public.accessGateway ? "/config.js" : "/node-red/");
       if (input.services.some((s) => s.endsWith("-plasma-frontend")))
-        paths.push("/plasma/");
+        paths.push(input.profile.public.accessGateway ? "/config.js" : "/plasma/");
+      if (input.statisticsFingerprint) {
+        const status = JSON.parse((await readPublic("https://" + input.profile.domains[0] + "/sync-worker/statistics/health")).text);
+        if (!status.policy?.ready || status.policy.fingerprint !== input.statisticsFingerprint)
+          throw Error("Statistics permissions have not been applied yet.");
+      }
       for (const path of paths)
         await readPublic(
           "https://" + input.profile.domains[0] + path,

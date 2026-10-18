@@ -10,19 +10,20 @@ export function createAuthenticator({
   fetchImpl = async (url, options) =>
     new Response((await readPublic(url, options.headers.Accept)).text),
   replayStore,
+  allowPublicWebIds = false,
 }) {
   const allowedHosts = new Set(identityHosts),
     allowedIssuers = new Set(issuers);
   const cache = new Map(),
     replays = replayStore || new Map();
-  async function safeFetch(url, accept) {
+  async function safeFetch(url, accept, isWebId = false) {
     const parsed = new URL(url);
     if (
       parsed.protocol !== "https:" ||
       parsed.username ||
       parsed.password ||
       parsed.port ||
-      !allowedHosts.has(parsed.hostname)
+      (!allowedHosts.has(parsed.hostname) && !(isWebId && allowPublicWebIds))
     )
       throw Error("Untrusted identity URL");
     parsed.hash = "";
@@ -85,7 +86,7 @@ export function createAuthenticator({
     {
       getIssuers(webid) {
         return cached("webid:" + webid, async () => {
-          const text = await safeFetch(webid, "text/turtle");
+          const text = await safeFetch(webid, "text/turtle", true);
           const doc = new URL(webid);
           doc.hash = "";
           const store = new Store(

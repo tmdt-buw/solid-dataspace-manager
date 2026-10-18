@@ -32,15 +32,15 @@ function normalizeApiUrl(apiUrl) {
   return value.replace(/\/+$/, "");
 }
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_REGISTRATION_TIMEOUT_MS) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_REGISTRATION_TIMEOUT_MS, fetcher = window.fetch.bind(window)) {
   if (typeof AbortController === "undefined" || !timeoutMs) {
-    return window.fetch(url, options);
+    return fetcher(url, options);
   }
 
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await window.fetch(url, {
+    return await fetcher(url, {
       ...options,
       signal: controller.signal,
     });
@@ -244,7 +244,7 @@ export async function registerSyncWorkerParticipant({
   const issuer = resolveOidcIssuer({ oidcIssuer, accountIndexUrl, webId });
 
   const response = await fetchWithTimeout(
-    `${apiUrl}/participants`,
+    new URL(`${apiUrl}/participants`, window.location.origin).href,
     {
       method: "POST",
       headers: {
@@ -261,7 +261,8 @@ export async function registerSyncWorkerParticipant({
         enabled: true,
       }),
     },
-    timeoutMs
+    timeoutMs,
+    solidFetch
   );
 
   const payload = await response.json().catch(() => ({}));

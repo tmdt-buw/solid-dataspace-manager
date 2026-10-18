@@ -4,6 +4,7 @@ from pathlib import Path
 import yaml
 from config_store import ConfigError, canonical, revision, compile_config, read_config
 from compile_config import login_routes
+from statistics_plan import statistics_plan
 
 WORKSPACE_SERVICES=('node-red','plasma-mariadb-sms','plasma-fuseki','plasma-sms','plasma-dps','plasma-frontend')
 
@@ -161,7 +162,16 @@ class Deployment:
                 for key,env in [('syncTickSeconds','WORKER_SYNC_TICK_SECONDS'),('catalogCacheSeconds','PUBLIC_CACHE_CATALOG_REFRESH_SECONDS'),('monitoringCacheSeconds','PUBLIC_CACHE_MONITORING_REFRESH_SECONDS')]:
                     if key in settings and settings[key]!=old_policy.get('runtime',{}).get(key):worker[env]=str(settings[key]);services.append('solid-data-connection-sync-worker')
                 for name in ['semantic-data-catalog-backend','semantic-data-catalog-indexer']:
-                    if 'indexIntervalSeconds' in settings and settings['indexIntervalSeconds']!=old_policy.get('runtime',{}).get('indexIntervalSeconds'):compose['services'][name].setdefault('environment',{})['CATALOG_INDEX_INTERVAL_SECONDS']=str(settings['indexIntervalSeconds']);services.append(name)
+                    if 'indexIntervalSeconds' in settings and settings['indexIntervalSeconds']!=old_policy.get('runtime',{}).get('indexIntervalSeconds'):compose['services'][name].setdefault('environment',{}).update({'CATALOG_INDEX_INTERVAL_SECONDS':str(settings['indexIntervalSeconds']),'CATALOG_INDEX_MAX_AGE_SECONDS':str(settings['indexIntervalSeconds'] * 3)});services.append(name)
+            old_profiles, old_registries = read_config(Path(source))
+            old_statistics = statistics_plan(old_profiles, old_registries, self.environment)
+            new_statistics = statistics_plan(profiles, registries, self.environment)
+            statistics_changed = old_statistics != new_statistics
+            if statistics_changed:
+                worker = compose['services']['solid-data-connection-sync-worker'].setdefault('environment', {})
+                worker['STATISTICS_PROFILES_JSON'] = json.dumps(new_statistics, separators=(',', ':'), ensure_ascii=False)
+                worker['STATISTICS_ENABLED'] = str(any(p['enabled'] for p in new_statistics)).lower()
+                services.append('solid-data-connection-sync-worker')
             # Test must remain a read-only cache preview even when other settings change.
             if self.environment=='test' and 'solid-data-connection-sync-worker' in services:
                 compose['services']['solid-data-connection-sync-worker'].setdefault('environment',{}).update({'WORKER_READ_ONLY':'true','STATISTICS_ENABLED':'false','ENVIRONMENTAL_SCENARIO_ENABLED':'false'})
@@ -186,10 +196,10 @@ class Deployment:
                 # Verify the routed configuration once the source and runtime agree.
                 if domains_changed or services:
                     last=None
-                    for attempt in range(6):
+                    for attempt in range(20):
                         try:
                             self.probe({'operation':'health','profile':after})
-                            if services:self.probe({'operation':'services','profile':after,'services':services})
+                            if services:self.probe({'operation':'services','profile':after,'services':services,'statisticsFingerprint':__import__('hashlib').sha256(json.dumps(new_statistics,separators=(',',':'),ensure_ascii=False).encode()).hexdigest() if statistics_changed and self.environment!='test' else None})
                             last=None;break
                         except ConfigError as error:last=error;time.sleep(2)
                     if last:raise last

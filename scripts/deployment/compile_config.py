@@ -24,7 +24,7 @@ APP_PATHS = {
     'solid-health-questionnaire': ['/solid-health-questionnaire', '/solid-health-questionnaire/*', '/web/solid-health-questionnaire'],
     'city-tours': ['/city-tours', '/city-tours/*', '/web/city-tours'],
 }
-PUBLIC_KEYS = {'cityToursLegacyContinuousWebIds', 'dataspaceId', 'plasmaUrl', 'apps', 'providers', 'branding', 'fundingLogos', 'fundingGrantNumber', 'syncWorker', 'statistics', 'catalog'}
+PUBLIC_KEYS = {'accessGateway', 'cityToursLegacyContinuousWebIds', 'dataspaceId', 'plasmaUrl', 'apps', 'providers', 'branding', 'fundingLogos', 'fundingGrantNumber', 'syncWorker', 'statistics', 'catalog'}
 
 
 def read_config(directory):
@@ -89,13 +89,23 @@ def site(profile):
               '    rewrite * /semantic-data-catalog/', f'    reverse_proxy {common}-semantic-data-catalog-frontend:5000', '  }']
     for path, service, port in [('semantic-data-catalog','semantic-data-catalog-frontend',5000),('environmental-monitoring','environmental-monitoring',5173),('solid-data-manager','solid-data-manager',3002),('solid-health-app','solid-health-app',3000),('solid-health-questionnaire','solid-health-questionnaire',3007),('city-tours','city-tours',3006)]:
         lines += [f'  redir /{path} /{path}/ 308', f'  reverse_proxy /{path}/* {common}-{service}:{port}']
-    lines += [f'  reverse_proxy /api/* {common}-semantic-data-catalog-backend:8000',
-              '  route /sync-worker* {', '    uri strip_prefix /sync-worker', f'    reverse_proxy {common}-solid-data-connection-sync-worker:8080', '  }',
-              '  redir /node-red /node-red/ 308', f'  reverse_proxy /node-red/* {workspace}-node-red:1880',
-              '  redir /plasma /plasma/ 308', '  route /plasma/* {', '    uri strip_prefix /plasma',
-              '    @plasmaSms path /api/sms /api/sms/*', f'    reverse_proxy @plasmaSms {workspace}-plasma-sms:8181',
-              '    @plasmaDps path /api/dps /api/dps/*', f'    reverse_proxy @plasmaDps {workspace}-plasma-dps:8182',
-              f'    reverse_proxy {workspace}-plasma-frontend:80', '  }',
+    lines += [f'  reverse_proxy /api/* {common}-semantic-data-catalog-backend:8000']
+    if profile['public'].get('accessGateway'):
+        lines += [f'  reverse_proxy /access-api/* {common}-admin-api:3012',
+                  '  route /sync-worker* {',
+                  '    @workerParticipants path /sync-worker/participants /sync-worker/participants/*',
+                  '    handle @workerParticipants {', f'      reverse_proxy {common}-admin-api:3012', '    }',
+                  '    handle {', '      uri strip_prefix /sync-worker', f'      reverse_proxy {common}-solid-data-connection-sync-worker:8080', '    }', '  }',
+                  '  redir /node-red /node-red/ 308', f'  reverse_proxy /node-red/* {common}-admin-api:3012',
+                  '  redir /plasma /plasma/ 308', f'  reverse_proxy /plasma/* {common}-admin-api:3012']
+    else:
+        lines += ['  route /sync-worker* {', '    uri strip_prefix /sync-worker', f'    reverse_proxy {common}-solid-data-connection-sync-worker:8080', '  }',
+                  '  redir /node-red /node-red/ 308', f'  reverse_proxy /node-red/* {workspace}-node-red:1880',
+                  '  redir /plasma /plasma/ 308', '  route /plasma/* {', '    uri strip_prefix /plasma',
+                  '    @plasmaSms path /api/sms /api/sms/*', f'    reverse_proxy @plasmaSms {workspace}-plasma-sms:8181',
+                  '    @plasmaDps path /api/dps /api/dps/*', f'    reverse_proxy @plasmaDps {workspace}-plasma-dps:8182',
+                  f'    reverse_proxy {workspace}-plasma-frontend:80', '  }']
+    lines += [
               '  @removed path /solid-chatbot /solid-chatbot/* /solid-tours /solid-tours/*',
               '  route @removed {', '    respond "This legacy application has been retired." 410', '  }',
               '  route /web/* {', '    rewrite * /', f'    reverse_proxy {common}-solid-dataspace-manager:3001', '  }',

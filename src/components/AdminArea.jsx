@@ -1091,7 +1091,7 @@ export default function AdminArea({ access, loadingAccess, webId }) {
           <Icon icon={faShieldHalved} />
           <strong>Admin Area</strong>
         </div>
-        <span className="toolbar-version">{appVersion}</span>
+        <span className="integrated-version">{appVersion}</span>
       </header>
       <div className="admin-context">
         <label>

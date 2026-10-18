@@ -100,6 +100,7 @@ const enToDe = {
   "Loading...": "Wird geladen...",
   "Loading your personal profile workspace …":
     "Dein persönlicher Profilbereich wird geladen …",
+  "Workspace login failed. Please sign in again.": "Die Anmeldung am Arbeitsbereich ist fehlgeschlagen. Bitte erneut anmelden.",
   "Loading your personal application workspace …":
     "Dein persönlicher Anwendungsbereich wird geladen …",
   "Loading your personal access decisions workspace …":

@@ -144,9 +144,12 @@ if __name__=='__main__':
     from deployment import Deployment
     state=Path(os.environ['ADMIN_STATE']);state.mkdir(mode=0o700,parents=True,exist_ok=True)
     runtime=Deployment(os.environ['ADMIN_SOURCE'],os.environ['ADMIN_RUNTIME'],state,os.environ['ADMIN_STACK'],os.environ['ADMIN_ENVIRONMENT'],os.environ.get('ADMIN_API_CONTAINER','solid-dataspace-live-test-admin-api-1'))
-    with (Path(os.environ['ADMIN_SOURCE'])/'.configuration.lock').open('a') as lock:
-        fcntl.flock(lock,fcntl.LOCK_EX)
-        runtime.recover()
+    # A normal restart has nothing to recover. Do not wait for the release
+    # lock while the release itself waits for this controller to be ready.
+    if runtime.journal.exists():
+        with (Path(os.environ['ADMIN_SOURCE'])/'.configuration.lock').open('a') as lock:
+            fcntl.flock(lock,fcntl.LOCK_EX)
+            runtime.recover()
     store=ConfigStore(os.environ['ADMIN_SOURCE'],state,[],os.environ['ADMIN_IDENTITY_HOSTS'].split(','),runtime,environment=os.environ['ADMIN_ENVIRONMENT'],preflight=runtime.preflight)
     sock=Path(os.environ['ADMIN_SOCKET']);sock.parent.mkdir(parents=True,exist_ok=True,mode=0o700);sock.unlink(missing_ok=True)
     with Server(str(sock),Controller) as server:

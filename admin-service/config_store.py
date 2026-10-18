@@ -10,6 +10,7 @@ import yaml
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts' / 'deployment'))
 from compile_config import compile_config, read_config, APP_PATHS
+from statistics_plan import statistics_plan
 
 class ConfigError(Exception):
     def __init__(self, message, status=400):
@@ -67,6 +68,7 @@ def validate_profile(candidate, before, registries, identity_hosts):
     redirects=candidate.get('redirectDomains',[])
     if not isinstance(redirects,list) or len(set(redirects))!=len(redirects) or not set(redirects)<=set(domains[1:]): raise ConfigError('Weiterleitungen müssen zusätzliche Domains dieses Profils sein.')
     p=candidate.get('public',{}); old=before['public']
+    if p.get('accessGateway') != old.get('accessGateway'): raise ConfigError('Der Solid-Zugangsschutz wird nur durch das Server-Deployment geändert.')
     keys(p,old.keys(),'öffentliche Einstellungen')
     if set(p)!=set(old): raise ConfigError('Bestehende Einstellungsbereiche müssen erhalten bleiben.')
     if p['dataspaceId']!=before['id']: raise ConfigError('Die Profilkennung ist unveränderlich.')
@@ -253,6 +255,9 @@ class ConfigStore(ProfileStore):
         if self.environment and operational and not self.is_operator(actor):raise ConfigError('Diese Änderung erfordert Betreiberrechte.',403)
         all_profiles,_=read_config(self.source)
         if any(set(after['domains']) & set(p['domains']) for p in all_profiles if p['id']!=after['id']):raise ConfigError('Eine Domain ist bereits einem anderen Profil zugeordnet.')
+        planned_profiles=[p for p in all_profiles if p['id']!=after['id']]+[after]
+        try: statistics_plan(planned_profiles,registries,self.environment)
+        except ValueError as error: raise ConfigError(str(error)) from error
         self.preflight(before,after,registries,self.policy())
         return operational
     def preview(self,actor,profile_id,body):

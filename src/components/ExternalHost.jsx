@@ -1,3 +1,4 @@
+import { ensureWorkspaceSession, workspaceAccessEnabled } from "../workspaceAccess";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { externalLinks } from "../externalLinks";
@@ -13,13 +14,24 @@ import { buildExternalTargetUrl } from "./externalTargetUrl";
 import ContentLoadingState from "./ContentLoadingState";
 import "./ExternalHost.css";
 
-export default function ExternalHost() {
+export default function ExternalHost({ webId }) {
   const { slug } = useParams();
   const navigate = useNavigate();
   const iframeRef = useRef(null);
   const { language, t } = useI18n();
   const activeLink = externalLinks.find((link) => link.slug === slug);
   const [loaded, setLoaded] = useState(false);
+  const protectedApp = workspaceAccessEnabled() && ["node-red", "plasma"].includes(slug);
+  const [access, setAccess] = useState(null);
+  useEffect(() => {
+    let active = true;
+    setAccess(null);
+    if (protectedApp) ensureWorkspaceSession().then(() => { if (active) setAccess({ webId, slug }); })
+      .catch(() => { if (active) setAccess({ webId, slug, error: true }); });
+    return () => { active = false; };
+  }, [protectedApp, webId, slug]);
+  const workspaceReady = !protectedApp || (access?.webId === webId && access?.slug === slug && !access?.error);
+
 
   const isParentHttps =
     typeof window !== "undefined" && window.location.protocol === "https:";
@@ -116,7 +128,11 @@ export default function ExternalHost() {
           useAppFrame ? " external-host-shell--framed" : ""
         }`}
       >
-        {cannotEmbed ? (
+        {protectedApp && !workspaceReady ? (
+          <div role={access?.error ? "alert" : "status"}>
+            {t(access?.error ? "Workspace login failed. Please sign in again." : "Loading your personal application workspace …")}
+          </div>
+        ) : cannotEmbed ? (
           <div className="notice">
             <p>
               This site uses HTTP and cannot be embedded inside an HTTPS app.
