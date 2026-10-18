@@ -62,6 +62,7 @@ jest.mock("./config/runtimeConfig", () => ({
   getPlasmaUrl: () => "/plasma/modelings",
   getStatisticsConfig: () => ({ enabled: false }),
   isStatisticsAdmin: () => false,
+  isAppEnabled: () => true,
 }));
 
 jest.mock("./i18n", () => ({

@@ -45,7 +45,7 @@ export const DEFAULT_RESEARCH_REGISTRY_URL =
   "https://solid-community-server.tmdt.info/semanticdatacatalog/public/stadt-wuppertal";
 export const DEFAULT_RESEARCH_REGISTRIES = [DEFAULT_RESEARCH_REGISTRY_URL];
 
-export const REGISTRY_PRESETS = [
+const DEFAULT_REGISTRY_PRESETS = [
   {
     id: "stadt-wuppertal",
     label: "Gesundes Tal",
@@ -70,13 +70,10 @@ export const REGISTRY_PRESETS = [
     url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/test",
     icon: "flask",
   },
-  {
-    id: "test2",
-    label: "Test 2",
-    url: "https://solid-community-server.tmdt.info/semanticdatacatalog/public/test2",
-    icon: "flask",
-  },
 ];
+export const REGISTRY_PRESETS = (typeof window !== 'undefined' &&
+  (window.__APP_CONFIG__?.registries || window._env_?.CATALOG_REGISTRIES)) || DEFAULT_REGISTRY_PRESETS;
+
 
 export const getPodRoot = (webId) => {
   const url = new URL(webId);
@@ -241,7 +238,9 @@ export const saveRegistryConfig = async (webId, fetch, config) => {
   }
 
   const updatedProfile = setThing(profileDataset, profileThing);
-  return saveSolidDatasetAt(profileDocUrl, updatedProfile, { fetch });
+  const saved = await saveSolidDatasetAt(profileDocUrl, updatedProfile, { fetch });
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('dataspace-registry-changed'));
+  return saved;
 };
 
 const ensureRegistryContainer = async (containerUrl, fetch) => {

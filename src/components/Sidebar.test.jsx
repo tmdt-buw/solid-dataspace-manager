@@ -18,19 +18,29 @@ jest.mock(
     useParams: () => ({ slug: "environmental-monitoring" }),
     useNavigate: () => jest.fn(),
   }),
-  { virtual: true }
+  { virtual: true },
 );
 
 afterEach(() => jest.restoreAllMocks());
 
 test("translates navigation and toggles the mobile menu explicitly", () => {
-  render(<I18nProvider language="de"><Sidebar webId="" /></I18nProvider>);
-  expect(screen.getByRole("link", { name: "Zugriffsanfragen" })).toHaveAttribute("href", "/notifications");
-  expect(screen.queryByRole("link", { name: "Semantische Suche" })).not.toBeInTheDocument();
+  render(
+    <I18nProvider language="de">
+      <Sidebar webId="" />
+    </I18nProvider>,
+  );
+  expect(
+    screen.getByRole("link", { name: "Zugriffsanfragen" }),
+  ).toHaveAttribute("href", "/notifications");
+  expect(
+    screen.queryByRole("link", { name: "Semantische Suche" }),
+  ).not.toBeInTheDocument();
   const toggle = screen.getByRole("button", { name: "Navigation öffnen" });
   expect(toggle).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(toggle);
-  expect(screen.getByRole("button", { name: "Navigation schließen" })).toHaveAttribute("aria-expanded", "true");
+  expect(
+    screen.getByRole("button", { name: "Navigation schließen" }),
+  ).toHaveAttribute("aria-expanded", "true");
 });
 
 test.each([
@@ -50,36 +60,71 @@ test.each([
   ["solid-health-app", "Health App", "heart-pulse"],
   ["city-tours", "City Tours", "route"],
   ["solid-health-questionnaire", "Health Questionnaire", "clipboard-check"],
-])("uses the sidebar icon for the %s loading screen", (appId, title, iconName) => {
-  const { container } = render(
-    <>
-      <Sidebar webId="" statisticsAdmin />
-      <ContentLoadingState appId={appId} title="Translated loading title" />
-    </>
-  );
-  const sidebarIcon = screen.getByRole("link", { name: title }).querySelector("svg");
-  const loadingIcon = container.querySelector(".dataspace-content-loading__mark svg");
-  expect(loadingIcon).toHaveAttribute("data-icon", iconName);
-  expect(loadingIcon.getAttribute("viewBox")).toBe(sidebarIcon.getAttribute("viewBox"));
-  expect(loadingIcon.querySelector("path").getAttribute("d"))
-    .toBe(sidebarIcon.querySelector("path").getAttribute("d"));
-});
+])(
+  "uses the sidebar icon for the %s loading screen",
+  (appId, title, iconName) => {
+    const { container } = render(
+      <>
+        <Sidebar webId="" statisticsAdmin />
+        <ContentLoadingState appId={appId} title="Translated loading title" />
+      </>,
+    );
+    const sidebarIcon = screen
+      .getByRole("link", { name: title })
+      .querySelector("svg");
+    const loadingIcon = container.querySelector(
+      ".dataspace-content-loading__mark svg",
+    );
+    expect(loadingIcon).toHaveAttribute("data-icon", iconName);
+    expect(loadingIcon.getAttribute("viewBox")).toBe(
+      sidebarIcon.getAttribute("viewBox"),
+    );
+    expect(loadingIcon.querySelector("path").getAttribute("d")).toBe(
+      sidebarIcon.querySelector("path").getAttribute("d"),
+    );
+  },
+);
 
 test.each(["database", "unknown-icon"])(
   "honors the configured %s sidebar icon in the iframe loading screen",
   (iconKey) => {
-    jest.spyOn(runtimeConfig, "getAppsBySection").mockReturnValue([{
-      id: "environmental-monitoring", title: "Environmental Monitoring",
-      href: "/web/environmental-monitoring", linkType: "internal", iconKey,
-    }]);
-    const { container } = render(<><Sidebar webId="" /><ExternalHost /></>);
-    const sidebarIcon = screen.getByRole("link", { name: "Environmental Monitoring" }).querySelector("svg");
-    const loadingIcon = container.querySelector(".dataspace-content-loading__mark svg");
-    expect(loadingIcon.getAttribute("data-icon")).toBe(sidebarIcon.getAttribute("data-icon"));
-    expect(loadingIcon.getAttribute("data-prefix")).toBe(sidebarIcon.getAttribute("data-prefix"));
-    expect(loadingIcon.querySelector("path").getAttribute("d"))
-      .toBe(sidebarIcon.querySelector("path").getAttribute("d"));
-  }
+    jest
+      .spyOn(runtimeConfig, "getAppsBySection")
+      .mockImplementation((section) =>
+        section === "applications"
+          ? [
+              {
+                id: "environmental-monitoring",
+                title: "Environmental Monitoring",
+                href: "/web/environmental-monitoring",
+                linkType: "internal",
+                iconKey,
+              },
+            ]
+          : [],
+      );
+    const { container } = render(
+      <>
+        <Sidebar webId="" />
+        <ExternalHost />
+      </>,
+    );
+    const sidebarIcon = screen
+      .getByRole("link", { name: "Environmental Monitoring" })
+      .querySelector("svg");
+    const loadingIcon = container.querySelector(
+      ".dataspace-content-loading__mark svg",
+    );
+    expect(loadingIcon.getAttribute("data-icon")).toBe(
+      sidebarIcon.getAttribute("data-icon"),
+    );
+    expect(loadingIcon.getAttribute("data-prefix")).toBe(
+      sidebarIcon.getAttribute("data-prefix"),
+    );
+    expect(loadingIcon.querySelector("path").getAttribute("d")).toBe(
+      sidebarIcon.querySelector("path").getAttribute("d"),
+    );
+  },
 );
 
 function renderSidebar(statisticsAdmin) {
@@ -89,7 +134,7 @@ function renderSidebar(statisticsAdmin) {
       collapsed={false}
       onToggle={jest.fn()}
       statisticsAdmin={statisticsAdmin}
-    />
+    />,
   );
 }
 
@@ -98,37 +143,81 @@ test("hides the administration section from non-admins", () => {
   const nodeRedLink = screen.getByRole("link", { name: /Node-RED/i });
   expect(nodeRedLink).toHaveAttribute("href", "/web/node-red");
   expect(
-    nodeRedLink.querySelector('[data-icon="diagram-project"]')
+    nodeRedLink.querySelector('[data-icon="diagram-project"]'),
   ).toBeInTheDocument();
-  expect(nodeRedLink.querySelector('[data-icon="database"]')).not.toBeInTheDocument();
+  expect(
+    nodeRedLink.querySelector('[data-icon="database"]'),
+  ).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: /City Tours/i })).toHaveAttribute(
     "href",
-    "/web/city-tours"
+    "/web/city-tours",
   );
   const healthAppLink = screen.getByRole("link", { name: /^Health App$/i });
-  expect(healthAppLink.querySelector('[data-icon="heart-pulse"]')).toBeInTheDocument();
+  expect(
+    healthAppLink.querySelector('[data-icon="heart-pulse"]'),
+  ).toBeInTheDocument();
   const questionnaireLink = screen.getByRole("link", {
     name: /Health Questionnaire/i,
   });
-  expect(questionnaireLink).toHaveAttribute("href", "/web/solid-health-questionnaire");
+  expect(questionnaireLink).toHaveAttribute(
+    "href",
+    "/web/solid-health-questionnaire",
+  );
   expect(
-    questionnaireLink.querySelector('[data-icon="clipboard-check"]')
+    questionnaireLink.querySelector('[data-icon="clipboard-check"]'),
   ).toBeInTheDocument();
   expect(
-    questionnaireLink.querySelector('[data-icon="heart-pulse"]')
+    questionnaireLink.querySelector('[data-icon="heart-pulse"]'),
   ).not.toBeInTheDocument();
   expect(screen.queryByText("Administration")).not.toBeInTheDocument();
   expect(screen.queryByText("Statistics Dashboard")).not.toBeInTheDocument();
   expect(
-    screen.queryByRole("link", { name: /^Usage Statistics$/i })
+    screen.queryByRole("link", { name: /^Usage Statistics$/i }),
   ).not.toBeInTheDocument();
 });
 
 test("shows the dashboard navigation only to admins", () => {
   renderSidebar(true);
   expect(screen.getByText("Administration")).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /Statistics Dashboard/i })).toHaveAttribute(
+  expect(
+    screen.getByRole("link", { name: /Statistics Dashboard/i }),
+  ).toHaveAttribute("href", "/statistics");
+});
+
+test("shows the Admin Area instead of a second statistics entry when administration is enabled", () => {
+  render(<Sidebar webId="" adminArea statisticsAdmin />);
+  expect(screen.getByRole("link", { name: "Admin Area" })).toHaveAttribute(
     "href",
-    "/statistics"
+    "/admin",
   );
+  expect(
+    screen.queryByRole("link", { name: /Statistics Dashboard/i }),
+  ).not.toBeInTheDocument();
+});
+
+test("uses configured titles, links and groups for core applications too", () => {
+  jest
+    .spyOn(runtimeConfig, "getAppsBySection")
+    .mockImplementation((section) =>
+      section === "general"
+        ? [
+            {
+              id: "catalog",
+              title: "Unser Katalog",
+              href: "/web/catalog",
+              iconKey: "catalog",
+              linkType: "internal",
+            },
+          ]
+        : [],
+    );
+  render(<Sidebar webId="" />);
+  expect(screen.getByRole("link", { name: "Unser Katalog" })).toHaveAttribute(
+    "href",
+    "/web/catalog",
+  );
+  expect(
+    screen.queryByRole("link", { name: "Semantic Data Catalog" }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("Consume and Provide")).not.toBeInTheDocument();
 });

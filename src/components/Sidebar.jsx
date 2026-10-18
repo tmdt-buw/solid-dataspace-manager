@@ -45,16 +45,42 @@ function Sidebar({
   collapsed = false,
   onToggle,
   statisticsAdmin = false,
+  adminArea = false,
 }) {
   const { pathname } = useLocation();
   const { t } = useI18n();
-  const isActive = (to) => pathname === to || (to !== "/" && pathname.startsWith(`${to}/`));
+  const isActive = (to) =>
+    pathname === to || (to !== "/" && pathname.startsWith(`${to}/`));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   useEffect(() => setMobileMenuOpen(false), [pathname]);
   const [unreadRequests, setUnreadRequests] = useState(0);
   const [unreadDecisions, setUnreadDecisions] = useState(0);
 
+  const generalApps = getAppsBySection("general");
+  const consumeApps = getAppsBySection("consume");
   const applicationApps = getAppsBySection("applications");
+  const renderApp = (app) => {
+    const content = (
+      <>
+        <FontAwesomeIcon icon={getAppIcon(app.iconKey)} />
+        <span>{t(app.title)}</span>
+      </>
+    );
+    return app.linkType === "internal" ? (
+      <Link
+        key={app.id}
+        to={app.href}
+        className={"sb-link" + (isActive(app.href) ? " active" : "")}
+        title={t(app.title)}
+      >
+        {content}
+      </Link>
+    ) : (
+      <a key={app.id} href={app.href} className="sb-link" title={t(app.title)}>
+        {content}
+      </a>
+    );
+  };
   const branding = getBranding();
   const logoStyle = collapsed ? undefined : branding.logoStyle;
 
@@ -63,7 +89,9 @@ function Sidebar({
     let timer;
 
     const resolveInboxUrl = async (webId) => {
-      const profileDataset = await getSolidDataset(webId, { fetch: noCacheFetch });
+      const profileDataset = await getSolidDataset(webId, {
+        fetch: noCacheFetch,
+      });
       const profile = getThing(profileDataset, webId);
       return profile ? getUrl(profile, LDP.inbox) : null;
     };
@@ -82,12 +110,13 @@ function Sidebar({
           return;
         }
 
-        const lastSeenDecisions = Date.parse(
-          localStorage.getItem(LAST_SEEN_DECISIONS_KEY) || ""
-        ) || 0;
+        const lastSeenDecisions =
+          Date.parse(localStorage.getItem(LAST_SEEN_DECISIONS_KEY) || "") || 0;
         const hasSeenDecisions = Boolean(lastSeenDecisions);
 
-        const inboxDataset = await getSolidDataset(inbox, { fetch: noCacheFetch });
+        const inboxDataset = await getSolidDataset(inbox, {
+          fetch: noCacheFetch,
+        });
         const resourceUrls = getContainedResourceUrlAll(inboxDataset);
 
         let requestCount = 0;
@@ -96,7 +125,9 @@ function Sidebar({
         await Promise.all(
           resourceUrls.map(async (url) => {
             try {
-              const dataset = await getSolidDataset(url, { fetch: noCacheFetch });
+              const dataset = await getSolidDataset(url, {
+                fetch: noCacheFetch,
+              });
               const thing = getThing(dataset, url) || getThingAll(dataset)[0];
               if (!thing) return;
 
@@ -121,7 +152,7 @@ function Sidebar({
             } catch {
               // Ignore malformed inbox items.
             }
-          })
+          }),
         );
 
         if (!cancelled) {
@@ -157,7 +188,9 @@ function Sidebar({
   };
 
   return (
-    <aside className={`sidebar${collapsed ? " is-collapsed" : ""}${mobileMenuOpen ? " is-mobile-open" : ""}`}>
+    <aside
+      className={`sidebar${collapsed ? " is-collapsed" : ""}${mobileMenuOpen ? " is-mobile-open" : ""}`}
+    >
       <div className="sb-brand">
         <div className="sb-logo">
           <img
@@ -177,14 +210,23 @@ function Sidebar({
         </button>
       </div>
 
-      <button type="button" className="sb-mobile-toggle" aria-expanded={mobileMenuOpen} aria-controls="dataspace-navigation" onClick={() => setMobileMenuOpen((open) => !open)}>{t(mobileMenuOpen ? "Close navigation" : "Open navigation")}</button>
-      <nav id="dataspace-navigation" className="sb-nav" aria-label={t("Navigation")}>
+      <button
+        type="button"
+        className="sb-mobile-toggle"
+        aria-expanded={mobileMenuOpen}
+        aria-controls="dataspace-navigation"
+        onClick={() => setMobileMenuOpen((open) => !open)}
+      >
+        {t(mobileMenuOpen ? "Close navigation" : "Open navigation")}
+      </button>
+      <nav
+        id="dataspace-navigation"
+        className="sb-nav"
+        aria-label={t("Navigation")}
+      >
         <div className="sb-section">{t("General")}</div>
 
-        <Link to="/" className={"sb-link" + (isActive("/") ? " active" : "")} title={t("Solid Data Manager")}>
-          <FontAwesomeIcon icon={navigationIcons["solid-data-manager"]} />
-          <span>{t("Solid Data Manager")}</span>
-        </Link>
+        {generalApps.map(renderApp)}
 
         <Link
           to="/transactions"
@@ -236,89 +278,49 @@ function Sidebar({
           <span>{t("Profile Manager")}</span>
         </Link>
 
-        <Link to="/info" className={"sb-link" + (isActive("/info") ? " active" : "")} title={t("Information")}>
+        <Link
+          to="/info"
+          className={"sb-link" + (isActive("/info") ? " active" : "")}
+          title={t("Information")}
+        >
           <FontAwesomeIcon icon={navigationIcons.info} />
           <span>{t("Information")}</span>
         </Link>
 
-        <div className="sb-section">{t("Consume and Provide")}</div>
-
-        <Link
-          to="/web/catalog"
-          className={"sb-link" + (isActive("/web/catalog") ? " active" : "")}
-          title={t("Semantic Data Catalog")}
-        >
-          <FontAwesomeIcon icon={navigationIcons.catalog} />
-          <span>{t("Semantic Data Catalog")}</span>
-        </Link>
-
-        <Link
-          to="/web/plasma"
-          className={"sb-link" + (isActive("/web/plasma") ? " active" : "")}
-          title="PLASMA"
-        >
-          <FontAwesomeIcon icon={navigationIcons.plasma} />
-          <span>PLASMA</span>
-        </Link>
-
-        <Link
-          to="/web/node-red"
-          className={"sb-link" + (isActive("/web/node-red") ? " active" : "")}
-          title="Node-RED"
-        >
-          <FontAwesomeIcon icon={navigationIcons["node-red"]} />
-          <span>Node-RED</span>
-        </Link>
-
-        <Link
-          to="/data-connection"
-          className={"sb-link" + (isActive("/data-connection") ? " active" : "")}
-          title={t("Data Connection")}
-        >
-          <FontAwesomeIcon icon={navigationIcons["data-connection"]} />
-          <span>{t("Data Connection")}</span>
-        </Link>
-
+        {consumeApps.length > 0 && (
+          <>
+            <div className="sb-section">{t("Consume and Provide")}</div>
+            {consumeApps.map(renderApp)}
+          </>
+        )}
         {applicationApps.length > 0 && (
           <>
             <div className="sb-section">{t("Applications")}</div>
-            {applicationApps.map((app) => {
-              const icon = getAppIcon(app.iconKey);
-
-              if (app.linkType === "internal") {
-                return (
-                  <Link
-                    key={app.id}
-                    to={app.href}
-                    className={"sb-link" + (isActive(app.href) ? " active" : "")}
-                    title={t(app.title)}
-                  >
-                    <FontAwesomeIcon icon={icon} />
-                    <span>{t(app.title)}</span>
-                  </Link>
-                );
-              }
-
-              return (
-                <a key={app.id} href={app.href} className="sb-link" title={t(app.title)}>
-                  <FontAwesomeIcon icon={icon} />
-                  <span>{t(app.title)}</span>
-                </a>
-              );
-            })}
+            {applicationApps.map(renderApp)}
           </>
         )}
 
-        {statisticsAdmin && (
+        {(statisticsAdmin || adminArea) && (
           <>
             <div className="sb-section">{t("Administration")}</div>
             <Link
-              to="/statistics"
-              className={"sb-link" + (isActive("/statistics") ? " active" : "")}
-              title={t("Statistics Dashboard")}
+              to={adminArea ? "/admin" : "/statistics"}
+              className={
+                "sb-link" +
+                (isActive(adminArea ? "/admin" : "/statistics")
+                  ? " active"
+                  : "")
+              }
+              title={adminArea ? "Admin Area" : t("Statistics Dashboard")}
             >
-              <FontAwesomeIcon icon={navigationIcons.statistics} />
-              <span>{t("Statistics Dashboard")}</span>
+              <FontAwesomeIcon
+                icon={
+                  adminArea ? navigationIcons.admin : navigationIcons.statistics
+                }
+              />
+              <span>
+                {adminArea ? "Admin Area" : t("Statistics Dashboard")}
+              </span>
             </Link>
           </>
         )}
@@ -335,7 +337,11 @@ function Sidebar({
       </nav>
 
       <div className="sb-bottom">
-        <button onClick={handleLogout} className="icon-pill danger" title={t("Logout")}>
+        <button
+          onClick={handleLogout}
+          className="icon-pill danger"
+          title={t("Logout")}
+        >
           <FontAwesomeIcon icon={faRightFromBracket} />
           <span>{t("Logout")}</span>
         </button>

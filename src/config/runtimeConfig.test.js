@@ -194,3 +194,10 @@ test("normalizes legacy Tours navigation while retaining deployment preferences"
     window.__APP_CONFIG__ = previous;
   }
 });
+
+test('preserves an explicitly empty funding-logo configuration', () => {
+  const previous=window.__APP_CONFIG__;
+  window.__APP_CONFIG__={fundingLogos:[]};
+  jest.isolateModules(()=>{expect(require('./runtimeConfig').getFundingLogos()).toEqual([]);});
+  window.__APP_CONFIG__=previous;
+});

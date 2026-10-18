@@ -508,7 +508,7 @@ function SurveyQuestionCard({ title, question }) {
   );
 }
 
-function StatisticsDashboard({ webId, solidFetch, config }) {
+function StatisticsDashboard({ webId, solidFetch, config, allowSetup = true }) {
   const { language, t } = useI18n();
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -654,7 +654,7 @@ function StatisticsDashboard({ webId, solidFetch, config }) {
           </div>
         </div>
         <div className="statistics-actions">
-          {storageState === "uninitialized" && setup.status !== "running" && (
+          {allowSetup && storageState === "uninitialized" && setup.status !== "running" && (
             <button
               type="button"
               className="statistics-button statistics-button--secondary"

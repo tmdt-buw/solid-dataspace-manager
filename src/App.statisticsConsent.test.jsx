@@ -58,6 +58,7 @@ jest.mock("./config/runtimeConfig", () => ({
     timezone: "Europe/Berlin",
   }),
   isStatisticsAdmin: () => false,
+  isAppEnabled: () => true,
 }));
 
 jest.mock("./solidCatalog", () => ({

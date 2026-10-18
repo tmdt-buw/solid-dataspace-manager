@@ -4,6 +4,7 @@ import session from "./solidSession";
 import "@hoelk-f/solid-data-manager/embed.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+import ConfiguredAppGate from "./components/ConfiguredAppGate";
 import {
   DataManagerEmbed,
   setSession as setDataManagerSession,
@@ -46,6 +47,8 @@ import SolidPodProvider from "./components/SolidPodProvider";
 import DataConnection from "./components/DataConnection";
 import LoadingParticleCloud from "./components/LoadingParticleCloud";
 import StatisticsDashboard from "./components/StatisticsDashboard";
+import AdminArea from "./components/AdminArea";
+import { adminRequest, isAdministrationEnabled } from "./adminApi";
 import StatisticsRouteGuard from "./components/StatisticsRouteGuard";
 import RouteAwareLayout from "./components/RouteAwareLayout";
 import { appVersion } from "./versions";
@@ -76,6 +79,7 @@ import { hasStatisticsConsent } from "./statisticsConsent";
 
 const AUTH_BRIDGE_KEY = "__SOLID_DATASPACE_AUTH__";
 const statisticsConfig = getStatisticsConfig();
+const administrationEnabled = isAdministrationEnabled();
 
 const App = () => {
   const initialLanguageRef = useRef(resolveInitialLanguageSource());
@@ -91,6 +95,23 @@ const App = () => {
   const [checkingProfile, setCheckingProfile] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [statisticsConsentWebId, setStatisticsConsentWebId] = useState("");
+  const [adminAccess, setAdminAccess] = useState(null);
+  const [loadingAdminAccess, setLoadingAdminAccess] = useState(administrationEnabled);
+  useEffect(() => {
+    setAdminAccess(null);
+    if (!administrationEnabled || !sessionActive || !webId) {
+      setLoadingAdminAccess(false);
+      return undefined;
+    }
+    const controller = new AbortController();
+    setLoadingAdminAccess(true);
+    adminRequest('/me', undefined, { signal: controller.signal })
+      .then(setAdminAccess)
+      .catch(() => { /* Authorization failures never expose the admin navigation. */ })
+      .finally(() => { if (!controller.signal.aborted) setLoadingAdminAccess(false); });
+    return () => controller.abort();
+  }, [sessionActive, webId]);
+
 
   const getAuthState = useCallback(() => {
     return {
@@ -604,12 +625,13 @@ const App = () => {
           webId={webId}
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed((value) => !value)}
-          statisticsAdmin={statisticsAdmin}
+          statisticsAdmin={statisticsAdmin && !administrationEnabled}
+          adminArea={Boolean(administrationEnabled && adminAccess?.profiles?.length)}
         />
         <div className="main">
           <div className="container">
             <div className="route-content">
-              <Routes>
+              <ConfiguredAppGate><Routes>
                 <Route path="/" element={<DataManagerPage />} />
                 <Route path="/web/catalog" element={<CatalogPage />} />
                 <Route path="/semantic-search" element={<Navigate to="/web/catalog?view=semantic-search" replace />} />
@@ -620,9 +642,10 @@ const App = () => {
                 <Route path="/profile" element={<ProfilePage webId={webId} />} />
                 <Route path="/pod-provider" element={<SolidPodProvider webId={webId} />} />
                 <Route path="/info" element={<Info />} />
+                <Route path="/admin/*" element={<AdminArea access={adminAccess} loadingAccess={loadingAdminAccess} webId={webId} />} />
                 <Route
                   path="/statistics"
-                  element={
+                  element={administrationEnabled ? <Navigate to="/admin/statistics" replace /> :
                     <StatisticsRouteGuard webId={webId}>
                       <StatisticsDashboard
                         webId={webId}
@@ -637,7 +660,7 @@ const App = () => {
                 <Route path="/web/solid-tours" element={<LegacyCityToursRedirect />} />
                 <Route path="/web/solid-health-questionnaire" element={<HealthQuestionnairePage />} />
                 <Route path="/web/:slug" element={<ExternalHost />} />
-              </Routes>
+              </Routes></ConfiguredAppGate>
             </div>
           </div>
           <footer className="app-footer">

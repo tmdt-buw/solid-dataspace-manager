@@ -1,3 +1,4 @@
+import { adminTranslations, translateAdminDynamic } from "./i18nAdmin";
 import React, {
   createContext,
   useCallback,
@@ -17,19 +18,22 @@ export const PROFILE_LANGUAGE_PREDICATE =
   "https://w3id.org/solid-dataspace-manager#preferredLanguage";
 
 const enToDe = {
+  ...adminTranslations,
   "Access management": "Zugriffsverwaltung",
   "Manage access to your data.": "Verwalte den Zugriff auf deine Daten.",
-  "Decisions on your access requests.": "Entscheidungen zu deinen Zugriffsanfragen.",
-  "Adjust the filters or refresh your inbox.": "Passe die Filter an oder aktualisiere deine Inbox.",
+  "Decisions on your access requests.":
+    "Entscheidungen zu deinen Zugriffsanfragen.",
+  "Adjust the filters or refresh your inbox.":
+    "Passe die Filter an oder aktualisiere deine Inbox.",
   "Your decision": "Deine Entscheidung",
   "Filter requests": "Anfragen filtern",
   "Filter decisions": "Entscheidungen filtern",
   "Show previous scenario runs": "Frühere Szenario-Durchläufe anzeigen",
-  "Pagination": "Seitennavigation",
-  "Archived": "Archiviert",
-  "Revoked": "Widerrufen",
-  "Expired": "Abgelaufen",
-  "Unknown": "Unbekannt",
+  Pagination: "Seitennavigation",
+  Archived: "Archiviert",
+  Revoked: "Widerrufen",
+  Expired: "Abgelaufen",
+  Unknown: "Unbekannt",
   "Email:": "E-Mail:",
   "Open navigation": "Navigation öffnen",
   "Close navigation": "Navigation schließen",
@@ -53,8 +57,10 @@ const enToDe = {
   "Environmental Monitoring": "Umweltmonitoring",
   "Environmental Monitoring wants to use your completed tours":
     "Environmental Monitoring möchte deine gemachten Touren verwenden",
-  "All completed routes and activity values, including future City Tours activities until you revoke the donation": "Alle abgeschlossenen Routen und Aktivitätswerte, einschließlich zukünftiger Aktivitäten in City Tours bis zum Widerruf der Datenspende",
-  "With your consent, Environmental Monitoring may continuously read all completed City Tours activities, including future activities, and display their routes and calculated values publicly. This continues until you revoke the donation. Your source data in your Pod remains protected.": "Mit deiner Zustimmung darf Environmental Monitoring fortlaufend alle abgeschlossenen Aktivitäten in City Tours einschließlich zukünftiger Aktivitäten lesen und deren Routen sowie berechnete Werte öffentlich anzeigen. Dies gilt bis zum Widerruf der Datenspende. Die Quelldaten in deinem Pod bleiben geschützt.",
+  "All completed routes and activity values, including future City Tours activities until you revoke the donation":
+    "Alle abgeschlossenen Routen und Aktivitätswerte, einschließlich zukünftiger Aktivitäten in City Tours bis zum Widerruf der Datenspende",
+  "With your consent, Environmental Monitoring may continuously read all completed City Tours activities, including future activities, and display their routes and calculated values publicly. This continues until you revoke the donation. Your source data in your Pod remains protected.":
+    "Mit deiner Zustimmung darf Environmental Monitoring fortlaufend alle abgeschlossenen Aktivitäten in City Tours einschließlich zukünftiger Aktivitäten lesen und deren Routen sowie berechnete Werte öffentlich anzeigen. Dies gilt bis zum Widerruf der Datenspende. Die Quelldaten in deinem Pod bleiben geschützt.",
   "All donated completed routes and their calculated activity values":
     "Alle gespendeten gemachten Routen und ihre berechneten Aktivitätswerte",
   "Public display of approved donated routes and their derived activity values without direct identifiers in Environmental Monitoring.":
@@ -64,7 +70,8 @@ const enToDe = {
     "Environmental Monitoring möchte auf deine gespendeten Daten zugreifen",
   "With your consent, Environmental Monitoring may read your donated routes and calculated activity values and display them publicly. Your source data in your Pod remains protected.":
     "Mit deiner Zustimmung darf Environmental Monitoring deine gespendeten Routen und daraus berechneten Aktivitätswerte lesen und öffentlich darstellen. Deine Quelldaten im Pod bleiben geschützt.",
-  "Unsupported publication scope.": "Nicht unterstützter Veröffentlichungsumfang.",
+  "Unsupported publication scope.":
+    "Nicht unterstützter Veröffentlichungsumfang.",
   "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.":
     "Environmental Monitoring zeigt weder deinen Namen, deine WebID, Pod-URL, Kontakt-E-Mail, das genaue Abschlussdatum noch andere direkte Identifikatoren an. Eine Route und Aktivitätsart können bereits angezeigt werden, sobald der Zugriff auf einen passenden Beitrag einer einzelnen WebID genehmigt wurde; Werte aus weiteren genehmigten Beiträgen werden zusammengefasst, sofern sie vorliegen. Das Entfernen direkter Identifikatoren macht eine Route nicht anonym: Ort und Verlauf einer einzelnen Route, zeitliche Muster oder Bezüge zu bekannten Orten können weiterhin Rückschlüsse auf eine Person oder einen Ort ermöglichen. Die geschützte Quelldatei enthält die vollständigen Routenkoordinaten, das Abschlussdatum, die Aktivitätsart, berechnete Distanz, aktive Minuten, Tempo und beim Gehen eine geschätzte Schrittzahl. Dein öffentlicher Katalogeintrag kann weiterhin den Ersteller, die WebID und die im Solid-Profil hinterlegte Kontakt-E-Mail anzeigen.",
   "Delete closed requests": "Geschlossene Anfragen löschen",
@@ -76,8 +83,10 @@ const enToDe = {
   "Purpose:": "Zweck:",
   "Access:": "Zugriff:",
   "Note:": "Hinweis:",
-  "This request cannot be approved:": "Diese Anfrage kann nicht genehmigt werden:",
-  "Failed to update access decision:": "Zugriffsentscheidung konnte nicht aktualisiert werden:",
+  "This request cannot be approved:":
+    "Diese Anfrage kann nicht genehmigt werden:",
+  "Failed to update access decision:":
+    "Zugriffsentscheidung konnte nicht aktualisiert werden:",
   "Health App": "Gesundheits-App",
   "Health Questionnaire": "Gesundheitsfragebogen",
   Logout: "Abmelden",
@@ -124,7 +133,8 @@ const enToDe = {
   Secret: "Secret",
   "No token found": "Kein Token gefunden",
   "No secret found": "Kein Secret gefunden",
-  "Credential token could not be loaded.": "Anmeldetoken konnte nicht geladen werden.",
+  "Credential token could not be loaded.":
+    "Anmeldetoken konnte nicht geladen werden.",
   "Hide secret": "Secret ausblenden",
   "Show secret": "Secret anzeigen",
   Basics: "Basisdaten",
@@ -160,7 +170,8 @@ const enToDe = {
   "Private use": "Private Nutzung",
   "Select one or more registries.": "Wähle eine oder mehrere Registries aus.",
   "Registry URL": "Registry-URL",
-  "Default registry container in your pod.": "Standard-Registry-Container in deinem Pod.",
+  "Default registry container in your pod.":
+    "Standard-Registry-Container in deinem Pod.",
   "Members (WebIDs)": "Mitglieder (WebIDs)",
   Save: "Speichern",
   "Saving...": "Wird gespeichert...",
@@ -189,7 +200,8 @@ const enToDe = {
   "Collapse sidebar": "Seitenleiste einklappen",
   "Catalog downloads": "Katalog-Downloads",
   "Loading connections...": "Verbindungen werden geladen...",
-  "No Solid inbox found for this profile.": "Keine Solid-Inbox für dieses Profil gefunden.",
+  "No Solid inbox found for this profile.":
+    "Keine Solid-Inbox für dieses Profil gefunden.",
   "Failed to load transactions.": "Transaktionen konnten nicht geladen werden.",
   Close: "Schließen",
   Confirm: "Bestätigen",
@@ -210,12 +222,14 @@ const enToDe = {
   "All datasets & dataset series": "Alle Datensätze und Datensatzreihen",
   "Search datasets...": "Datensätze suchen...",
   "Under Construction": "In Arbeit",
-  "This section is not yet available.": "Dieser Bereich ist noch nicht verfügbar.",
+  "This section is not yet available.":
+    "Dieser Bereich ist noch nicht verfügbar.",
   "Add Data Sources": "Datenquellen hinzufügen",
   Workspace: "Arbeitsbereich",
   Connected: "Verbunden",
   Settings: "Einstellungen",
-  "Solid login is managed by Solid Dataspace": "Die Solid-Anmeldung wird von Solid Dataspace verwaltet",
+  "Solid login is managed by Solid Dataspace":
+    "Die Solid-Anmeldung wird von Solid Dataspace verwaltet",
   "Please log in in the main Solid Dataspace application. This app will automatically reuse the same Solid session.":
     "Bitte melde dich in der Hauptanwendung Solid Dataspace an. Diese App nutzt automatisch dieselbe Solid-Sitzung.",
   "Provider detected, but Pod URL could not be resolved":
@@ -232,7 +246,8 @@ const enToDe = {
   Weight: "Gewicht",
   "Solid Logout": "Solid abmelden",
   "Google Logout": "Google abmelden",
-  "Enter a valid OIDC issuer or Pod URL.": "Gib einen gültigen OIDC-Issuer oder eine Pod-URL ein.",
+  "Enter a valid OIDC issuer or Pod URL.":
+    "Gib einen gültigen OIDC-Issuer oder eine Pod-URL ein.",
   "Back to provider list": "Zurück zur Anbieter-Liste",
   "Log in with selected provider": "Mit ausgewähltem Anbieter anmelden",
   "Solid OIDC Login": "Solid-OIDC-Anmeldung",
@@ -257,20 +272,20 @@ Object.assign(enToDe, {
   "Suggested providers": "Vorgeschlagene Anbieter",
   "Custom issuer": "Eigener Issuer",
   "Custom Issuer URL": "Eigene Issuer-URL",
-  "Register": "Registrieren",
+  Register: "Registrieren",
   "Register on selected provider": "Beim ausgewählten Anbieter registrieren",
   "Checking...": "Wird geprüft...",
   "Solid Provider": "Solid-Anbieter",
   "Account login": "Kontoanmeldung",
   "Sign in to the Solid Provider.": "Melde dich beim Solid-Anbieter an.",
-  "Password": "Passwort",
+  Password: "Passwort",
   "Remember me": "Angemeldet bleiben",
   "Signing in...": "Anmeldung läuft...",
-  "Continue": "Weiter",
+  Continue: "Weiter",
   "Register Solid account": "Solid-Konto registrieren",
   "Registration steps": "Registrierungsschritte",
-  "Account": "Konto",
-  "Pod": "Pod",
+  Account: "Konto",
+  Pod: "Pod",
   "Create an account on the selected Solid Community Server.":
     "Erstelle ein Konto auf dem ausgewählten Solid Community Server.",
   "Confirm password": "Passwort bestätigen",
@@ -288,10 +303,13 @@ Object.assign(enToDe, {
   "Creating Solid Pod...": "Solid-Pod wird erstellt...",
   "Loading provider account API...": "Konto-API des Anbieters wird geladen...",
   "Preparing account controls...": "Kontosteuerung wird vorbereitet...",
-  "Adding email/password login...": "E-Mail-/Passwort-Anmeldung wird hinzugefügt...",
-  "Loading created account details...": "Erstellte Kontodetails werden geladen...",
+  "Adding email/password login...":
+    "E-Mail-/Passwort-Anmeldung wird hinzugefügt...",
+  "Loading created account details...":
+    "Erstellte Kontodetails werden geladen...",
   "Email is required.": "E-Mail ist erforderlich.",
-  "Password and confirmation are required.": "Passwort und Bestätigung sind erforderlich.",
+  "Password and confirmation are required.":
+    "Passwort und Bestätigung sind erforderlich.",
   "Passwords do not match.": "Passwörter stimmen nicht überein.",
   "Pod name is required.": "Pod-Name ist erforderlich.",
   "Pod name can use lowercase letters, numbers, dashes, and underscores.":
@@ -304,13 +322,16 @@ Object.assign(enToDe, {
     "Dieser Anbieter stellt keine E-Mail-/Passwort-Erstellung bereit.",
   "This provider does not expose pod creation.":
     "Dieser Anbieter stellt keine Pod-Erstellung bereit.",
-  "The provider created no account token.": "Der Anbieter hat kein Konto-Token erstellt.",
+  "The provider created no account token.":
+    "Der Anbieter hat kein Konto-Token erstellt.",
   "Registration failed.": "Registrierung fehlgeschlagen.",
   "Email and password are required.": "E-Mail und Passwort sind erforderlich.",
-  "No account login endpoint is available.": "Es ist kein Konto-Anmelde-Endpunkt verfügbar.",
+  "No account login endpoint is available.":
+    "Es ist kein Konto-Anmelde-Endpunkt verfügbar.",
   "The provider login returned no account token.":
     "Die Anbieter-Anmeldung hat kein Konto-Token zurückgegeben.",
-  "Account login could not be initialized.": "Kontoanmeldung konnte nicht initialisiert werden.",
+  "Account login could not be initialized.":
+    "Kontoanmeldung konnte nicht initialisiert werden.",
   "Account login failed.": "Kontoanmeldung fehlgeschlagen.",
   "Back to provider list": "Zurück zur Anbieter-Liste",
   "Loading notifications...": "Benachrichtigungen werden geladen...",
@@ -321,7 +342,7 @@ Object.assign(enToDe, {
   "Loading decisions...": "Entscheidungen werden geladen...",
   "Reading access decisions from your Solid Pod.":
     "Zugriffsentscheidungen werden aus deinem Solid-Pod gelesen.",
-  "Refresh": "Aktualisieren",
+  Refresh: "Aktualisieren",
   "Hide closed": "Geschlossene ausblenden",
   "Clear closed": "Geschlossene löschen",
   "Clear Closed Requests": "Geschlossene Zugriffsanfragen löschen",
@@ -339,24 +360,27 @@ Object.assign(enToDe, {
   "Expires:": "Läuft ab:",
   "Expiry (optional)": "Ablaufdatum (optional)",
   "Optional comment...": "Optionaler Kommentar...",
-  "Approve": "Genehmigen",
-  "Deny": "Ablehnen",
-  "Revoke": "Widerrufen",
-  "Approved": "Genehmigt",
-  "Denied": "Abgelehnt",
-  "Pending": "Ausstehend",
-  "closed": "geschlossen",
-  "unknown": "unbekannt",
+  Approve: "Genehmigen",
+  Deny: "Ablehnen",
+  Revoke: "Widerrufen",
+  Approved: "Genehmigt",
+  Denied: "Abgelehnt",
+  Pending: "Ausstehend",
+  closed: "geschlossen",
+  unknown: "unbekannt",
   "Delete decision": "Entscheidung löschen",
   "Delete Decision": "Entscheidung löschen",
   "Delete this decision?": "Diese Entscheidung löschen?",
-  "Prev": "Zurück",
-  "Next": "Weiter",
+  Prev: "Zurück",
+  Next: "Weiter",
   "Failed to load notifications from the Solid inbox.":
     "Benachrichtigungen konnten nicht aus der Solid-Inbox geladen werden.",
-  "Failed to update access decision.": "Zugriffsentscheidung konnte nicht aktualisiert werden.",
-  "Failed to clear closed requests.": "Geschlossene Anfragen konnten nicht gelöscht werden.",
-  "Failed to load access decisions.": "Zugriffsentscheidungen konnten nicht geladen werden.",
+  "Failed to update access decision.":
+    "Zugriffsentscheidung konnte nicht aktualisiert werden.",
+  "Failed to clear closed requests.":
+    "Geschlossene Anfragen konnten nicht gelöscht werden.",
+  "Failed to load access decisions.":
+    "Zugriffsentscheidungen konnten nicht geladen werden.",
   "Delete Data Connection": "Datenverbindung löschen",
   "Delete Home Assistant connection": "Home-Assistant-Verbindung löschen",
   "Delete permanently?": "Dauerhaft löschen?",
@@ -370,29 +394,34 @@ Object.assign(enToDe, {
   "Connection type": "Verbindungstyp",
   "Entity selection": "Entitätsauswahl",
   "HTTP endpoint": "HTTP-Endpunkt",
-  "Connection": "Verbindung",
+  Connection: "Verbindung",
   "Source request": "Quellanfrage",
   "Request method": "Anfragemethode",
   "Source endpoint": "Quellendpunkt",
-  "Authentication": "Authentifizierung",
+  Authentication: "Authentifizierung",
   "Long-lived access token": "Langlebiger Zugriffstoken",
-  "Storage": "Speicher",
+  Storage: "Speicher",
   "Pod storage document": "Pod-Speicherdokument",
-  "Entities": "Entitäten",
+  Entities: "Entitäten",
   "Loading entities...": "Entitäten werden geladen...",
   "Search entities": "Entitäten suchen",
   "All domains": "Alle Domains",
   "Select visible": "Sichtbare auswählen",
-  "Clear": "Leeren",
-  "No entities match the current filter.": "Keine Entitäten passen zum aktuellen Filter.",
+  Clear: "Leeren",
+  "No entities match the current filter.":
+    "Keine Entitäten passen zum aktuellen Filter.",
   "Home Assistant entities could not be loaded.":
     "Home-Assistant-Entitäten konnten nicht geladen werden.",
   "No selected Home Assistant entities were found.":
     "Keine ausgewählten Home-Assistant-Entitäten gefunden.",
-  "Connection could not be saved.": "Verbindung konnte nicht gespeichert werden.",
-  "Connection could not be deleted.": "Verbindung konnte nicht gelöscht werden.",
-  "Connections could not be loaded.": "Verbindungen konnten nicht geladen werden.",
-  "Custom connection could not be saved.": "Eigene Verbindung konnte nicht gespeichert werden.",
+  "Connection could not be saved.":
+    "Verbindung konnte nicht gespeichert werden.",
+  "Connection could not be deleted.":
+    "Verbindung konnte nicht gelöscht werden.",
+  "Connections could not be loaded.":
+    "Verbindungen konnten nicht geladen werden.",
+  "Custom connection could not be saved.":
+    "Eigene Verbindung konnte nicht gespeichert werden.",
   "Home Assistant or custom API": "Home Assistant oder eigene API",
   "API key": "API-Schlüssel",
   "API key header": "API-Schlüssel-Header",
@@ -412,13 +441,13 @@ Object.assign(enToDe, {
   "Active Connections": "Aktive Verbindungen",
   "No active connections found.": "Keine aktiven Verbindungen gefunden.",
   "No active connections": "Keine aktiven Verbindungen",
-  "Direction": "Richtung",
+  Direction: "Richtung",
   "Requester / Provider": "Anfragende Person / Anbieter",
-  "Dataset": "Datensatz",
+  Dataset: "Datensatz",
   "Last Update": "Letzte Aktualisierung",
-  "Expires": "Läuft ab",
-  "incoming": "eingehend",
-  "outgoing": "ausgehend",
+  Expires: "Läuft ab",
+  incoming: "eingehend",
+  outgoing: "ausgehend",
   "Unknown Pod": "Unbekannter Pod",
   "Unknown pod": "Unbekannter Pod",
   "Active connection": "Aktive Verbindung",
@@ -435,16 +464,16 @@ Object.assign(enToDe, {
   "Profile setup": "Profileinrichtung",
   "Requests arrive here when someone wants to use your data. You decide to approve, deny, or set an expiry date.":
     "Hier kommen Anfragen an, wenn jemand deine Daten nutzen möchte. Du entscheidest über Genehmigung, Ablehnung oder Ablaufdatum.",
-  "Requests": "Anfragen",
+  Requests: "Anfragen",
   "Decisions on your own requests show up here, so you can quickly see if access was granted.":
     "Entscheidungen zu deinen eigenen Anfragen erscheinen hier, damit du schnell siehst, ob Zugriff gewährt wurde.",
-  "Responses": "Antworten",
+  Responses: "Antworten",
   "The discovery and publishing portal. Providers publish datasets, and others can find them and request access.":
     "Das Portal zum Finden und Veröffentlichen. Anbieter veröffentlichen Datensätze, andere können sie finden und Zugriff anfragen.",
   "Find and publish": "Finden und veröffentlichen",
   "A semantic modeling tool that adds meaning to datasets so they are easier to understand and reuse.":
     "Ein semantisches Modellierungswerkzeug, das Datensätzen Bedeutung hinzufügt, damit sie leichter verständlich und wiederverwendbar sind.",
-  "Semantics": "Semantik",
+  Semantics: "Semantik",
   "For live data and automation. Data streams can be collected, processed, and stored directly in Pods.":
     "Für Live-Daten und Automatisierung. Datenströme können direkt gesammelt, verarbeitet und in Pods gespeichert werden.",
   "Data streams": "Datenströme",
@@ -453,7 +482,8 @@ Object.assign(enToDe, {
     "Eine Beispielanwendung, die Katalogdaten nutzt, um urbane Hitzebedingungen zu visualisieren.",
   "Example app": "Beispiel-App",
   "How a data flow works": "So funktioniert ein Datenfluss",
-  "From dataset to usage in five simple steps.": "Vom Datensatz zur Nutzung in fünf einfachen Schritten.",
+  "From dataset to usage in five simple steps.":
+    "Vom Datensatz zur Nutzung in fünf einfachen Schritten.",
   "Store data:": "Daten speichern:",
   "Files live in your Pod (via the Data Manager or Node-RED).":
     "Dateien liegen in deinem Pod (über den Data Manager oder Node-RED).",
@@ -464,7 +494,8 @@ Object.assign(enToDe, {
   "The Semantic Data Catalog makes datasets discoverable.":
     "Der Semantic Data Catalog macht Datensätze auffindbar.",
   "Request:": "Anfragen:",
-  "Others request access through the catalog.": "Andere fragen Zugriff über den Katalog an.",
+  "Others request access through the catalog.":
+    "Andere fragen Zugriff über den Katalog an.",
   "Decide:": "Entscheiden:",
   "You grant or deny access. Everything stays traceable.":
     "Du gewährst oder verweigerst Zugriff. Alles bleibt nachvollziehbar.",
@@ -481,7 +512,8 @@ Object.assign(enToDe, {
   "Welcome to the Solid Dataspace": "Willkommen im Solid Dataspace",
   "Complete these steps to activate your dataspace access.":
     "Schließe diese Schritte ab, um deinen Dataspace-Zugang zu aktivieren.",
-  "Please provide your profile basics.": "Bitte gib deine grundlegenden Profildaten an.",
+  "Please provide your profile basics.":
+    "Bitte gib deine grundlegenden Profildaten an.",
   "Organization (optional)": "Organisation (optional)",
   "Role (optional)": "Rolle (optional)",
   "Inbox, Catalog & Registry": "Inbox, Katalog und Registry",
@@ -539,10 +571,11 @@ Object.assign(enToDe, {
     "Ich verstehe, dass beim Abschließen das solid-dataspace-Anmeldetoken in meinem Pod erstellt und gespeichert wird.",
   "I understand that finishing will register me in the selected registries.":
     "Ich verstehe, dass ich beim Abschließen in den ausgewählten Registries registriert werde.",
-  "Finish": "Abschließen",
+  Finish: "Abschließen",
   "Loading your personal dataspace workspace …":
     "Dein persönlicher Dataspace-Bereich wird geladen …",
-  "Add at least one contact email.": "Füge mindestens eine Kontakt-E-Mail hinzu.",
+  "Add at least one contact email.":
+    "Füge mindestens eine Kontakt-E-Mail hinzu.",
   "Select at least one registry.": "Wähle mindestens eine Registry aus.",
   "Choose whether you want to participate in a research registry or keep a private registry inside your pod.":
     "Wähle, ob du an einer Forschungs-Registry teilnehmen oder eine private Registry in deinem Pod behalten möchtest.",
@@ -556,7 +589,8 @@ Object.assign(enToDe, {
   "Token name is required.": "Token-Name ist erforderlich.",
   "Token could not be created.": "Token konnte nicht erstellt werden.",
   "Token could not be deleted.": "Token konnte nicht gelöscht werden.",
-  "No credential token endpoint is available.": "Es ist kein Anmeldetoken-Endpunkt verfügbar.",
+  "No credential token endpoint is available.":
+    "Es ist kein Anmeldetoken-Endpunkt verfügbar.",
   "The provider did not return a complete credential token.":
     "Der Anbieter hat kein vollständiges Anmeldetoken zurückgegeben.",
   "Stored credential token is invalid and will be replaced.":
@@ -572,22 +606,26 @@ Object.assign(enToDe, {
   "Sign in to the Solid Provider to load account-level pods, WebIDs, and credential tokens.":
     "Melde dich beim Solid-Anbieter an, um Pods, WebIDs und Anmeldetoken auf Kontoebene zu laden.",
   "Your account": "Dein Konto",
-  "Pods": "Pods",
+  Pods: "Pods",
   "Registered Web IDs": "Registrierte WebIDs",
   "Registered WebID": "Registrierte WebID",
   "Link WebID": "WebID verknüpfen",
   "Linking...": "Wird verknüpft...",
   "WebID could not be linked.": "WebID konnte nicht verknüpft werden.",
-  "No WebID linking endpoint is available.": "Es ist kein WebID-Verknüpfungsendpunkt verfügbar.",
+  "No WebID linking endpoint is available.":
+    "Es ist kein WebID-Verknüpfungsendpunkt verfügbar.",
   "WebID is required.": "WebID ist erforderlich.",
   "Enter a valid WebID URL.": "Gib eine gültige WebID-URL ein.",
-  "Account information could not be loaded.": "Kontoinformationen konnten nicht geladen werden.",
-  "Some account sections could not be loaded.": "Einige Kontobereiche konnten nicht geladen werden.",
+  "Account information could not be loaded.":
+    "Kontoinformationen konnten nicht geladen werden.",
+  "Some account sections could not be loaded.":
+    "Einige Kontobereiche konnten nicht geladen werden.",
   "The stored account login is no longer accepted by the provider account API.":
     "Die gespeicherte Kontoanmeldung wird von der Konto-API des Anbieters nicht mehr akzeptiert.",
   "The stored account login is no longer accepted by the provider.":
     "Die gespeicherte Kontoanmeldung wird vom Anbieter nicht mehr akzeptiert.",
-  "No pod creation endpoint is available.": "Es ist kein Pod-Erstellungsendpunkt verfügbar.",
+  "No pod creation endpoint is available.":
+    "Es ist kein Pod-Erstellungsendpunkt verfügbar.",
   "Pod could not be created.": "Pod konnte nicht erstellt werden.",
   "Account login is required to create a pod.":
     "Zum Erstellen eines Pods ist eine Kontoanmeldung erforderlich.",
@@ -658,9 +696,12 @@ Object.assign(enToDe, {
   "Owner WebID": "Eigentümer-WebID",
   Owners: "Eigentümer",
   "Public Registry": "Öffentliche Registry",
-  "Failed to load decisions.": "Zugriffsentscheidungen konnten nicht geladen werden.",
-  "Failed to parse decision.": "Zugriffsentscheidung konnte nicht gelesen werden.",
-  "Failed to parse notification.": "Benachrichtigung konnte nicht gelesen werden.",
+  "Failed to load decisions.":
+    "Zugriffsentscheidungen konnten nicht geladen werden.",
+  "Failed to parse decision.":
+    "Zugriffsentscheidung konnte nicht gelesen werden.",
+  "Failed to parse notification.":
+    "Benachrichtigung konnte nicht gelesen werden.",
   "Sync worker registration failed; setup will continue.":
     "Registrierung des Sync Workers fehlgeschlagen; die Einrichtung wird fortgesetzt.",
   "https://homeassistant.example or 192.168.1.50":
@@ -689,7 +730,7 @@ Object.assign(enToDe, {
   "Usage statistics participation": "Teilnahme an Nutzungsstatistiken",
   "Choose whether the Solid Dataspace Manager may record your monthly activity.":
     "Entscheide, ob der Solid Dataspace Manager deine monatliche Aktivit\u00e4t erfassen darf.",
-  "Enabled": "Aktiviert",
+  Enabled: "Aktiviert",
   "Not enabled": "Nicht aktiviert",
   "Stored data": "Gespeicherte Daten",
   "Last activity time and active calendar month":
@@ -727,13 +768,15 @@ Object.assign(enToDe, {
     "Der Zugriff des Statistik-Workers konnte nicht entfernt werden.",
   "Initialize statistics storage": "Statistikspeicher initialisieren",
   "Preparing statistics storage...": "Statistikspeicher wird vorbereitet...",
-  "Checking statistics containers...": "Statistik-Container werden gepr\u00fcft...",
+  "Checking statistics containers...":
+    "Statistik-Container werden gepr\u00fcft...",
   "Securing statistics ACLs...": "Statistik-ACLs werden gesetzt...",
   "Statistics storage and ACLs are ready. New values appear after the next worker run.":
     "Statistikspeicher und ACLs sind bereit. Neue Werte erscheinen nach dem n\u00e4chsten Worker-Lauf.",
   "Statistics storage could not be initialized.":
     "Statistikspeicher konnte nicht initialisiert werden.",
-  "Statistics storage is not configured.": "Statistikspeicher ist nicht konfiguriert.",
+  "Statistics storage is not configured.":
+    "Statistikspeicher ist nicht konfiguriert.",
   "The current WebID is not a configured statistics admin.":
     "Die aktuelle WebID ist nicht als Statistik-Admin konfiguriert.",
   "Statistics worker WebID is not configured.":
@@ -850,7 +893,8 @@ Object.assign(enToDe, {
     "Prüfe Zugriffsaktivitäten und aktive Dataspace-Verbindungen.",
   "Manage the Solid account and Pod provider configuration.":
     "Verwalte dein Solid-Konto und die Konfiguration des Pod-Anbieters.",
-  "Connect, describe and govern data": "Daten verbinden, beschreiben und steuern",
+  "Connect, describe and govern data":
+    "Daten verbinden, beschreiben und steuern",
   "Turn Pod resources into discoverable, reusable and permissioned data flows.":
     "Mache aus Pod-Ressourcen auffindbare, wiederverwendbare und berechtigungsgesteuerte Datenflüsse.",
   "Publish and discover datasets, series and their metadata.":
@@ -866,7 +910,8 @@ Object.assign(enToDe, {
   "Track responses to access requests that you have sent.":
     "Verfolge Antworten auf Zugriffsanfragen, die du gesendet hast.",
   "Domain applications": "Fachanwendungen",
-  "Applications available in this instance": "In dieser Instanz verfügbare Anwendungen",
+  "Applications available in this instance":
+    "In dieser Instanz verfügbare Anwendungen",
   "The list follows the active runtime configuration, so this page and the sidebar always describe the same application set.":
     "Die Liste folgt der aktiven Laufzeitkonfiguration. Dadurch zeigen diese Seite und die Sidebar immer dieselben Anwendungen.",
   "Integrated application": "Integrierte Anwendung",
@@ -882,7 +927,8 @@ Object.assign(enToDe, {
   "Personal health data": "Persönliche Gesundheitsdaten",
   "Synchronize selected Google Fit metrics such as steps, calories, sleep, heart rate and weight into your personal Pod.":
     "Synchronisiere ausgewählte Google-Fit-Werte wie Schritte, Kalorien, Schlaf, Herzfrequenz und Gewicht in deinen persönlichen Pod.",
-  "Selected metrics stored in your Pod": "Ausgewählte Messwerte werden in deinem Pod gespeichert",
+  "Selected metrics stored in your Pod":
+    "Ausgewählte Messwerte werden in deinem Pod gespeichert",
   "Routes & activities": "Routen und Aktivitäten",
   "Draw or import routes, record walking and cycling activities, exchange catalog routes and explicitly donate completed-tour data.":
     "Zeichne oder importiere Routen, erfasse Geh- und Radaktivitäten, tausche Katalogrouten aus und spende Daten abgeschlossener Touren ausdrücklich.",
@@ -899,7 +945,8 @@ Object.assign(enToDe, {
   "Source selection in the Pod; per-user vector index":
     "Quellenauswahl im Pod; getrennter Vektorindex pro Nutzer",
   "End-to-end": "Durchgängig",
-  "How data moves through the Dataspace": "So bewegen sich Daten durch den Dataspace",
+  "How data moves through the Dataspace":
+    "So bewegen sich Daten durch den Dataspace",
   "Storage, discovery and use are separate decisions. Publishing metadata does not automatically make a protected source readable.":
     "Speicherung, Auffindbarkeit und Nutzung sind getrennte Entscheidungen. Das Veröffentlichen von Metadaten macht eine geschützte Quelle nicht automatisch lesbar.",
   "Identify and onboard": "Identifizieren und einrichten",
@@ -935,11 +982,13 @@ Object.assign(enToDe, {
     "Der Sync-Worker verwaltet Betriebszustände, PLASMA und Node-RED nutzen eigenen Dienstspeicher und Bewegungsspenden werden aggregiert.",
   "Purpose-bound services": "Zweckgebundene Dienste",
   "Transparent processing": "Transparente Verarbeitung",
-  "Access is contextual, not global": "Zugriff gilt kontextbezogen, nicht global",
+  "Access is contextual, not global":
+    "Zugriff gilt kontextbezogen, nicht global",
   "Solid-OIDC authenticates the session. WAC permissions determine whether that authenticated agent may access a specific Pod resource.":
     "Solid-OIDC authentifiziert die Sitzung. WAC-Berechtigungen bestimmen, ob dieser authentifizierte Akteur auf eine bestimmte Pod-Ressource zugreifen darf.",
   "Current scope": "Aktueller Umfang",
-  "Implemented today, with clear boundaries": "Heute umgesetzt – mit klaren Grenzen",
+  "Implemented today, with clear boundaries":
+    "Heute umgesetzt – mit klaren Grenzen",
   "Embedded applications reuse the Manager's authenticated Solid session. Several applications also provide a standalone build with their own sign-in.":
     "Eingebettete Anwendungen verwenden die authentifizierte Solid-Sitzung des Managers. Mehrere Anwendungen bieten zusätzlich eine Standalone-Variante mit eigener Anmeldung.",
   "City Tours draws and imports routes, but it does not record live GPS tracks or call a routing service.":
@@ -966,7 +1015,10 @@ Object.assign(enToDe, {
     "Der Katalog beschreibt veröffentlichte Datensätze; Registries machen teilnehmende Pods und Kataloge auffindbar.",
 });
 
-const deToEn = Object.entries(enToDe).reduce((acc, [en, de]) => {
+const deToEn = [
+  ...Object.entries(adminTranslations),
+  ...Object.entries(enToDe),
+].reduce((acc, [en, de]) => {
   acc[de] = en;
   return acc;
 }, {});
@@ -976,7 +1028,8 @@ const dynamicTranslations = [
     en: /^The statistics snapshot could not be loaded \((\d+)\)\.$/,
     de: ([, status]) =>
       `Der Statistik-Snapshot konnte nicht geladen werden (${status}).`,
-    dePattern: /^Der Statistik-Snapshot konnte nicht geladen werden \((\d+)\)\.$/,
+    dePattern:
+      /^Der Statistik-Snapshot konnte nicht geladen werden \((\d+)\)\.$/,
     enText: ([, status]) =>
       `The statistics snapshot could not be loaded (${status}).`,
   },
@@ -1045,9 +1098,11 @@ const dynamicTranslations = [
   },
   {
     en: /^(\d+) data source point\(s\), (\d+) link\(s\)$/,
-    de: ([, points, links]) => `${points} Datenquellenpunkt(e), ${links} Verbindung(en)`,
+    de: ([, points, links]) =>
+      `${points} Datenquellenpunkt(e), ${links} Verbindung(en)`,
     dePattern: /^(\d+) Datenquellenpunkt\(e\), (\d+) Verbindung\(en\)$/,
-    enText: ([, points, links]) => `${points} data source point(s), ${links} link(s)`,
+    enText: ([, points, links]) =>
+      `${points} data source point(s), ${links} link(s)`,
   },
   {
     en: /^Last update: (.+)$/,
@@ -1076,6 +1131,8 @@ function normalizeTranslationKey(value) {
 }
 
 function translateDynamicText(body, target) {
+  const admin = translateAdminDynamic(body, target);
+  if (admin) return admin;
   for (const entry of dynamicTranslations) {
     if (target === "de") {
       const match = body.match(entry.en);
@@ -1096,7 +1153,9 @@ function withOriginalWhitespace(original, translated) {
 }
 
 export function normalizeLanguage(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   if (normalized.startsWith("de")) return "de";
   if (normalized.startsWith("en")) return "en";
   return DEFAULT_LANGUAGE;
@@ -1137,7 +1196,10 @@ export function hasStoredLanguage() {
 export function writeStoredLanguage(language) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, normalizeLanguage(language));
+    window.localStorage.setItem(
+      LANGUAGE_STORAGE_KEY,
+      normalizeLanguage(language),
+    );
   } catch {
     // Ignore storage failures.
   }
@@ -1161,13 +1223,15 @@ export function translateText(value, language) {
   const target = normalizeLanguage(language);
 
   if (target === "de") {
-    if (Object.prototype.hasOwnProperty.call(enToDe, body)) return withOriginalWhitespace(value, enToDe[body]);
+    if (Object.prototype.hasOwnProperty.call(enToDe, body))
+      return withOriginalWhitespace(value, enToDe[body]);
     if (Object.prototype.hasOwnProperty.call(deToEn, body)) return value;
     const dynamic = translateDynamicText(body, target);
     return dynamic ? withOriginalWhitespace(value, dynamic) : value;
   }
 
-  if (Object.prototype.hasOwnProperty.call(deToEn, body)) return withOriginalWhitespace(value, deToEn[body]);
+  if (Object.prototype.hasOwnProperty.call(deToEn, body))
+    return withOriginalWhitespace(value, deToEn[body]);
   if (Object.prototype.hasOwnProperty.call(enToDe, body)) return value;
   const dynamic = translateDynamicText(body, target);
   return dynamic ? withOriginalWhitespace(value, dynamic) : value;
@@ -1180,7 +1244,7 @@ export function translate(key, language) {
 function shouldSkipElement(element) {
   if (!element || !element.tagName) return false;
   return ["SCRIPT", "STYLE", "NOSCRIPT", "CODE", "PRE", "TEXTAREA"].includes(
-    element.tagName
+    element.tagName,
   );
 }
 
@@ -1197,8 +1261,14 @@ function translateNode(node, language) {
   // User data and code are not UI copy. Respect the HTML translation boundary
   // across embedded apps as well as in the standalone document.
   // https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate
-  const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
-  if (element?.closest('[translate="no"], .notranslate, [data-i18n-skip], [contenteditable]:not([contenteditable="false"])')) return;
+  const element =
+    node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+  if (
+    element?.closest(
+      '[translate="no"], .notranslate, [data-i18n-skip], [contenteditable]:not([contenteditable="false"])',
+    )
+  )
+    return;
   if (!node) return;
 
   if (node.nodeType === Node.TEXT_NODE) {
@@ -1221,7 +1291,10 @@ export function applyDocumentTranslations(language, root) {
 }
 
 export function installDomTranslator(getLanguage) {
-  if (typeof document === "undefined" || typeof MutationObserver === "undefined") {
+  if (
+    typeof document === "undefined" ||
+    typeof MutationObserver === "undefined"
+  ) {
     return () => {};
   }
 
@@ -1257,7 +1330,7 @@ export function dispatchLanguageChange(language) {
   window.dispatchEvent(
     new CustomEvent(LANGUAGE_EVENT, {
       detail: { language: normalized },
-    })
+    }),
   );
 }
 
@@ -1303,7 +1376,9 @@ export function I18nProvider({
   language: controlledLanguage,
   onLanguageChange,
 }) {
-  const [internalLanguage, setInternalLanguage] = useState(resolveInitialLanguage);
+  const [internalLanguage, setInternalLanguage] = useState(
+    resolveInitialLanguage,
+  );
   const [syncError, setSyncError] = useState("");
   const language = normalizeLanguage(controlledLanguage || internalLanguage);
   const languageRef = useRef(language);
@@ -1324,11 +1399,11 @@ export function I18nProvider({
       } catch (error) {
         console.warn("Language preference sync failed:", error);
         setSyncError(
-          "Could not save the language preference to your Solid profile. The local choice is still active."
+          "Could not save the language preference to your Solid profile. The local choice is still active.",
         );
       }
     },
-    [controlledLanguage, onLanguageChange]
+    [controlledLanguage, onLanguageChange],
   );
 
   useEffect(() => {
@@ -1345,7 +1420,7 @@ export function I18nProvider({
           setInternalLanguage(nextLanguage);
         }
       }),
-    [controlledLanguage]
+    [controlledLanguage],
   );
 
   const value = useMemo(
@@ -1355,7 +1430,7 @@ export function I18nProvider({
       syncError,
       t: (key) => translate(key, language),
     }),
-    [language, setLanguage, syncError]
+    [language, setLanguage, syncError],
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
@@ -1370,7 +1445,9 @@ export function LanguageSelect({ className = "", compact = false, label }) {
 
   return (
     <label className={`language-select ${className}`.trim()}>
-      {!compact && <span className="language-select__label">{label || t("Language")}</span>}
+      {!compact && (
+        <span className="language-select__label">{label || t("Language")}</span>
+      )}
       <select
         value={language}
         onChange={(event) => setLanguage(event.target.value)}

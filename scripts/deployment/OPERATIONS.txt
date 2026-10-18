@@ -1,0 +1,109 @@
+Dataspace: Produktion und Live-Test
+===================================
+Stand: 18.10.2026
+
+Aktive Compose-Projekte:
+  /srv/solid-dataspace-prod       (gemeinsame Produktion, 32 Dienste)
+  /srv/solid-dataspace-live-test  (Live-Test, 20 Dienste)
+Solid Pod Server, Account-Handoff und Caddy bleiben gemeinsame Infrastruktur.
+Die alten fuenf Anwendungsprojekte sind stillgelegt und starten nicht neu.
+Ihre Datenvolumes sind fuer eine gezielte Wiederherstellung erhalten.
+
+Live-Vorschau:
+  https://solid-dataspace-test.tmdt.info/web/catalog (eingebettet)
+  https://solid-dataspace-test.tmdt.info/catalog     (Standalone)
+Die bisherigen test2-Adressen sind Aliase derselben Test-Instanz.
+
+Aktive Quellen, jeweils Branch codex/dataspace-consolidation:
+  /home/solid/repos/solid-dataspace/.worktrees/dataspace-consolidation/solid-dataspace-manager
+  /home/solid/repos/solid-dataspace/.worktrees/dataspace-consolidation/semantic-data-catalog
+Nur Manager und Katalog-Frontend werden bei Quellcodeaenderungen automatisch neu
+gebaut und im Browser aktualisiert. Die lokale Katalogbibliothek wird ebenfalls
+beobachtet und direkt in den Manager eingebunden. Andere Apps und Backends laufen
+als Images und benoetigen einen gezielten Neubau. Aenderungen an Abhaengigkeiten
+benoetigen eine Aktualisierung der getrennten Entwicklungsvolumes.
+
+Live-Betrieb starten/wiederherstellen:
+  /srv/solid-dataspace-live-test/live/start-live.sh
+Aktuell gepinnte Release-Frontends im gleichen Test ansehen (ohne Live-Reload):
+  /srv/solid-dataspace-live-test/live/rollback-to-release.sh
+Dieser Wechsel betrifft nur die zwei Frontends; keine Wiederherstellung alter
+Daten. Das normale Test-Update aktiviert die Live-Konfiguration wieder.
+
+Betrieb und Updates:
+  /srv/update-prod-instances-compose.sh
+  /srv/update-test-instances-compose.sh
+  /srv/update-sync-worker-compose.sh
+Ohne Optionen werden die aktuell festgelegten Images angewendet. Es gibt keinen
+impliziten Pull von latest. Die Live-Quellcode-Mounts bleiben erhalten.
+Ein neues veroeffentlichtes Release gezielt uebernehmen:
+  /srv/update-prod-instances-compose.sh --manifest /absoluter/pfad/images.json
+Format: {"services":{"dienstname":"registry/image@sha256:<64 Hexzeichen>"}}
+Optional --service dienstname (mehrfach) begrenzt den Updateumfang.
+Images werden vor der Aenderung vollstaendig geladen; Compose wird vorher gesichert.
+Ein Rollback nutzt die gesicherte Compose-Datei und dieselben Datenvolumes.
+Die beiden Test-Frontends werden nicht durch ein Release-Manifest ersetzt.
+Das originale versioning-update.ps1 bleibt fuer Veroeffentlichungen bestehen.
+Diese Umstellung verwendet lokale festgelegte Images, ohne neue GitHub-Version.
+
+Profile bearbeiten:
+  /home/solid/repos/solid-dataspace/.worktrees/dataspace-consolidation/solid-dataspace/config/
+  profiles/*.yaml: Logos, Foerderlogos, App-Sichtbarkeit, lokale Arbeitsbereiche
+  apps.yaml: bekannte Apps; registries.yaml: zentrale Registry-Liste
+Danach:
+  /srv/update-dataspace-config.sh
+Das validiert die Konfiguration und laedt Caddy ohne App-Neustart neu. Aenderungen
+an Domains oder Registry-Topologie werden abgelehnt: Dafuer muessen zusaetzlich
+Login-Origins, getrennte Suchspeicher und Worker-Konfiguration angepasst werden.
+visible:false versteckt die Navigation; enabled:false sperrt zusaetzlich die Route.
+
+Produktionsprofile behalten ihre bisherigen Domains. Node-RED und PLASMA haben
+je Profil eigene Dienste und Datenvolumes. PLASMA oeffnet jeweils /plasma/modelings;
+der externe Universitaetsdienst bleibt unveraendert. Node-RED im neuen Test
+enthaelt die uebernommenen 91 Nodes des bisherigen normalen Test.
+
+Der produktive Sync-Worker laeuft im Produktionsstack mit unveraenderter Identitaet,
+Datenbank und Schluesseln. Er cached getrennt pro Registry. Test hat eine eigene
+Worker-Datenbank und dient nur fuer lesende Public-Cache-Zugriffe: keine produktiven
+Sync-, Statistik- oder Szenario-Schreibvorgaenge. Worker-Verwaltung ist dort verborgen.
+Im Live-Test verwendet der Katalog fest die Registry des aufgerufenen Domainprofils
+(catalog.defaultRegistry), ohne Registry-Auswahl. Angezeigt werden die erreichbaren
+Datenquellen der dort registrierten Personen. Die eigenen Mitgliedschaften des
+Betrachters aendern diese Ansicht nicht; der eigene Katalog wird nur als registriertes
+Mitglied aufgenommen. Suche und Cache verwenden dieselbe Domain-Registry.
+Diese Aenderung gilt fuer die eingebettete und eigenstaendige Katalogansicht. In den
+Produktionsimages ist bis zur naechsten Veroeffentlichung noch die Registry-Auswahl
+enthalten; die Produktionsimages wurden fuer diese UI-Aenderung nicht ersetzt.
+Die leere Test-2-Registry ist nach Sicherung geloescht; die regulaere Test-Registry bleibt.
+Bestehende Pod-Daten, DACE-Altbestand und Zugriffsrechte wurden nicht migriert.
+
+Backups und Pruefberichte:
+  /srv/solid-backups/consolidation-20261017T073503Z
+Enthaelt vertrauliche Konfiguration: Zugriff nur fuer Betreiber. Alte Tours-/Chatbot-
+Container sind entfernt, Datenvolumes erhalten. City Tours bleibt aktiv.
+Eine Rueckkehr zu alten Stacks muss aktuelle Datenstaende und exklusiven Worker-
+Betrieb beruecksichtigen; alte Projektverzeichnisse nicht parallel starten.
+
+Technik:
+  Caddy /srv/solid-config/Caddyfile importiert consolidated/sites.caddy.
+  /srv/solid/docker-compose.deploy.yml enthaelt die dauerhaften Netzverbindungen.
+  /config.js und /semantic-data-catalog/env.js werden je Host ohne Browsercache
+  ausgeliefert. public/config.js und frontend/public/env.js in den Quellen sind
+  generierte Laufzeitdateien, keine fachlichen Quellcodeaenderungen.
+  Test-Compose-Ergaenzung: /srv/solid-dataspace-live-test/docker-compose.override.yml
+  Entwicklungsvolumes: solid-dataspace-live-test_live_{manager,catalog}_modules
+  Keine neuen oeffentlichen Ports. Frontends laufen als UID/GID 1000 mit Limits.
+
+Admin Area (Test und ab Release 0.3.98 auch Produktionsprofile):
+  https://solid-dataspace-test.tmdt.info/admin
+  Profil-Admins: config/profiles/<id>.yaml -> administration.adminWebIds
+  Betreiber: config/administration.yaml -> environments.test.operatorWebIds
+Der bisherige Test-Admin solidtestpod ist initial auch Betreiber. Neue Profile,
+Domains, Aliase, Weiterleitungen, Login-Anbieter, Registry-Zuordnung und die
+konfigurierten Serverintervalle koennen nach Pruefung direkt aktiviert werden.
+Neue Node-RED-/PLASMA-Arbeitsbereiche starten mit getrennten leeren Volumes.
+Registry-Ressourcen muessen bereits existieren. Keine Pod-/ACL-Erstellung.
+Der Test hat einen eigenen Account-Handoff; login-test.caddy wird generiert und
+im gemeinsamen Caddy nur fuer die exakten Test-Origins eingebunden.
+Test bleibt ohne produktive Schreibjobs. Jeder Verwaltungsdienst ist auf seine eigene Umgebung begrenzt.
+Details, Wiederherstellung und Sicherheitsgrenzen: admin-service/README.md.

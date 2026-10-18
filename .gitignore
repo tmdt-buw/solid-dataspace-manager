@@ -26,3 +26,7 @@ yarn-error.log*
 # Generated from legal/content.json during start/build
 /public/legal/de/
 /public/legal/en/
+
+# Generated Python bytecode is never part of releases.
+__pycache__/
+*.pyc

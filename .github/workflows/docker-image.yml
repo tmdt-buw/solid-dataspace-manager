@@ -112,7 +112,30 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
+            son1i/solid-dataspace-manager:sha-${{ github.sha }}
             son1i/solid-dataspace-manager:latest
             son1i/solid-dataspace-manager:${{ steps.manager-version.outputs.version }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
           secrets: |
             npm_token=${{ secrets.NPM_TOKEN }}
+
+      - name: Publish Admin API
+        uses: docker/build-push-action@v6
+        with:
+          context: ./admin-service
+          file: ./admin-service/Dockerfile
+          push: true
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          tags: |
+            son1i/solid-dataspace-admin-api:sha-${{ github.sha }}
+            son1i/solid-dataspace-admin-api:${{ steps.manager-version.outputs.version }}
+      - name: Publish Admin controller
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./admin-service/Dockerfile.controller
+          push: true
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          tags: |
+            son1i/solid-dataspace-admin-controller:sha-${{ github.sha }}
+            son1i/solid-dataspace-admin-controller:${{ steps.manager-version.outputs.version }}

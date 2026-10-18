@@ -1,7 +1,23 @@
 import {
-  faBell, faBookOpen, faChartLine, faClipboardCheck, faDatabase,
-  faDiagramProject, faFolder, faHeartPulse, faHexagonNodes, faInbox,
-  faInfo, faLink, faMagnifyingGlass, faRoute, faServer, faTableColumns, faTemperatureHigh, faUser,
+  faBell,
+  faBookOpen,
+  faChartLine,
+  faClipboardCheck,
+  faDatabase,
+  faDiagramProject,
+  faFolder,
+  faHeartPulse,
+  faHexagonNodes,
+  faInbox,
+  faShieldHalved,
+  faInfo,
+  faLink,
+  faMagnifyingGlass,
+  faRoute,
+  faServer,
+  faTableColumns,
+  faTemperatureHigh,
+  faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { getAppsBySection } from "./runtimeConfig";
 
@@ -20,6 +36,7 @@ export const navigationIcons = {
   "node-red": faDiagramProject,
   "data-connection": faLink,
   statistics: faChartLine,
+  admin: faShieldHalved,
   "pod-provider": faServer,
 };
 
@@ -43,7 +60,7 @@ const defaultAppIconKeys = {
 export function getAppIcon(iconKey) {
   return Object.prototype.hasOwnProperty.call(appIcons, iconKey)
     ? appIcons[iconKey]
-    : appIcons.default;
+    : navigationIcons[iconKey] || appIcons.default;
 }
 
 export function getApplicationIcon(appId) {
@@ -51,7 +68,7 @@ export function getApplicationIcon(appId) {
     return navigationIcons[appId];
   }
   const app = getAppsBySection("applications").find(
-    (candidate) => candidate.id === appId || candidate.href === `/web/${appId}`
+    (candidate) => candidate.id === appId || candidate.href === `/web/${appId}`,
   );
   return getAppIcon(app ? app.iconKey : defaultAppIconKeys[appId]);
 }

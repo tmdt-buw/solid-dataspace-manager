@@ -3,6 +3,61 @@ const fallbackConfig = {
   plasmaUrl: "http://plasma.uni-wuppertal.de/modelings",
   apps: [
     {
+      id: "solid-data-manager",
+      title: "Solid Data Manager",
+      href: "/",
+      section: "general",
+      iconKey: "solid-data-manager",
+      visible: true,
+      enabled: true,
+      order: 0,
+      linkType: "internal",
+    },
+    {
+      id: "catalog",
+      title: "Semantic Data Catalog",
+      href: "/web/catalog",
+      section: "consume",
+      iconKey: "catalog",
+      visible: true,
+      enabled: true,
+      order: 10,
+      linkType: "internal",
+    },
+    {
+      id: "plasma",
+      title: "PLASMA",
+      href: "/web/plasma",
+      section: "consume",
+      iconKey: "plasma",
+      visible: true,
+      enabled: true,
+      order: 20,
+      linkType: "internal",
+    },
+    {
+      id: "node-red",
+      title: "Node-RED",
+      href: "/web/node-red",
+      section: "consume",
+      iconKey: "node-red",
+      visible: true,
+      enabled: true,
+      order: 30,
+      linkType: "internal",
+    },
+    {
+      id: "data-connection",
+      title: "Data Connection",
+      href: "/data-connection",
+      section: "consume",
+      iconKey: "data-connection",
+      visible: true,
+      enabled: true,
+      order: 40,
+      linkType: "internal",
+    },
+    {
       id: "environmental-monitoring",
       title: "Environmental Monitoring",
       href: "/web/environmental-monitoring",
@@ -127,7 +182,9 @@ function normalizeApp(app, index) {
   // Keep existing deployment configurations on the current display name.
   if (
     app?.id === "solid-health-questionnaire" &&
-    ["Solid Health Questionnaire", "Solid Gesundheitsfragebogen"].includes(app.title)
+    ["Solid Health Questionnaire", "Solid Gesundheitsfragebogen"].includes(
+      app.title,
+    )
   ) {
     app = { ...app, title: "Health Questionnaire" };
   } else if (
@@ -143,6 +200,7 @@ function normalizeApp(app, index) {
     section: app?.section || "applications",
     iconKey: app?.iconKey || "default",
     visible: app?.visible !== false,
+    enabled: app?.enabled !== false,
     order: typeof app?.order === "number" ? app.order : index * 10,
     linkType: app?.linkType === "internal" ? "internal" : "external",
   };
@@ -162,10 +220,7 @@ function normalizeProvider(provider, index) {
 const cssSizePattern =
   /^(?:0|[0-9]+(?:\.[0-9]+)?(?:px|rem|em|%|vh|vw|vmin|vmax|ch))$/;
 
-function normalizeCssSize(
-  value,
-  { allowAuto = true, allowNone = false } = {}
-) {
+function normalizeCssSize(value, { allowAuto = true, allowNone = false } = {}) {
   if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
     return `${value}px`;
   }
@@ -194,19 +249,16 @@ function normalizeLogoStyle(config) {
   const style = {};
   const width = normalizeCssSize(config?.logoWidth ?? config?.width);
   const height = normalizeCssSize(config?.logoHeight ?? config?.height);
-  const maxWidth = normalizeCssSize(
-    config?.logoMaxWidth ?? config?.maxWidth,
-    {
-      allowAuto: false,
-      allowNone: true,
-    }
-  );
+  const maxWidth = normalizeCssSize(config?.logoMaxWidth ?? config?.maxWidth, {
+    allowAuto: false,
+    allowNone: true,
+  });
   const maxHeight = normalizeCssSize(
     config?.logoMaxHeight ?? config?.maxHeight,
     {
       allowAuto: false,
       allowNone: true,
-    }
+    },
   );
 
   if (width) style.width = width;
@@ -266,8 +318,8 @@ function normalizeWebIdList(value) {
           } catch {
             return false;
           }
-        })
-    )
+        }),
+    ),
   );
 }
 
@@ -333,8 +385,7 @@ export function normalizeRelativeResourcePath(value) {
 
 function normalizeActivityResourcePath(value) {
   return (
-    normalizeRelativeResourcePath(value) ||
-    "statistics/activity/activity.ttl"
+    normalizeRelativeResourcePath(value) || "statistics/activity/activity.ttl"
   );
 }
 
@@ -371,7 +422,7 @@ export function normalizeStatisticsConfig(statistics) {
     workerWebId: workerWebIds[0] || "",
     podBaseUrl,
     activityResourcePath: normalizeActivityResourcePath(
-      statistics?.activityResourcePath
+      statistics?.activityResourcePath,
     ),
     eventsUrl:
       explicitEventsUrl ||
@@ -400,17 +451,24 @@ const brandingSource =
     ? runtimeConfig.branding
     : fallbackConfig.branding;
 
-const fundingLogosSource =
-  Array.isArray(runtimeConfig.fundingLogos) && runtimeConfig.fundingLogos.length > 0
-    ? runtimeConfig.fundingLogos
-    : fallbackConfig.fundingLogos;
+const fundingLogosSource = Array.isArray(runtimeConfig.fundingLogos)
+  ? runtimeConfig.fundingLogos
+  : fallbackConfig.fundingLogos;
 
 export const appConfig = {
   dataspaceId:
-    normalizeDataspaceId(runtimeConfig.dataspaceId) || fallbackConfig.dataspaceId,
+    normalizeDataspaceId(runtimeConfig.dataspaceId) ||
+    fallbackConfig.dataspaceId,
   plasmaUrl:
     normalizePlasmaUrl(runtimeConfig.plasmaUrl) || fallbackConfig.plasmaUrl,
-  apps: appsSource.map(normalizeApp),
+  apps: [
+    ...fallbackConfig.apps.filter(
+      (app) =>
+        ["general", "consume"].includes(app.section) &&
+        !appsSource.some((configured) => configured.id === app.id),
+    ),
+    ...appsSource,
+  ].map(normalizeApp),
   providers: providersSource.map(normalizeProvider),
   branding: normalizeBranding(brandingSource),
   fundingLogos: fundingLogosSource
@@ -422,12 +480,12 @@ export const appConfig = {
       ? runtimeConfig.fundingGrantNumber.trim()
       : fallbackConfig.fundingGrantNumber,
   syncWorker: normalizeSyncWorker(
-    runtimeConfig.syncWorker || fallbackConfig.syncWorker
+    runtimeConfig.syncWorker || fallbackConfig.syncWorker,
   ),
   statistics: normalizeStatisticsConfig(
     Object.prototype.hasOwnProperty.call(runtimeConfig, "statistics")
       ? runtimeConfig.statistics
-      : fallbackConfig.statistics
+      : fallbackConfig.statistics,
   ),
 };
 
@@ -441,19 +499,21 @@ export function getDataspaceId() {
 
 export function getAppsBySection(section) {
   return appConfig.apps
-    .filter((app) => app.visible && app.section === section)
+    .filter((app) => app.visible && app.enabled && app.section === section)
     .sort((a, b) => a.order - b.order);
 }
 
 export function getEnabledProviders() {
   return appConfig.providers.filter(
-    (provider) => provider.enabled && provider.issuer
+    (provider) => provider.enabled && provider.issuer,
   );
 }
 
 export function getRecommendedProvider() {
   const providers = getEnabledProviders();
-  return providers.find((provider) => provider.recommended) || providers[0] || null;
+  return (
+    providers.find((provider) => provider.recommended) || providers[0] || null
+  );
 }
 
 export function getBranding() {
@@ -481,4 +541,13 @@ export function isStatisticsAdmin(webId) {
     typeof webId === "string" &&
     appConfig.statistics.adminWebIds.some((adminWebId) => adminWebId === webId)
   );
+}
+
+export function isAppVisible(id) {
+  const app = appConfig.apps.find((app) => app.id === id);
+  return !app || (app.visible && app.enabled);
+}
+
+export function isAppEnabled(id) {
+  return appConfig.apps.find((app) => app.id === id)?.enabled !== false;
 }
