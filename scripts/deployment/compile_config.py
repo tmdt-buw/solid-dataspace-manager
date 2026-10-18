@@ -105,6 +105,16 @@ def site(profile):
     return '\n'.join(lines)
 
 
+def login_routes(environment, stack, origins):
+    """Match any explicitly configured Origin without combining header fields."""
+    if not origins:
+        return f'# No {environment} login origins.\n'
+    lines = [f'@{environment}_profile_login {{']
+    lines.extend(f'  header Origin {origin}' for origin in origins)
+    lines += ['}', f'reverse_proxy @{environment}_profile_login {stack}-account-handoff:8080']
+    return '\n'.join(lines) + '\n'
+
+
 def compile_config(directory, output):
     profiles, registries = read_config(directory)
     output.mkdir(parents=True, exist_ok=True)
@@ -128,9 +138,7 @@ def compile_config(directory, output):
     (output / 'sites.caddy').write_text('\n\n'.join(sites) + '\n')
     for environment,stack in [('test','solid-dataspace-live-test'),('prod','solid-dataspace-prod')]:
         origins=['https://'+domain for profile in profiles if profile['environment']==environment for domain in profile['domains']]
-        (output / f'login-{environment}.caddy').write_text(
-            f'@{environment}_profile_login header Origin '+' '.join(origins)+f'\nreverse_proxy @{environment}_profile_login {stack}-account-handoff:8080\n'
-            if origins else f'# No {environment} login origins.\n')
+        (output / f'login-{environment}.caddy').write_text(login_routes(environment, stack, origins))
     search = [{'id':entry['id'],'url':entry['url'].rstrip('/')+'/',
                'fusekiUrl':'http://semantic-data-catalog-fuseki:3030/catalog-'+entry['id']} for entry in registries]
     (output / 'search-registries.json').write_text(json.dumps(search,indent=2)+'\n')

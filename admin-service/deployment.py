@@ -3,6 +3,7 @@ import base64, contextlib, copy, json, os, secrets, shutil, subprocess, tempfile
 from pathlib import Path
 import yaml
 from config_store import ConfigError, canonical, revision, compile_config, read_config
+from compile_config import login_routes
 
 WORKSPACE_SERVICES=('node-red','plasma-mariadb-sms','plasma-fuseki','plasma-sms','plasma-dps','plasma-frontend')
 
@@ -150,7 +151,7 @@ class Deployment:
                 scoped_origins=['https://'+d for p in scoped_profiles for d in p['domains']]
                 if 'account-handoff' in compose['services']:
                     compose['services']['account-handoff'].setdefault('environment',{})['DATASPACE_ORIGINS']=json.dumps(scoped_origins,separators=(',',':'))
-                    replacements[self.live/f'login-{self.environment}.caddy']=(f'@{self.environment}_profile_login header Origin '+' '.join(scoped_origins)+f'\nreverse_proxy @{self.environment}_profile_login {self.stack.name}-account-handoff:8080\n').encode()
+                    replacements[self.live/f'login-{self.environment}.caddy']=login_routes(self.environment, self.stack.name, scoped_origins).encode()
                     services.append('account-handoff')
                 origins=','.join('https://'+d for p in profiles for d in p['domains'])
                 compose['services']['solid-data-connection-sync-worker'].setdefault('environment',{})['WORKER_ALLOWED_ORIGINS']=origins
