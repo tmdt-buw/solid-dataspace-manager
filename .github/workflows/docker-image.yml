@@ -69,6 +69,10 @@ jobs:
             }
           }
           NODE
+      - name: Test Admin authentication and API
+        run: |
+          npm ci --prefix admin-service --ignore-scripts --no-audit --no-fund
+          npm test --prefix admin-service
       - name: Verify GitHub Packages authentication
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

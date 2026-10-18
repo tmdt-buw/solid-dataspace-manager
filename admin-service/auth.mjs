@@ -123,8 +123,15 @@ export function createAuthenticator({
       dpop = decodeJwt(proof);
     if (!allowedWebIds.has(claims.webid) || !allowedIssuers.has(claims.iss))
       throw Error("Identity not allowed");
-    if (dpop.ath !== createHash("sha256").update(token).digest("base64url"))
-      throw Error("DPoP token binding missing");
+    // The deployed Inrupt Solid-OIDC client uses proofs without the optional ath
+    // extension. The verifier below still checks both signatures, cnf.jkt,
+    // issuer/WebID trust, expiry, method, URL and replay protection. If a client
+    // supplies ath, require a correct access-token hash (including its type).
+    if (
+      dpop.ath !== undefined &&
+      dpop.ath !== createHash("sha256").update(token).digest("base64url")
+    )
+      throw Error("DPoP access-token hash mismatch");
     const verified = await verifier(authorization, {
       header: proof,
       method: request.method,

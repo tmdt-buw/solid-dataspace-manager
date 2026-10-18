@@ -5,9 +5,16 @@ import {
   exportJWK,
   SignJWT,
   calculateJwkThumbprint,
+  decodeJwt,
 } from "jose";
 import { createHash, randomUUID } from "node:crypto";
 import { createAuthenticator } from "../auth.mjs";
+import { createDpopHeader, generateDpopKeyPair } from "@inrupt/solid-client-authn-core";
+import { createAdminServer } from "../server.mjs";
+import http from "node:http";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 const issuer = "https://identity.example/",
   webId = issuer + "alice/profile/card#me",
   url = "https://test.example/admin-api/me";
@@ -28,7 +35,7 @@ async function token(overrides = {}) {
     .setIssuer(issuer)
     .setAudience("solid")
     .setIssuedAt()
-    .setExpirationTime("5m")
+    .setExpirationTime(overrides.exp ?? "5m")
     .sign(signing.privateKey);
 }
 async function request(overrides = {}, tokenOverrides = {}) {
@@ -89,8 +96,8 @@ test("DPoP binds URL and HTTP method", async () => {
       setup().auth(await request(override), url, new Set([webId])),
     );
 });
-test("DPoP access-token hash is mandatory", async () => {
-  for (const ath of ["", undefined, "wrong"])
+test("a supplied DPoP access-token hash must match", async () => {
+  for (const ath of ["", null, 42, "wrong"])
     await assert.rejects(
       setup().auth(await request({ ath }), url, new Set([webId])),
     );
@@ -112,4 +119,48 @@ test("Bearer and user-supplied WebID headers never authenticate", async () => {
       new Set([webId]),
     ),
   );
+});
+
+// Exercise the real proof generator used by the Manager's installed browser client.
+async function browserRequest({ target = url, method = "GET", key = { privateKey: dpopKeys.privateKey, publicKey: dpopJwk }, tokenOverrides = {} } = {}) {
+  const access = await token(tokenOverrides);
+  const proof = await createDpopHeader(target, method, key);
+  assert.equal(decodeJwt(proof).ath, undefined);
+  return { method: "GET", headers: { authorization: "DPoP " + access, dpop: proof } };
+}
+test("Inrupt 3.1.1 browser proofs authenticate without an ath extension", async () => {
+  assert.equal(await setup().auth(await browserRequest(), url, new Set([webId])), webId);
+});
+test("browser proofs still require the token-bound key, target URL and HTTP method", async () => {
+  for (const options of [{ key: await generateDpopKeyPair() }, { target: "https://other.example/admin-api/me" }, { method: "POST" }, { tokenOverrides: { exp: 1 } }]) {
+    await assert.rejects(setup().auth(await browserRequest(options), url, new Set([webId])));
+  }
+});
+test("a real browser proof cannot be replayed", async () => {
+  const { auth } = setup();
+  const request = await browserRequest();
+  await auth(request, url, new Set([webId]));
+  await assert.rejects(auth(request, url, new Set([webId])));
+});
+test("admin discovery returns the authorized profile with a real browser proof", async (t) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "admin-browser-proof-"));
+  await fs.mkdir(path.join(directory, "profiles"));
+  await fs.writeFile(path.join(directory, "profiles/test.yaml"), JSON.stringify({
+    id: "test", environment: "test", domains: ["test.example"],
+    administration: { enabled: true, adminWebIds: [webId] },
+    public: { branding: { projectName: "Test" }, statistics: { adminWebIds: [webId] } },
+  }));
+  const api = createAdminServer({ source: directory, profiles: ["test"], authenticate: setup().auth, issuers: [issuer], identityHosts: ["identity.example"] });
+  await new Promise((resolve) => api.listen(0, "127.0.0.1", resolve));
+  t.after(async () => { await new Promise((resolve) => api.close(resolve)); await fs.rm(directory, { recursive: true, force: true }); });
+  const signed = await browserRequest();
+  const result = await new Promise((resolve, reject) => {
+    const request = http.get({ hostname: "127.0.0.1", port: api.address().port, path: "/admin-api/me", headers: { Host: "test.example", ...signed.headers } }, (response) => {
+      let body = ""; response.setEncoding("utf8"); response.on("data", (chunk) => { body += chunk; }); response.on("end", () => resolve({ status: response.statusCode, body: JSON.parse(body) }));
+    });
+    request.on("error", reject);
+  });
+  assert.equal(result.status, 200);
+  assert.equal(result.body.webId, webId);
+  assert.deepEqual(result.body.profiles.map(({ id, canEdit }) => ({ id, canEdit })), [{ id: "test", canEdit: true }]);
 });
