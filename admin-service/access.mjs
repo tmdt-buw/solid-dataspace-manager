@@ -8,7 +8,7 @@ import { createAuthenticator } from "./auth.mjs";
 const COOKIE = "__Host-dataspace-workspace";
 const TTL = 8 * 60 * 60 * 1000;
 const workerPrefix = "/sync-worker";
-const participantPath = /^\/sync-worker\/participants(?:\/status|\/sync|\/seal|\/preview)?(?:\?|$)/;
+const participantPath = /^\/sync-worker\/participants(?:\/status|\/sync|\/seal|\/preview|\/imports)?(?:\?|$)/;
 const workspacePath = /^\/(node-red|plasma)(?:\/|$)/;
 const tokenHash = token => createHash("sha256").update(token).digest("hex");
 function cookie(req) {
@@ -141,7 +141,7 @@ export function createAccessGateway({ source, environment, keyFile, authenticate
         if (webId !== actor) { json(res, 403, { error: "Only your own WebID can be managed." }); return true; }
         const key = await fs.readFile(keyFile); if (key.length < 32) throw Error("Invalid worker key.");
         const targetPath = req.url.slice(workerPrefix.length);
-        const assertion = Buffer.from(JSON.stringify({ webId: actor, method: req.method, path: targetPath,
+        const assertion = Buffer.from(JSON.stringify({ webId: actor, isProfileAdmin: p.administration?.enabled === true && p.administration.adminWebIds?.includes(actor) === true, method: req.method, path: targetPath,
           body: createHash("sha256").update(JSON.stringify(data)).digest("hex"),
           nonce: randomBytes(16).toString("hex"), expires: now() + 20000 })).toString("base64url");
         proxy(req, res, upstream(p, "worker", targetPath), { "content-type": "application/json",

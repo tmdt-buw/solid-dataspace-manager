@@ -1,3 +1,4 @@
+import ManagedImports from './ManagedImports';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -512,6 +513,7 @@ export default function DataConnection({
   return <div className="data-connection" translate="no">
     <div className="toolbar toolbar--title data-connection__header"><div className="crumb"><FontAwesomeIcon icon={faLink} className="crumb-icon" /><span>Data Connection</span></div></div>
     <div className="dc-workspace">
+      <ManagedImports webId={webId}/>
       {!setup?.ready ? <section className="dc-empty"><span className="dc-source-icon"><FontAwesomeIcon icon={faLink} /></span><h2>{t(setup ? 'Set up Data Connection' : 'Checking setup…')}</h2><p>{t('The worker receives access to the connection folder. Your personal account password is not needed.')}</p>{setup?.error && <div role="alert">{t(setup.error)}</div>}{errorBox}<button className="dc-button dc-button--primary" disabled={busy || !setup} onClick={() => run(async () => {
           const result = await prepareDataConnectionSetup({
             webId,

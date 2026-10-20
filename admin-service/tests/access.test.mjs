@@ -93,7 +93,7 @@ test("WebSockets require the same session and are closed on logout", async t => 
 
 test("REST preview and credential sealing require verified owner identity", async t => {
   const f = await fixture(t);
-  for (const path of ["/sync-worker/participants/seal", "/sync-worker/participants/preview"]) {
+  for (const path of ["/sync-worker/participants/seal", "/sync-worker/participants/preview", "/sync-worker/participants/imports"]) {
     const body = JSON.stringify({ webId: "https://pod.example/alice/profile/card#me" });
     assert.equal((await f.request(path, { method: "POST", body })).status, 401);
     assert.equal((await f.request(path, { method: "POST", headers: { Authorization: "DPoP verified" }, body })).status, 200);

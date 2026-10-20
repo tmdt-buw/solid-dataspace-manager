@@ -542,3 +542,11 @@
     font-size: 16px
   }
 }
+
+.dc-imports { margin-bottom: 1.75rem; }
+.dc-imports h2 { margin: 0 0 .5rem; font-size: 1.25rem; }
+.dc-imports .dc-card-copy small, .dc-import-target { overflow-wrap: anywhere; }
+.dc-import-error { color: #a52b30; }
+.dc-imports .dc-card > .dc-icon { flex-shrink: 0; margin: 0 .75rem; }
+.dc-imports .dc-card-meta { max-width: 18rem; }
+@media (max-width: 600px) { .dc-imports .dc-card > .dc-icon { margin: 0 .35rem; } }
