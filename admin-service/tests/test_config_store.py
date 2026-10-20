@@ -82,9 +82,12 @@ class Transactions(unittest.TestCase):
             d=copy.deepcopy(self.original);d['public']['branding'][key]=value
             with self.assertRaises(ConfigError):self.preview(candidate=d)
     def test_test_collection_remains_disabled(self):
-        for section in ['statistics','syncWorker']:
+        for section in ['statistics']:
             d=copy.deepcopy(self.original);d['public'][section]['enabled']=True
             with self.assertRaises(ConfigError):self.preview(candidate=d)
+    def test_isolated_test_connections_can_be_enabled(self):
+        d=copy.deepcopy(self.original);d['public']['syncWorker']['enabled']=True;d['public']['branding']['projectName']='Isolated Test'
+        self.preview(candidate=d)
     def test_failed_runtime_apply_preserves_yaml_and_backup(self):
         @contextlib.contextmanager
         def fail(*args):raise RuntimeError('apply failed');yield

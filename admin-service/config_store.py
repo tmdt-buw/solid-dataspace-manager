@@ -124,8 +124,8 @@ def validate_profile(candidate, before, registries, identity_hosts):
     if not isinstance(path,str) or not re.fullmatch(r'[a-zA-Z0-9_/.-]{1,250}',path) or path.startswith('/') or '..' in path.split('/'): raise ConfigError('Ungültiger Statistik-Ressourcenpfad.')
     url(p['plasmaUrl'],'PLASMA-Adresse',True)
     if 'cityToursLegacyContinuousWebIds' in p: webids(p['cityToursLegacyContinuousWebIds'],'City Tours WebIDs')
-    # Data collection and privileged worker operations stay off in the live test.
-    if before['environment']=='test' and (st['enabled'] or sw['enabled']): raise ConfigError('Live-Test bleibt ohne produktive Statistikerfassung und Worker-Verwaltung.')
+    # Statistics stay off in Test; Data Connection uses a dedicated test Pod subtree.
+    if before['environment']=='test' and st['enabled']: raise ConfigError('Live-Test bleibt ohne produktive Statistikerfassung.')
 
 def diff_label(path, before, after):
     names={'enabled':'Aktivierung','visible':'Im Menü','title':'Anzeigename','href':'Link','order':'Reihenfolge','section':'Menügruppe','iconKey':'Symbol','linkType':'Linkart','projectName':'Projektname','logoUrl':'Projektlogo','logoAlt':'Alternativtext','logoWidth':'Logobreite','logoHeight':'Logohöhe','logoMaxHeight':'Maximale Logohöhe','fundingGrantNumber':'Förderkennzeichen','adminWebIds':'Berechtigte WebIDs','defaultRegistry':'Registry-Zuordnung','domains':'Domains','timezone':'Zeitzone','podBaseUrl':'Statistik-Pod','eventsUrl':'Download-Ereignisse','activityResourcePath':'Aktivitäts-Ressourcenpfad','workerWebId':'Worker-WebID','apiUrl':'API-Adresse','serviceWebId':'Service-WebID','intervalMinutes':'Intervall-Vorgabe','plasmaUrl':'PLASMA-Adresse','issuer':'Login-Anbieter','recommended':'Empfohlen','note':'Hinweis','src':'Logo-Adresse','alt':'Logo-Beschreibung'}

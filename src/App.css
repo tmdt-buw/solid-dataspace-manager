@@ -880,3 +880,10 @@ body {
 .data-catalog-embed .catalog-detail-inline .detail-download-button:hover:not(:disabled) {
   background: #125acb !important;
 }
+
+/* File content shares the catalog's readable size; the common header stays unchanged. */
+.data-manager-embed .data-manager-layout,
+.data-manager-embed .sdm-modal-overlay,
+.data-manager-embed .sdm-context-menu {
+  zoom: calc(1 / var(--dataspace-ui-scale, 1));
+}

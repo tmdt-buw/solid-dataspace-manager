@@ -90,3 +90,13 @@ test("WebSockets require the same session and are closed on logout", async t => 
   await f.request("/access-api/logout", { method: "POST", headers: { Cookie: cookie, Origin: "https://test.example", "X-Dataspace-Access": "1" } });
   await closed;
 });
+
+test("REST preview and credential sealing require verified owner identity", async t => {
+  const f = await fixture(t);
+  for (const path of ["/sync-worker/participants/seal", "/sync-worker/participants/preview"]) {
+    const body = JSON.stringify({ webId: "https://pod.example/alice/profile/card#me" });
+    assert.equal((await f.request(path, { method: "POST", body })).status, 401);
+    assert.equal((await f.request(path, { method: "POST", headers: { Authorization: "DPoP verified" }, body })).status, 200);
+    assert.ok(f.forwarded.at(-1).headers["x-dataspace-signature"]);
+  }
+});

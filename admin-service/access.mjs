@@ -8,7 +8,7 @@ import { createAuthenticator } from "./auth.mjs";
 const COOKIE = "__Host-dataspace-workspace";
 const TTL = 8 * 60 * 60 * 1000;
 const workerPrefix = "/sync-worker";
-const participantPath = /^\/sync-worker\/participants(?:\/status|\/sync)?(?:\?|$)/;
+const participantPath = /^\/sync-worker\/participants(?:\/status|\/sync|\/seal|\/preview)?(?:\?|$)/;
 const workspacePath = /^\/(node-red|plasma)(?:\/|$)/;
 const tokenHash = token => createHash("sha256").update(token).digest("hex");
 function cookie(req) {
@@ -134,6 +134,7 @@ export function createAccessGateway({ source, environment, keyFile, authenticate
         json(res, 200, { ok: true }, { "Set-Cookie": COOKIE + "=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0" }); return true;
       }
       if (participantPath.test(req.url)) {
+        if (p.public.syncWorker?.enabled === false) { json(res, 403, { error: "Data Connection is disabled for this profile." }); return true; }
         const actor = await verify(req, p);
         const data = await body(req);
         const webId = data.webId || new URL(req.url, "https://" + req.headers.host).searchParams.get("webId");

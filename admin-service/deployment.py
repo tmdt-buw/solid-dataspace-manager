@@ -174,7 +174,7 @@ class Deployment:
                 services.append('solid-data-connection-sync-worker')
             # Test must remain a read-only cache preview even when other settings change.
             if self.environment=='test' and 'solid-data-connection-sync-worker' in services:
-                compose['services']['solid-data-connection-sync-worker'].setdefault('environment',{}).update({'WORKER_READ_ONLY':'true','STATISTICS_ENABLED':'false','ENVIRONMENTAL_SCENARIO_ENABLED':'false'})
+                compose['services']['solid-data-connection-sync-worker'].setdefault('environment',{}).update({'WORKER_READ_ONLY':'false','WORKER_CONNECTION_NAMESPACE':'test','STATISTICS_ENABLED':'false','ENVIRONMENTAL_SCENARIO_ENABLED':'false'})
             if compose!=original_compose:replacements[compose_path]=yaml.safe_dump(compose,sort_keys=False).encode()
             services=list(dict.fromkeys(services))
             check=staging/'Caddyfile.check';check.write_text((self.live.parent/'Caddyfile').read_text().replace('/config/consolidated/sites.caddy',f'/config/{staging.name}/after/sites.caddy'))

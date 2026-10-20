@@ -1,1620 +1,609 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faLink,
-  faFolderOpen,
-  faKey,
-  faPlus,
-  faServer,
-  faSliders,
-  faTrash,
-  faUserGear,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
-import session from "../solidSession";
-import { loadHomeAssistantEntities } from "../homeAssistantApi";
-import {
-  deleteCustomConnection,
-  deleteHomeAssistantConnection,
-  getHomeAssistantSolidSyncDocumentUrl,
-  loadConnectionLastSync,
-  loadCustomConnections,
-  loadHomeAssistantConnections,
-  saveCustomConnection,
-  saveHomeAssistantConnection,
-} from "../solidConnections";
-import { loadCredentialToken } from "../solidCredentialToken";
-import { getPodRoot } from "../solidCatalog";
-import { registerSyncWorkerParticipant } from "../syncWorkerRegistration";
-import { prepareDataConnectionSetup } from "../dataConnectionSetup";
-import ContentLoadingState from "./ContentLoadingState";
-import "./DataConnection.css";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faLink, faPlus, faSearch, faXmark, faRotate, faPlay, faTrash, faServer, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import session from '../solidSession';
+import { useI18n } from '../i18n';
+import { getDataspaceId, getSyncWorkerConfig } from '../config/runtimeConfig';
+import { prepareDataConnectionSetup } from '../dataConnectionSetup';
+import { registerSyncWorkerParticipant } from '../syncWorkerRegistration';
+import { connectionWorkerCall, loadConnectionStatus } from '../dataConnectionClient';
+import { loadCustomConnections, loadHomeAssistantConnections, saveCustomConnection, saveHomeAssistantConnection, deleteCustomConnection, deleteHomeAssistantConnection, loadConnectionLastSync } from '../solidConnections';
+import './DataConnection.css';
+const de = {
+  "Stream could not be started. Check settings and Pod access.": "Stream konnte nicht gestartet werden. Prüfe Einstellungen und Pod-Zugriff.",
+  "Stream settings could not be checked. Collection is stopped.": "Stream-Einstellungen konnten nicht geprüft werden. Die Erfassung ist gestoppt.",
+  "Too many active streams.": "Zu viele aktive Streams.",
+  "Invalid stream settings or storage path.": "Ungültige Stream-Einstellungen oder ungültiger Speicherpfad.",
+  "JSON sequence records must start with a record separator.": "JSON-Sequenz-Datensätze müssen mit einem Datensatz-Trennzeichen beginnen.",
+  "Stream event ID exceeds 4096 bytes.": "Die Stream-Ereignis-ID überschreitet 4096 Byte.",
+  "Stream rate limit exceeded.": "Die maximale Empfangsrate des Streams wurde überschritten.",
+  "Stream idle timeout.": "Zeitlimit ohne Stream-Empfang erreicht.",
+  "Stream connection timed out.": "Zeitlimit für den Stream-Verbindungsaufbau erreicht.",
+  "Connection mode": "Verbindungsmodus",
+  "Periodic retrieval": "Regelmäßiger Abruf",
+  "Continuous stream": "Kontinuierlicher Stream",
+  "Stream format": "Stream-Format",
+  "Raw data": "Rohdaten",
+  "Stream storage interval": "Speicherintervall des Streams",
+  "Use worker interval": "Worker-Intervall verwenden",
+  "Seconds": "Sekunden",
+  "Maximum segment size (MiB)": "Maximale Abschnittsgröße (MiB)",
+  "Idle timeout (seconds)": "Zeitlimit ohne Empfang (Sekunden)",
+  "The connection stays open. The interval closes storage sections; full sections can be saved earlier.": "Die Verbindung bleibt offen. Das Intervall schließt Speicherabschnitte ab; volle Abschnitte können früher gespeichert werden.",
+  "Streams use a separate .stream.json index. Existing histories and files are retained.": "Streams verwenden einen eigenen .stream.json-Index. Bestehende Historien und Dateien bleiben erhalten.",
+  "Test stream (5 seconds)": "Stream testen (5 Sekunden)",
+  "Stream preview ended without saving data.": "Stream-Probe beendet, ohne Daten zu speichern.",
+  "Binary stream preview (hex)": "Binäre Stream-Vorschau (Hex)",
+  "Connected": "Verbunden",
+  "Connecting": "Verbindet",
+  "Reconnecting": "Verbindet erneut",
+  "Storage pending": "Speichern ausstehend",
+  "Stopped": "Gestoppt",
+  "Source ended the stream": "Quelle hat den Stream beendet",
+  "Stream error": "Stream-Fehler",
+  "A connection interruption occurred; the source may not replay all events.": "Es gab eine Unterbrechung; die Quelle liefert möglicherweise nicht alle Ereignisse nach.",
+  "Stream storage interval must be between 10 and 86400 seconds.": "Das Speicherintervall muss zwischen 10 und 86400 Sekunden liegen.",
+  "Stream segments must be between 1 and 8 MiB.": "Stream-Abschnitte müssen zwischen 1 und 8 MiB groß sein.",
+  "Stream idle timeout must be between 15 and 3600 seconds.": "Das Zeitlimit ohne Empfang muss zwischen 15 und 3600 Sekunden liegen.",
+  "SSE streams use GET.": "SSE-Streams verwenden GET.",
+  "Stream segment is pending. Check Pod access; received data is retained.": "Ein Abschnitt wartet auf Speicherung. Prüfe den Pod-Zugriff; empfangene Daten bleiben gesichert.",
+  "Stream interrupted. Retrying; check source and credentials.": "Stream unterbrochen. Ein neuer Versuch läuft; prüfe Quelle und Zugangsdaten.",
+  "Interval": "Intervall",
+  "Events": "Ereignisse",
+  "Check stream connections": "Stream-Verbindungen prüfen",
+  "Connection timeout (seconds)": "Zeitlimit für den Verbindungsaufbau (Sekunden)",
+  "SSE requires text/event-stream.": "SSE erfordert den Inhaltstyp text/event-stream.",
+  "Invalid NDJSON stream record.": "Ungültiger NDJSON-Datensatz im Stream.",
+  "Invalid or incomplete JSON sequence record.": "Ungültiger oder unvollständiger JSON-Sequenz-Datensatz.",
+  "Stream record exceeds 1 MiB.": "Ein Stream-Ereignis überschreitet 1 MiB.",
 
-const HOME_ASSISTANT_LOGO =
-  "https://brands.home-assistant.io/homeassistant/icon.png";
+  "Request Content-Type": "Inhaltstyp der Anfrage",
+  "Request body": "Anfrageinhalt",
+  "Request encoding": "Kodierung der Anfrage",
+  "Text (UTF-8)": "Text (UTF-8)",
+  "Binary as Base64": "Binärdaten als Base64",
+  "Response handling": "Verarbeitung der Antwort",
+  "Automatic detection": "Automatisch erkennen",
+  "JSON": "JSON",
+  "Text (CSV, XML, RDF, …)": "Text (CSV, XML, RDF, …)",
+  "File / binary": "Datei / Binärdaten",
+  "Storage mode": "Speicherart",
+  "Original files": "Originaldateien",
+  "JSON history": "JSON-Historie",
+  "Pod index file (optional)": "Indexdatei im Pod (optional)",
+  "Original files keep their bytes and versions. The index records media types and links to each download.": "Originaldateien behalten ihre Bytes und Versionen. Der Index enthält die Inhaltstypen und Links zu jedem Download.",
+  "Pagination": "Folgeseiten",
+  "No pagination": "Keine Folgeseiten",
+  "JSON next-page field": "JSON-Feld für die nächste Seite",
+  "HTTP Link header": "HTTP-Link-Header",
+  "Maximum response size (MiB)": "Maximale Antwortgröße (MiB)",
+  "Follow redirects": "Weiterleitungen folgen",
+  "Credentials stay on the original host; POST bodies are not forwarded to other hosts.": "Zugangsdaten bleiben beim ursprünglichen Host; POST-Inhalte werden nicht an andere Hosts weitergegeben.",
+  "Binary response received. It will be saved as an original file.": "Binärantwort empfangen. Sie wird als Originaldatei gespeichert.",
+  "The request body must be valid Base64.": "Der Anfrageinhalt muss gültiges Base64 sein.",
+  "Enter a valid request Content-Type.": "Gib einen gültigen Inhaltstyp für die Anfrage ein.",
+  "Field selection requires JSON history storage.": "Die Auswahl einzelner Felder erfordert die JSON-Historie.",
+  "Binary responses require original-file storage.": "Binärantworten erfordern die Speicherung als Originaldatei.",
+  "JSON pagination requires a next-page path.": "JSON-Folgeseiten erfordern einen Pfad zur nächsten Seite.",
+  "JSON paths require a JSON response.": "JSON-Pfade erfordern eine JSON-Antwort.",
+  "Response limit must be 1–32 MiB for original files or 1–2 MiB for JSON history.": "Das Antwortlimit muss für Originaldateien 1–32 MiB und für die JSON-Historie 1–2 MiB betragen.",
+  "The response cannot be decoded with its declared charset. Use original/binary mode to preserve it.": "Die Antwort lässt sich mit dem angegebenen Zeichensatz nicht lesen. Verwende Originaldateien und den Binärmodus, um sie zu erhalten.",
+  "Combined API response exceeds the configured size limit. No partial response was saved.": "Die gesamte Antwort überschreitet das eingestellte Größenlimit. Es wurde keine unvollständige Antwort gespeichert.",
+  "Request body exceeds 64 KiB.": "Der Anfrageinhalt überschreitet 64 KiB.",
+  "Files": "Dateien",
+  "pages": "Seiten",
 
-const emptyCustomConnection = () => ({
-  id: "",
-  name: "",
-  description: "",
-  url: "",
-  port: "",
-  sourceEndpoint: "/",
-  storageDocumentUrl: "",
-  method: "GET",
-  authType: "none",
-  authSecret: "",
-  authHeader: "X-API-Key",
-  headersJson: "",
+  'Add connection': 'Verbindung hinzufügen',
+  'Search connections': 'Verbindungen suchen',
+  'All sources': 'Alle Quellen',
+  'REST API': 'REST-API',
+  'All states': 'Alle Zustände',
+  'Active': 'Aktiv',
+  'Paused': 'Pausiert',
+  'Run now': 'Jetzt synchronisieren',
+  'Refresh': 'Aktualisieren',
+  'No connections yet': 'Noch keine Verbindungen',
+  'Connect a REST API or Home Assistant to collect data in your Pod.': 'Verbinde eine REST-API oder Home Assistant, um Daten in deinem Pod zu sammeln.',
+  'No matching connections': 'Keine passenden Verbindungen',
+  'Edit connection': 'Verbindung bearbeiten',
+  'New connection': 'Neue Verbindung',
+  'Source': 'Quelle',
+  'Authentication': 'Authentifizierung',
+  'Response': 'Antwort',
+  'Storage': 'Speicherung',
+  'Name': 'Name',
+  'Description': 'Beschreibung',
+  'URL including query parameters': 'URL einschließlich Abfrageparameter',
+  'Method': 'Methode',
+  'Additional headers (JSON)': 'Zusätzliche Header (JSON)',
+  'JSON request body': 'JSON-Anfrageinhalt',
+  'This POST only queries data; repeating it does not change the source.': 'Dieser POST fragt nur Daten ab; wiederholte Aufrufe verändern die Quelle nicht.',
+  'None': 'Keine',
+  'Bearer token': 'Bearer-Token',
+  'API key': 'API-Schlüssel',
+  'Basic authentication': 'Basic-Authentifizierung',
+  'Username': 'Benutzername',
+  'Token / password': 'Token / Passwort',
+  'Header name': 'Header-Name',
+  'Leave empty to keep the saved credential.': 'Leer lassen, um die gespeicherten Zugangsdaten zu behalten.',
+  'Response path (JSON Pointer)': 'Antwortpfad (JSON Pointer)',
+  'Next-page URL path (optional)': 'Pfad zur URL der nächsten Seite (optional)',
+  'Maximum pages': 'Maximale Seitenzahl',
+  'Timeout in seconds': 'Zeitlimit in Sekunden',
+  'Automatic synchronization': 'Automatische Synchronisation',
+  'Pod JSON file (optional)': 'JSON-Datei im Pod (optional)',
+  'Pod RDF file (optional)': 'RDF-Datei im Pod (optional)',
+  'The existing RDF storage format is preserved.': 'Das bestehende RDF-Speicherformat bleibt erhalten.',
+  'Default: a separate file for this connection.': 'Standard: eine eigene Datei für diese Verbindung.',
+  'Recent entries stay in the current file. Older entries are archived in the same Pod folder.': 'Aktuelle Einträge bleiben in der Datei. Ältere Einträge werden im selben Pod-Ordner archiviert.',
+  'Test request': 'Anfrage testen',
+  'Load entities': 'Entitäten laden',
+  'Testing…': 'Wird geprüft…',
+  'Save connection': 'Verbindung speichern',
+  'Saving…': 'Wird gespeichert…',
+  'Cancel': 'Abbrechen',
+  'Close': 'Schließen',
+  'Delete connection': 'Verbindung entfernen',
+  'Only the connection settings will be deleted. Collected data and archives stay in your Pod.': 'Nur die Verbindungseinstellungen werden entfernt. Gesammelte Daten und Archive bleiben in deinem Pod.',
+  'Delete': 'Entfernen',
+  'Set up Data Connection': 'Data Connection einrichten',
+  'Checking setup…': 'Einrichtung wird geprüft…',
+  'The worker receives access to the connection folder. Your personal account password is not needed.': 'Der Worker erhält Zugriff auf den Verbindungsordner. Dein persönliches Kontopasswort wird nicht benötigt.',
+  'Retry': 'Erneut versuchen',
+  'Connection settings saved.': 'Verbindungseinstellungen gespeichert.',
+  'Connection removed; collected data retained.': 'Verbindung entfernt; gesammelte Daten behalten.',
+  'Waiting for the first synchronization': 'Wartet auf die erste Synchronisation',
+  'Last update': 'Letzte Aktualisierung',
+  'Synchronization failed': 'Synchronisation fehlgeschlagen',
+  'Some connections failed': 'Einige Verbindungen fehlgeschlagen',
+  'Synchronization complete': 'Synchronisation abgeschlossen',
+  'No active connections': 'Keine aktiven Verbindungen',
+  'Synchronization running…': 'Synchronisation läuft…',
+  'Test connections are stored separately from production connections.': 'Testverbindungen werden getrennt von produktiven Verbindungen gespeichert.',
+  'No catalog entry is created automatically. You can register the stored file in the Semantic Data Catalog.': 'Es wird kein Katalogeintrag automatisch angelegt. Du kannst die gespeicherte Datei im Semantic Data Catalog registrieren.',
+  'Selected entities': 'Ausgewählte Entitäten',
+  'Select at least one entity.': 'Wähle mindestens eine Entität aus.',
+  'Filter entities': 'Entitäten filtern',
+  'Select visible': 'Sichtbare auswählen',
+  'Clear selection': 'Auswahl leeren',
+  'Preview': 'Vorschau',
+  'Preview shortened for display.': 'Vorschau für die Anzeige gekürzt.',
+  'Connection test succeeded.': 'Verbindung erfolgreich geprüft.',
+  'Source returned invalid JSON.': 'Die Quelle hat ungültiges JSON geliefert.',
+  'Check the URL, authentication and response settings.': 'Prüfe URL, Authentifizierung und Antworteinstellungen.',
+  'Enter a name and a valid HTTP(S) URL.': 'Gib einen Namen und eine gültige HTTP(S)-URL ein.',
+  'Headers must be a JSON object.': 'Header müssen ein JSON-Objekt sein.',
+  'Use the authentication fields for credentials.': 'Verwende die Authentifizierungsfelder für Zugangsdaten.',
+  'Authenticated sources require HTTPS.': 'Quellen mit Zugangsdaten erfordern HTTPS.',
+  'Confirm that this POST only queries data.': 'Bestätige, dass dieser POST nur Daten abfragt.',
+  'Data Connection is disabled for this profile.': 'Data Connection ist für dieses Profil deaktiviert.',
+  'Background worker registration failed.': 'Die Anmeldung beim Hintergrunddienst ist fehlgeschlagen.',
+  'Sign in with Solid to manage connections.': 'Melde dich mit Solid an, um Verbindungen zu verwalten.',
+  'Data Connection setup failed.': 'Data Connection konnte nicht eingerichtet werden.',
+  'Automatic data collection supports GET and POST only.': 'Automatische Datenerfassung unterstützt nur GET und POST.',
+  'The request body must be valid JSON.': 'Der Anfrageinhalt muss gültiges JSON sein.',
+  'Use a JSON Pointer such as /data/items.': 'Verwende einen JSON Pointer wie /data/items.',
+  'Connection test failed. Check the final HTTPS URL, credential, network access and response size.': 'Verbindungstest fehlgeschlagen. Prüfe die endgültige HTTPS-URL, Zugangsdaten, Erreichbarkeit und Antwortgröße.',
+  'Source request timed out.': 'Das Zeitlimit für die Anfrage wurde überschritten.',
+  'The source returned invalid JSON.': 'Die Quelle hat ungültiges JSON geliefert.',
+  'The configured response path was not found.': 'Der konfigurierte Antwortpfad wurde nicht gefunden.',
+  'Home Assistant rejected the access token.': 'Home Assistant hat das Zugriffstoken abgelehnt.',
+  'Please wait before testing another connection.': 'Bitte warte kurz, bevor du eine weitere Verbindung prüfst.',
+  'Connection encryption is unavailable.': 'Die Verschlüsselung für Zugangsdaten ist nicht verfügbar.',
+  'Enter an authentication credential.': 'Gib die Zugangsdaten ein.',
+  'Every 10 minutes': 'Alle 10 Minuten',
+  'entities': 'Entitäten',
+  'Source type': 'Quelltyp',
+  'State': 'Zustand'
+};
+const newForm = () => ({
+  id: `api-${Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, "0")).join("")}`,
+  kind: 'custom',
+  name: '',
+  description: '',
+  endpoint: '',
+  method: 'GET',
+  authType: 'none',
+  secret: '',
+  encryptedSecret: '',
+  authHeader: 'X-API-Key',
+  headersJson: '',
+  storageDocumentUrl: '',
+  selectedEntities: [],
+  options: {
+    enabled: true,
+    mode: 'periodic',
+    streamFormat: 'sse',
+    streamIntervalSeconds: 0,
+    streamSegmentMiB: 1,
+    streamIdleSeconds: 300,
+    username: '',
+    requestBody: '',
+    requestContentType: 'application/json',
+    requestEncoding: 'text',
+    storageMode: 'original',
+    responseMode: 'auto',
+    pagination: 'none',
+    maxResponseMiB: 8,
+    followRedirects: true,
+    responsePath: '',
+    nextPagePath: '',
+    maxPages: 1,
+    timeoutSeconds: 20,
+    readOnlyPost: false
+  }
 });
-
-const WORKER_SYNC_INTERVAL_MINUTES = "10";
-const HOME_ASSISTANT_DATA_MODEL = "solid-sync-json";
-
-const EMPTY_SETUP_STATUS = {
-  webId: "",
-  phase: "checking",
-  connectionsReady: false,
-  credentialReady: false,
-  workerRegistered: false,
-  workerReason: "",
-  error: "",
-};
-
-const connectionSyncKey = (type, id) => `${type}:${id || ""}`;
-
-const formatAuthType = (authType) => {
-  if (authType === "bearer") return "Bearer token";
-  if (authType === "api-key") return "API key";
-  return "No auth";
-};
-
-const formatLastUpdate = (value) => {
-  if (!value) return "Last update: never";
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "Last update: never";
-  return `Last update: ${date.toLocaleString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  })}`;
-};
-
-const hasUrlScheme = (value) => /^[a-z][a-z\d+.-]*:/i.test(String(value || ""));
-
-const toPodRelativeDocumentUrl = (webId, value) => {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-
-  const podRoot = getPodRoot(webId);
-  return podRoot && raw.startsWith(podRoot)
-    ? raw.slice(podRoot.length).replace(/^\/+/, "")
-    : raw;
-};
-
-const toAbsolutePodDocumentUrl = (webId, value) => {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-
+const sourceLabel = value => {
   try {
-    const parsed = hasUrlScheme(raw)
-      ? new URL(raw)
-      : new URL(raw.replace(/^\/+/, ""), getPodRoot(webId));
-    parsed.hash = "";
-    return parsed.href;
+    const u = new URL(value);
+    return u.origin + u.pathname;
   } catch {
-    return raw;
+    return value;
   }
 };
-
-const getCustomSourceEndpointPath = (value) => {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-
-  try {
-    const parsed = new URL(hasUrlScheme(raw) ? raw : `http://${raw}`);
-    const path = parsed.pathname && parsed.pathname !== "/" ? parsed.pathname : "/";
-    return `${path}${parsed.search || ""}`;
-  } catch {
-    return "";
-  }
-};
-
-const getCustomBaseUrl = (value) => {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-
-  try {
-    const parsed = new URL(hasUrlScheme(raw) ? raw : `http://${raw}`);
-    return hasUrlScheme(raw) ? parsed.origin : parsed.host;
-  } catch {
-    return raw;
-  }
-};
-
-async function registerExistingConnectionsForWorker(webId, connections) {
-  if (!webId || !connections.length) return;
-  const credentialToken = await loadCredentialToken(webId, session.fetch);
-
-  const storageDocumentUrls = Array.from(
-    new Set(
-      connections
-        .map((connection) => connection?.storageDocumentUrl)
-        .filter(Boolean)
-    )
-  );
-
-  for (const storageDocumentUrl of storageDocumentUrls) {
-    await registerSyncWorkerParticipant({
-      webId,
-      credentialToken,
-      storageDocumentUrl,
-      solidFetch: session.fetch,
-    });
-  }
-}
-
-function ModalFrame({ title, icon, children, onClose, saving, compact = false }) {
-  return (
-    <div className="data-connection-modalOverlay" role="presentation">
-      <div
-        className={`data-connection-modal${compact ? " data-connection-modal--compact" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="data-connection-modal-title"
-      >
-        <div className="data-connection-modal__head">
-          <div className="data-connection-modal__title">
-            {typeof icon === "string" ? (
-              <img src={icon} alt="" aria-hidden="true" />
-            ) : (
-              <span className="data-connection-modal__titleIcon">
-                <FontAwesomeIcon icon={icon} />
-              </span>
-            )}
-            <h2 id="data-connection-modal-title">{title}</h2>
-          </div>
-          <button
-            type="button"
-            className="data-connection-modal__close"
-            onClick={onClose}
-            title="Close"
-            aria-label="Close"
-            disabled={saving}
-          >
-            <FontAwesomeIcon icon={faXmark} />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function ConnectionTypeSelector({ value, onChange, disabled }) {
-  return (
-    <div className="data-connection-typeSwitch" aria-label="Connection type">
-      <button
-        type="button"
-        className={`data-connection-typeSwitch__option${
-          value === "home-assistant"
-            ? " data-connection-typeSwitch__option--active"
-            : ""
-        }`}
-        onClick={() => onChange("home-assistant")}
-        disabled={disabled}
-      >
-        <span className="data-connection-typeSwitch__icon">
-          <img src={HOME_ASSISTANT_LOGO} alt="" aria-hidden="true" />
-        </span>
-        <span>
-          <strong>Home Assistant</strong>
-          <small>Entity selection</small>
-        </span>
-      </button>
-
-      <button
-        type="button"
-        className={`data-connection-typeSwitch__option${
-          value === "custom" ? " data-connection-typeSwitch__option--active" : ""
-        }`}
-        onClick={() => onChange("custom")}
-        disabled={disabled}
-      >
-        <span className="data-connection-typeSwitch__icon">
-          <FontAwesomeIcon icon={faSliders} />
-        </span>
-        <span>
-          <strong>Custom API</strong>
-          <small>HTTP endpoint</small>
-        </span>
-      </button>
-    </div>
-  );
-}
-
-function HomeAssistantModal({
-  open,
-  name,
-  url,
-  port,
-  accessToken,
-  storageDocumentUrl,
-  entities,
-  selectedEntities,
-  entitySearch,
-  domainFilter,
-  saving,
-  loadingEntities,
-  error,
-  showTypeSelector,
-  onTypeChange,
-  onNameChange,
-  onUrlChange,
-  onPortChange,
-  onAccessTokenChange,
-  onStorageDocumentUrlChange,
-  onEntitySearchChange,
-  onDomainFilterChange,
-  onToggleEntity,
-  onSelectEntities,
-  onClearSelection,
+export function ConnectionModal({
+  title,
   onClose,
-  onSubmit,
+  busy,
+  children,
+  t
 }) {
-  const domains = useMemo(
-    () => Array.from(new Set(entities.map((entity) => entity.domain))).sort(),
-    [entities]
-  );
-  const selectedSet = useMemo(
-    () => new Set(selectedEntities),
-    [selectedEntities]
-  );
-  const filteredEntities = useMemo(() => {
-    const query = entitySearch.trim().toLowerCase();
-    return entities.filter((entity) => {
-      const domainMatch = domainFilter === "all" || entity.domain === domainFilter;
-      const searchMatch =
-        !query ||
-        entity.entityId.toLowerCase().includes(query) ||
-        entity.friendlyName.toLowerCase().includes(query) ||
-        String(entity.state || "").toLowerCase().includes(query);
-      return domainMatch && searchMatch;
-    });
-  }, [domainFilter, entities, entitySearch]);
-
+  const ref = useRef(null);
   useEffect(() => {
-    if (!open) return undefined;
-
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
+    const previous = document.activeElement,
+      overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    ref.current?.querySelector('input,button,select,textarea')?.focus();
+    return () => {
+      document.body.style.overflow = overflow;
+      previous?.focus?.();
     };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <ModalFrame
-      title={showTypeSelector ? "Add Data Connection" : "Edit Home Assistant"}
-      icon={HOME_ASSISTANT_LOGO}
-      onClose={onClose}
-      saving={saving}
-    >
-      <form className="data-connection-form" onSubmit={onSubmit}>
-        {showTypeSelector ? (
-          <ConnectionTypeSelector
-            value="home-assistant"
-            onChange={onTypeChange}
-            disabled={saving}
-          />
-        ) : null}
-
-        <FormSection title="Connection">
-          <label>
-            <span>Name</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => onNameChange(event.target.value)}
-              placeholder="Home Assistant"
-              autoFocus
-              disabled={saving}
-            />
-          </label>
-
-          <div className="data-connection-form__split data-connection-form__split--sourceRequest">
-            <label>
-              <span>URL</span>
-              <input
-                type="text"
-                value={url}
-                onChange={(event) => onUrlChange(event.target.value)}
-                placeholder="https://homeassistant.example or 192.168.1.50"
-                autoComplete="url"
-                disabled={saving}
-              />
-            </label>
-
-            <label>
-              <span>Port</span>
-              <input
-                type="number"
-                min="1"
-                max="65535"
-                value={port}
-                onChange={(event) => onPortChange(event.target.value)}
-                placeholder="8123"
-                disabled={saving}
-              />
-            </label>
-          </div>
-        </FormSection>
-
-        <FormSection title="Source request">
-          <div className="data-connection-form__split">
-            <label>
-              <span>Request method</span>
-              <input
-                className="data-connection-form__lockedInput"
-                type="text"
-                value="GET"
-                readOnly
-              />
-            </label>
-
-            <label>
-              <span>Source endpoint</span>
-              <input
-                className="data-connection-form__lockedInput"
-                type="text"
-                value="/api/states"
-                readOnly
-              />
-            </label>
-          </div>
-        </FormSection>
-
-        <FormSection title="Authentication">
-          <label>
-            <span>Long-lived access token</span>
-            <input
-              type="password"
-              value={accessToken}
-              onChange={(event) => onAccessTokenChange(event.target.value)}
-              placeholder="Home Assistant token"
-              autoComplete="off"
-              disabled={saving}
-            />
-          </label>
-        </FormSection>
-
-        <FormSection title="Storage">
-          <label>
-            <span>Pod storage document</span>
-            <input
-              type="text"
-              value={storageDocumentUrl}
-              onChange={(event) =>
-                onStorageDocumentUrlChange(event.target.value)
-              }
-              placeholder="connections/homeassistant-solid-sync.json"
-              disabled={saving}
-            />
-          </label>
-        </FormSection>
-
-        <FormSection title="Entities">
-          {loadingEntities ? (
-            <ContentLoadingState
-              title="Data Connection"
-              message="Loading your available entities …"
-              appId="data-connection"
-              variant="compact"
-            />
-          ) : null}
-
-          {entities.length > 0 ? (
-            <div className="data-connection-entities">
-              <div className="data-connection-entities__head">
-                <span>{selectedEntities.length} selected</span>
-              </div>
-
-              <div className="data-connection-entities__filters">
-                <input
-                  type="search"
-                  value={entitySearch}
-                  onChange={(event) => onEntitySearchChange(event.target.value)}
-                  placeholder="Search entities"
-                  disabled={saving}
-                />
-                <select
-                  value={domainFilter}
-                  onChange={(event) => onDomainFilterChange(event.target.value)}
-                  disabled={saving}
-                >
-                  <option value="all">All domains</option>
-                  {domains.map((domain) => (
-                    <option key={domain} value={domain}>
-                      {domain}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="data-connection-entities__actions">
-                <button
-                  type="button"
-                  className="data-connection-miniBtn"
-                  onClick={() =>
-                    onSelectEntities([
-                      ...selectedEntities,
-                      ...filteredEntities.map((entity) => entity.entityId),
-                    ])
-                  }
-                  disabled={saving || filteredEntities.length === 0}
-                >
-                  Select visible
-                </button>
-                <button
-                  type="button"
-                  className="data-connection-miniBtn"
-                  onClick={onClearSelection}
-                  disabled={saving || selectedEntities.length === 0}
-                >
-                  Clear
-                </button>
-              </div>
-
-              <div className="data-connection-entities__list">
-                {filteredEntities.length > 0 ? (
-                  filteredEntities.map((entity) => (
-                    <label
-                      key={entity.entityId}
-                      className="data-connection-entity"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedSet.has(entity.entityId)}
-                        onChange={() => onToggleEntity(entity.entityId)}
-                        disabled={saving}
-                      />
-                      <span className="data-connection-entity__main">
-                        <span className="data-connection-entity__name">
-                          {entity.friendlyName}
-                        </span>
-                        <code>{entity.entityId}</code>
-                      </span>
-                      <span className="data-connection-entity__state">
-                        {entity.state}
-                        {entity.unit ? ` ${entity.unit}` : ""}
-                      </span>
-                    </label>
-                  ))
-                ) : (
-                  <div className="data-connection-entities__empty">
-                    No entities match the current filter.
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : null}
-        </FormSection>
-
-        {error ? <div className="data-connection-form__error">{error}</div> : null}
-
-        <div className="data-connection-form__footer">
-          <div />
-          <div className="data-connection-form__actions">
-            <button
-              type="button"
-              className="data-connection-btn data-connection-btn--secondary"
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="data-connection-btn data-connection-btn--primary"
-              disabled={saving}
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
-          </div>
-        </div>
-      </form>
-    </ModalFrame>
-  );
-}
-
-function CustomConnectionModal({
-  open,
-  values,
-  saving,
-  error,
-  showTypeSelector,
-  onChange,
-  onTypeChange,
-  onClose,
-  onSubmit,
-}) {
-  useEffect(() => {
-    if (!open) return undefined;
-
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  const update = (key, value) => onChange({ ...values, [key]: value });
-  const updateUrl = (value) => {
-    const nextValues = { ...values, url: getCustomBaseUrl(value) || value };
-    const endpointPath = getCustomSourceEndpointPath(value);
-    if (
-      endpointPath &&
-      endpointPath !== "/" &&
-      (!values.sourceEndpoint || values.sourceEndpoint === "/")
-    ) {
-      nextValues.sourceEndpoint = endpointPath;
+  }, []);
+  const keyDown = event => {
+    if (event.key === 'Escape' && !busy) {
+      event.stopPropagation();
+      onClose();
     }
-    onChange(nextValues);
+    if (event.key !== 'Tab') return;
+    const nodes = [...ref.current.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]')].filter(x => x.getClientRects().length);
+    const first = nodes[0],
+      last = nodes[nodes.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
   };
-
-  return (
-    <ModalFrame
-      title={showTypeSelector ? "Add Data Connection" : "Edit Custom API"}
-      icon={faSliders}
-      onClose={onClose}
-      saving={saving}
-    >
-      <form className="data-connection-form" onSubmit={onSubmit}>
-        {showTypeSelector ? (
-          <ConnectionTypeSelector
-            value="custom"
-            onChange={onTypeChange}
-            disabled={saving}
-          />
-        ) : null}
-
-        <FormSection title="Connection">
-          <label>
-            <span>Name</span>
-            <input
-              type="text"
-              value={values.name}
-              onChange={(event) => update("name", event.target.value)}
-              placeholder="Building API"
-              autoFocus
-              disabled={saving}
-            />
-          </label>
-
-          <div className="data-connection-form__split">
-            <label>
-              <span>URL</span>
-              <input
-                type="text"
-                value={values.url}
-                onChange={(event) => updateUrl(event.target.value)}
-                placeholder="https://api.example.org or 192.168.1.20"
-                autoComplete="url"
-                disabled={saving}
-              />
-            </label>
-
-            <label>
-              <span>Port</span>
-              <input
-                type="number"
-                min="1"
-                max="65535"
-                value={values.port}
-                onChange={(event) => update("port", event.target.value)}
-                placeholder="443"
-                disabled={saving}
-              />
-            </label>
-          </div>
-
-        </FormSection>
-
-        <FormSection title="Source request">
-          <div className="data-connection-form__split data-connection-form__split--sourceRequest">
-            <label>
-              <span>Request method</span>
-              <select
-                value={values.method}
-                onChange={(event) => update("method", event.target.value)}
-                disabled={saving}
-              >
-                <option value="GET">GET</option>
-                <option value="POST">POST</option>
-                <option value="PUT">PUT</option>
-                <option value="PATCH">PATCH</option>
-                <option value="DELETE">DELETE</option>
-              </select>
-            </label>
-
-            <label>
-              <span>Source endpoint</span>
-              <input
-                type="text"
-                value={values.sourceEndpoint || ""}
-                onChange={(event) => update("sourceEndpoint", event.target.value)}
-                placeholder="/data"
-                disabled={saving}
-              />
-            </label>
-          </div>
-        </FormSection>
-
-        <FormSection title="Authentication">
-          <label>
-            <span>Authentication</span>
-            <select
-              value={values.authType}
-              onChange={(event) => update("authType", event.target.value)}
-              disabled={saving}
-            >
-              <option value="none">None</option>
-              <option value="bearer">Bearer token</option>
-              <option value="api-key">API key header</option>
-            </select>
-          </label>
-
-          {values.authType === "api-key" ? (
-            <label>
-              <span>Header name</span>
-              <input
-                type="text"
-                value={values.authHeader}
-                onChange={(event) => update("authHeader", event.target.value)}
-                placeholder="X-API-Key"
-                disabled={saving}
-              />
-            </label>
-          ) : null}
-
-          {values.authType !== "none" ? (
-            <label>
-              <span>{values.authType === "bearer" ? "Token" : "API key"}</span>
-              <input
-                type="password"
-                value={values.authSecret}
-                onChange={(event) => update("authSecret", event.target.value)}
-                placeholder="Secret"
-                autoComplete="off"
-                disabled={saving}
-              />
-            </label>
-          ) : null}
-
-          <label>
-            <span>Additional headers JSON</span>
-            <textarea
-              value={values.headersJson}
-              onChange={(event) => update("headersJson", event.target.value)}
-              placeholder='{"Accept": "application/json"}'
-              rows={4}
-              disabled={saving}
-            />
-          </label>
-        </FormSection>
-
-        <FormSection title="Storage">
-          <label>
-            <span>Pod storage document</span>
-            <input
-              type="text"
-              value={values.storageDocumentUrl}
-              onChange={(event) =>
-                update("storageDocumentUrl", event.target.value)
-              }
-              placeholder="connections/custom-api-sync.json"
-              disabled={saving}
-            />
-          </label>
-        </FormSection>
-
-        {error ? <div className="data-connection-form__error">{error}</div> : null}
-
-        <div className="data-connection-form__footer">
-          <div />
-          <div className="data-connection-form__actions">
-            <button
-              type="button"
-              className="data-connection-btn data-connection-btn--secondary"
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="data-connection-btn data-connection-btn--primary"
-              disabled={saving}
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
-          </div>
-        </div>
-      </form>
-    </ModalFrame>
-  );
-}
-
-function FormSection({ title, aside, children }) {
-  return (
-    <section className="data-connection-formSection">
-      <div className="data-connection-formSection__head">
-        <h3>{title}</h3>
-        {aside || null}
-      </div>
-      <div className="data-connection-formSection__body">{children}</div>
+  return createPortal(<div className="dc-overlay" onMouseDown={e => {
+    if (e.target === e.currentTarget && !busy) onClose();
+  }}>
+    <section className="dc-modal" role="dialog" aria-modal="true" aria-labelledby="dc-modal-title" ref={ref} onKeyDown={keyDown} translate="no">
+      <header><h2 id="dc-modal-title">{title}</h2><button type="button" className="dc-icon" aria-label={t('Close')} onClick={onClose} disabled={busy}><FontAwesomeIcon icon={faXmark} /></button></header>
+      {children}
     </section>
-  );
+  </div>, document.body);
 }
-
-function DeleteConnectionModal({ target, saving, onCancel, onConfirm }) {
-  if (!target) return null;
-
-  const connection = target.connection || {};
-  const isHomeAssistant = target.type === "home-assistant";
-  const label = isHomeAssistant
-    ? connection.name || "Home Assistant"
-    : connection.name || connection.id || "Custom API";
-  const detail = isHomeAssistant
-    ? connection.endpoint || connection.storageDocumentUrl || connection.id
-    : connection.url || connection.endpoint || connection.id;
-
-  return (
-    <ModalFrame
-      title="Delete Data Connection"
-      icon={faTrash}
-      onClose={onCancel}
-      saving={saving}
-      compact
-    >
-      <div className="data-connection-confirm">
-        <div className="data-connection-confirm__icon">
-          <FontAwesomeIcon icon={faTrash} />
-        </div>
-        <div className="data-connection-confirm__copy">
-          <strong>{label}</strong>
-          {detail ? <span>{detail}</span> : null}
-          <p>
-            This connection and its stored configuration will be permanently
-            removed from your Pod.
-          </p>
-        </div>
-        <div className="data-connection-confirm__actions">
-          <button
-            type="button"
-            className="data-connection-btn data-connection-btn--secondary"
-            onClick={onCancel}
-            disabled={saving}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="data-connection-btn data-connection-btn--danger"
-            onClick={onConfirm}
-            disabled={saving}
-          >
-            {saving ? "Deleting..." : "Delete"}
-          </button>
-        </div>
-      </div>
-    </ModalFrame>
-  );
-}
-
-function DataConnectionSetupItem({ icon, title, description, ready, checking }) {
-  const stateLabel = checking ? "Checking..." : ready ? "Ready" : "Required";
-  return (
-    <div className="data-connection-setup__item">
-      <span className="data-connection-setup__itemIcon" aria-hidden="true">
-        <FontAwesomeIcon icon={icon} />
-      </span>
-      <span className="data-connection-setup__itemCopy">
-        <strong>{title}</strong>
-        <span>{description}</span>
-      </span>
-      <span
-        className={`data-connection-setup__state${
-          ready ? " data-connection-setup__state--ready" : ""
-        }`}
-      >
-        {stateLabel}
-      </span>
-    </div>
-  );
-}
-
-function DataConnectionSetupScreen({ status, onSetup }) {
-  const checking = status.phase === "checking";
-  const saving = status.phase === "saving";
-  const busy = checking || saving;
-
-  return (
-    <div className="data-connection">
-      <div className="toolbar toolbar--title data-connection__header">
-        <div className="crumb">
-          <FontAwesomeIcon icon={faLink} className="crumb-icon" />
-          <span>Data Connection</span>
-        </div>
-      </div>
-
-      <div className="data-connection__shell data-connection__shell--setup">
-        <section className="data-connection-setup" aria-busy={busy}>
-          <div className="data-connection-setup__head">
-            <span className="data-connection-setup__heroIcon" aria-hidden="true">
-              <FontAwesomeIcon icon={faLink} />
-            </span>
-            <div>
-              <h2>Set up Data Connection</h2>
-              <p>
-                Prepare the private Pod folder, credential token, and background
-                worker access required for automated data connections.
-              </p>
-            </div>
-          </div>
-
-          <div className="data-connection-setup__list">
-            <DataConnectionSetupItem
-              icon={faFolderOpen}
-              title="Connections folder"
-              description="Stores connection settings privately in your Solid Pod."
-              ready={status.connectionsReady}
-              checking={checking}
-            />
-            <DataConnectionSetupItem
-              icon={faKey}
-              title="Credential token"
-              description="Lets the background worker authenticate as your WebID."
-              ready={status.credentialReady}
-              checking={checking}
-            />
-            <DataConnectionSetupItem
-              icon={faUserGear}
-              title="Background sync worker"
-              description="Registers the participant and grants access only to connection data."
-              ready={status.workerRegistered}
-              checking={checking}
-            />
-          </div>
-
-          {status.error ? (
-            <div className="data-connection-setup__error" role="alert">
-              {status.error}
-            </div>
-          ) : null}
-
-          <div className="data-connection-setup__actions">
-            <button
-              type="button"
-              className="data-connection-btn data-connection-btn--primary"
-              onClick={onSetup}
-              disabled={busy}
-            >
-              {checking
-                ? "Checking setup..."
-                : saving
-                ? "Setting up..."
-                : status.error
-                ? "Retry setup"
-                : "Set up Data Connection"}
-            </button>
-          </div>
-        </section>
-      </div>
-    </div>
-  );
-}
-
-function DataConnection({ webId }) {
-  const [setupStatus, setSetupStatus] = useState(() => ({
-    ...EMPTY_SETUP_STATUS,
-    webId: webId || "",
-  }));
-  const [newConnectionType, setNewConnectionType] = useState("home-assistant");
-  const [homeAssistantOpen, setHomeAssistantOpen] = useState(false);
-  const [customOpen, setCustomOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-
-  const [homeAssistantName, setHomeAssistantName] = useState("");
-  const [url, setUrl] = useState("");
-  const [port, setPort] = useState("443");
-  const [accessToken, setAccessToken] = useState("");
-  const [storageDocumentUrl, setStorageDocumentUrl] = useState("");
-  const [homeAssistantConnections, setHomeAssistantConnections] = useState([]);
-  const [activeHomeAssistantId, setActiveHomeAssistantId] = useState("");
-  const [entities, setEntities] = useState([]);
-  const [selectedEntities, setSelectedEntities] = useState([]);
-  const [entitySearch, setEntitySearch] = useState("");
-  const [domainFilter, setDomainFilter] = useState("all");
-  const [customConnections, setCustomConnections] = useState([]);
-  const [customValues, setCustomValues] = useState(emptyCustomConnection());
-
-  const [saving, setSaving] = useState(false);
-  const [loadingEntities, setLoadingEntities] = useState(false);
-  const [error, setError] = useState("");
-  const [lastSyncByConnection, setLastSyncByConnection] = useState({});
-
-  const setupReady =
-    setupStatus.phase === "ready" && setupStatus.webId === webId;
-
-  const applySetupResult = useCallback(
-    (result, phaseWhenIncomplete = "required") => {
-      setSetupStatus({
-        ...EMPTY_SETUP_STATUS,
-        ...result,
-        webId: webId || "",
-        phase: result?.ready ? "ready" : phaseWhenIncomplete,
-      });
-    },
-    [webId]
-  );
-
+export default function DataConnection({
+  webId
+}) {
+  const {
+    language
+  } = useI18n();
+  const t = value => language === 'de' ? de[value] || value : value;
+  const [setup, setSetup] = useState(null),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(''),
+    [notice, setNotice] = useState('');
+  const [connections, setConnections] = useState([]),
+    [lastSync, setLastSync] = useState({}),
+    [status, setStatus] = useState(null);
+  const [query, setQuery] = useState(''),
+    [kind, setKind] = useState('all'),
+    [state, setState] = useState('all');
+  const [form, setForm] = useState(null),
+    [editing, setEditing] = useState(false),
+    [remove, setRemove] = useState(null);
+  const [entities, setEntities] = useState([]),
+    [entityQuery, setEntityQuery] = useState(''),
+    [preview, setPreview] = useState(null);
+  const mounted = useRef(true);
+  const currentWebId = useRef(webId);
+  currentWebId.current = webId;
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const reload = useCallback(async () => {
+    const [home, api, current] = await Promise.all([loadHomeAssistantConnections(webId, session.fetch), loadCustomConnections(webId, session.fetch), loadConnectionStatus(webId, session.fetch)]);
+    const rows = [...home, ...api].sort((a, b) => a.name.localeCompare(b.name));
+    const times = await Promise.all(rows.map(async c => {
+      try {
+        return [c.kind + c.id, await loadConnectionLastSync(c.options?.mode === 'stream' ? c.storageDocumentUrl + '.stream.json' : c.storageDocumentUrl, session.fetch)];
+      } catch {
+        return [c.kind + c.id, null];
+      }
+    }));
+    if (mounted.current && currentWebId.current === webId) {
+      setConnections(rows);
+      setStatus(current);
+      setLastSync(Object.fromEntries(times));
+    }
+  }, [webId]);
   useEffect(() => {
     let cancelled = false;
-    setSetupStatus({
-      ...EMPTY_SETUP_STATUS,
-      webId: webId || "",
-      phase: "checking",
-    });
-
-    if (!webId) {
-      setSetupStatus({
-        ...EMPTY_SETUP_STATUS,
-        webId: "",
-        phase: "required",
-        error: "A WebID is required for Data Connection setup.",
-      });
-      return undefined;
-    }
-
+    setSetup(null);
+    setConnections([]);
+    setError('');
     prepareDataConnectionSetup({
       webId,
-      solidFetch: session.fetch,
-      provision: false,
-    }).then((result) => {
-      if (!cancelled) applySetupResult(result);
+      solidFetch: session.fetch
+    }).then(async result => {
+      if (cancelled) return;
+      setSetup(result);
+      if (result.ready) await reload();
+    }).catch(e => {
+      if (!cancelled) setError(e.message);
     });
-
     return () => {
       cancelled = true;
     };
-  }, [applySetupResult, webId]);
-
-  const handleSetup = async () => {
-    setSetupStatus((current) => ({
+  }, [webId, reload]);
+  const hasStreams = connections.some(c => c.options?.mode === 'stream');
+  useEffect(() => {
+    if (!setup?.ready) return undefined;
+    const timer = setInterval(() => reload().catch(e => setError(e.message)), hasStreams ? 10000 : 60000);
+    return () => clearInterval(timer);
+  }, [setup?.ready, reload, hasStreams]);
+  const run = async action => {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await action();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      if (mounted.current) setBusy(false);
+    }
+  };
+  const update = (key, value) => {
+    setForm(current => ({
       ...current,
-      webId: webId || "",
-      phase: "saving",
-      error: "",
+      [key]: value
     }));
-    const result = await prepareDataConnectionSetup({
-      webId,
-      solidFetch: session.fetch,
-      provision: true,
-    });
-    applySetupResult(result);
+    setPreview(null);
   };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadConnections = async () => {
-      if (!webId || !setupReady) return;
-
-      setError("");
-      try {
-        const [loadedHomeAssistantConnections, loadedCustom] = await Promise.all([
-          loadHomeAssistantConnections(webId, session.fetch),
-          loadCustomConnections(webId, session.fetch),
-        ]);
-        if (!cancelled) {
-          setHomeAssistantConnections(loadedHomeAssistantConnections);
-          setActiveHomeAssistantId("");
-          setHomeAssistantName("");
-          setUrl("");
-          setPort("443");
-          setAccessToken("");
-          setStorageDocumentUrl("");
-          setSelectedEntities([]);
-          setCustomConnections(loadedCustom);
-          setEntities([]);
-        }
-        try {
-          await registerExistingConnectionsForWorker(webId, [
-            ...loadedHomeAssistantConnections,
-            ...loadedCustom,
-          ]);
-        } catch (registrationError) {
-          if (!cancelled) {
-            setError(
-              registrationError?.message ||
-                "Sync worker access could not be refreshed."
-            );
-          }
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err?.message || "Connections could not be loaded.");
-        }
+  const option = (key, value) => {
+    setForm(current => ({
+      ...current,
+      options: {
+        ...current.options,
+        [key]: value
       }
-    };
-
-    loadConnections();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [setupReady, webId]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const connections = [
-      ...homeAssistantConnections.map((connection) => ({
-        type: "home-assistant",
-        connection,
-      })),
-      ...customConnections.map((connection) => ({
-        type: "custom",
-        connection,
-      })),
-    ];
-
-    const loadLastSyncs = async () => {
-      if (!webId || !setupReady || connections.length === 0) {
-        if (!cancelled) setLastSyncByConnection({});
-        return;
-      }
-
-      const entries = await Promise.all(
-        connections.map(async ({ type, connection }) => {
-          const key = connectionSyncKey(type, connection.id);
-          try {
-            const lastSyncAt = await loadConnectionLastSync(
-              connection.storageDocumentUrl,
-              session.fetch
-            );
-            return [key, lastSyncAt ? lastSyncAt.toISOString() : ""];
-          } catch {
-            return [key, ""];
-          }
-        })
-      );
-
-      if (!cancelled) {
-        setLastSyncByConnection(Object.fromEntries(entries));
-      }
-    };
-
-    loadLastSyncs();
-    const timer = window.setInterval(loadLastSyncs, 60000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [webId, setupReady, homeAssistantConnections, customConnections]);
-
-  const resetHomeAssistantForm = () => {
-    setActiveHomeAssistantId("");
-    setHomeAssistantName("");
-    setUrl("");
-    setPort("443");
-    setAccessToken("");
-    setStorageDocumentUrl("");
+    }));
+    setPreview(null);
+  };
+  const open = c => {
+    setError('');
+    setPreview(null);
     setEntities([]);
-    setSelectedEntities([]);
-    setEntitySearch("");
-    setDomainFilter("all");
-  };
-
-  const openAddConnection = () => {
-    setError("");
-    setNewConnectionType("home-assistant");
-    resetHomeAssistantForm();
-    setCustomValues(emptyCustomConnection());
-    setCustomOpen(false);
-    setHomeAssistantOpen(true);
-  };
-
-  const switchNewConnectionType = (type) => {
-    if (saving || type === newConnectionType) return;
-    setNewConnectionType(type);
-    setError("");
-    if (type === "home-assistant") {
-      setCustomOpen(false);
-      setHomeAssistantOpen(true);
-    } else {
-      setHomeAssistantOpen(false);
-      setCustomOpen(true);
+    setEntityQuery('');
+    setEditing(Boolean(c));
+    if (!c) {
+      setForm(newForm());
+      return;
     }
-  };
-
-  const openExistingHomeAssistant = (connection) => {
-    setError("");
-    setNewConnectionType("home-assistant");
-    setCustomOpen(false);
-    setActiveHomeAssistantId(connection.id || "");
-    setHomeAssistantName(connection.name || "Home Assistant");
-    setUrl(connection.url || "");
-    setPort(connection.port || "443");
-    setAccessToken(connection.accessToken || "");
-    const storageUrl =
-      connection.dataModel === HOME_ASSISTANT_DATA_MODEL &&
-      connection.storageDocumentUrl
-        ? connection.storageDocumentUrl
-        : getHomeAssistantSolidSyncDocumentUrl(webId, connection.id || "");
-    setStorageDocumentUrl(
-      toPodRelativeDocumentUrl(webId, storageUrl)
-    );
-    setSelectedEntities(connection.selectedEntities || []);
-    setEntities([]);
-    setEntitySearch("");
-    setDomainFilter("all");
-    setHomeAssistantOpen(true);
-  };
-
-  const openExistingCustom = (connection) => {
-    setError("");
-    setNewConnectionType("custom");
-    setHomeAssistantOpen(false);
-    setCustomValues({
-      id: connection.id,
-      name: connection.name || "",
-      description: connection.description || "",
-      url: getCustomBaseUrl(connection.url || connection.endpoint || ""),
-      port: connection.port || "443",
-      sourceEndpoint:
-        connection.sourceEndpoint ||
-        getCustomSourceEndpointPath(connection.endpoint || connection.url) ||
-        "/",
-      storageDocumentUrl: toPodRelativeDocumentUrl(
-        webId,
-        connection.storageDocumentUrl
-      ),
-      method: connection.method || "GET",
-      authType: connection.authType || "none",
-      authSecret: connection.authSecret || "",
-      authHeader: connection.authHeader || "X-API-Key",
-      headersJson: connection.headersJson || "",
-    });
-    setCustomOpen(true);
-  };
-
-  const closeHomeAssistant = () => {
-    if (saving) return;
-    setHomeAssistantOpen(false);
-    setError("");
-  };
-
-  const closeCustom = () => {
-    if (saving) return;
-    setCustomOpen(false);
-    setError("");
-  };
-
-  useEffect(() => {
-    if (!homeAssistantOpen || saving) return undefined;
-
-    const hasConnectionInput = url.trim() && String(port).trim() && accessToken.trim();
-    if (!hasConnectionInput) {
-      setEntities([]);
-      setLoadingEntities(false);
-      return undefined;
-    }
-
-    let cancelled = false;
-    const timeoutId = window.setTimeout(async () => {
-      setError("");
-      setLoadingEntities(true);
-
-      try {
-        const loadedEntities = await loadHomeAssistantEntities({
-          url,
-          port,
-          accessToken,
-        });
-        if (cancelled) return;
-
-        setEntities(loadedEntities);
-      } catch (err) {
-        if (cancelled) return;
-
-        setEntities([]);
-        setError(err?.message || "Home Assistant entities could not be loaded.");
-      } finally {
-        if (!cancelled) {
-          setLoadingEntities(false);
-        }
-      }
-    }, 450);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [accessToken, homeAssistantOpen, port, saving, url]);
-
-  const toggleEntity = (entityId) => {
-    setSelectedEntities((current) => {
-      const next = new Set(current);
-      if (next.has(entityId)) {
-        next.delete(entityId);
-      } else {
-        next.add(entityId);
-      }
-      return Array.from(next).sort((a, b) => a.localeCompare(b));
+    setForm({
+      ...newForm(),
+      ...c,
+      endpoint: c.endpoint || c.url,
+      secret: c.accessToken || c.authSecret || '',
+      encryptedSecret: c.encryptedAccessToken || c.encryptedAuthSecret || '',
+      options: {
+        ...newForm().options,
+        ...c.options,
+        storageMode: c.options?.storageMode || 'history',
+        pagination: c.options?.pagination || (c.options?.nextPagePath ? 'json' : 'none'),
+        maxResponseMiB: c.options?.maxResponseMiB || (c.options?.storageMode === 'original' ? 8 : 2),
+        followRedirects: c.options?.followRedirects === true
+      },
+      selectedEntities: c.selectedEntities || []
     });
   };
-
-  const selectEntities = (entityIds) => {
-    setSelectedEntities(
-      Array.from(new Set(entityIds.filter(Boolean))).sort((a, b) =>
-        a.localeCompare(b)
-      )
-    );
-  };
-
-  const handleSaveHomeAssistant = async (event) => {
-    event.preventDefault();
-    setError("");
-
+  const parsedForm = () => {
+    let url;
     try {
-      setSaving(true);
-      const connection = await saveHomeAssistantConnection(webId, session.fetch, {
-        id: activeHomeAssistantId,
-        name: homeAssistantName,
-        url,
-        port,
-        accessToken,
-        storageDocumentUrl,
-        dataModel: HOME_ASSISTANT_DATA_MODEL,
-        syncIntervalMinutes: WORKER_SYNC_INTERVAL_MINUTES,
-        selectedEntities,
+      url = new URL(form.endpoint);
+    } catch {
+      throw new Error('Enter a name and a valid HTTP(S) URL.');
+    }
+    if (!form.name.trim() || !['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.hash) throw new Error('Enter a name and a valid HTTP(S) URL.');
+    const hasCredential = form.kind === 'home-assistant' || form.authType !== 'none';
+    if (hasCredential && url.protocol !== 'https:') throw new Error('Authenticated sources require HTTPS.');
+    let headers;
+    try {
+      headers = JSON.parse(form.headersJson || '{}');
+    } catch {
+      throw new Error('Headers must be a JSON object.');
+    }
+    if (!headers || Array.isArray(headers) || typeof headers !== 'object') throw new Error('Headers must be a JSON object.');
+    if (Object.keys(headers).some(k => /^(authorization|cookie|proxy-authorization|x-api-key)$/i.test(k))) throw new Error('Use the authentication fields for credentials.');
+    if (form.method === 'POST' && !form.options.readOnlyPost) throw new Error('Confirm that this POST only queries data.');
+    if (!['GET', 'POST'].includes(form.method)) throw new Error('Automatic data collection supports GET and POST only.');
+    if (form.method === 'POST' && form.options.requestEncoding === 'text' && /^(application|text)\/(?:[^;]+\+)?json(?:;|$)/i.test(form.options.requestContentType)) {
+      try {
+        JSON.parse(form.options.requestBody || '{}');
+      } catch {
+        throw new Error('The request body must be valid JSON.');
+      }
+    }
+    for (const pointer of [form.options.responsePath, form.options.nextPagePath].filter(Boolean)) if (!pointer.startsWith('/') || /~(?![01])/.test(pointer)) throw new Error('Use a JSON Pointer such as /data/items.');
+    if (form.options.requestEncoding === 'base64' && !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(form.options.requestBody)) throw new Error('The request body must be valid Base64.');
+    if (form.kind === 'custom' && form.options.mode === 'stream') {
+      const interval = Number(form.options.streamIntervalSeconds);
+      if (form.options.streamIntervalSeconds === '' || (interval !== 0 && (!Number.isInteger(interval) || interval < 10 || interval > 86400))) throw new Error('Stream storage interval must be between 10 and 86400 seconds.');
+      if (form.options.streamFormat === 'sse' && form.method !== 'GET') throw new Error('SSE streams use GET.');
+    }
+    return {
+      ...form,
+      headers,
+      url: url.origin + (form.kind === 'home-assistant' ? url.pathname : ''),
+      port: url.port || (url.protocol === 'https:' ? '443' : '80'),
+      sourceEndpoint: url.pathname + url.search
+    };
+  };
+  const testRequest = () => run(async () => {
+    const connection = parsedForm();
+    const result = await connectionWorkerCall(webId, session.fetch, 'preview', {
+      kind: form.kind,
+      connection
+    });
+    if (result.entities) setEntities(result.entities);
+    setPreview(result);
+  });
+  const save = event => {
+    event.preventDefault();
+    run(async () => {
+      const values = parsedForm();
+      if (values.kind === 'home-assistant' && !values.selectedEntities.length) throw new Error('Select at least one entity.');
+      const saved = values.kind === 'home-assistant' ? await saveHomeAssistantConnection(webId, session.fetch, {
+        ...values,
+        accessToken: values.secret,
+        encryptedAccessToken: values.encryptedSecret,
+        dataModel: values.dataModel || 'solid-sync-json',
+        syncIntervalMinutes: '10'
+      }) : await saveCustomConnection(webId, session.fetch, {
+        ...values,
+        authSecret: values.secret,
+        encryptedAuthSecret: values.encryptedSecret
       });
-      const credentialToken = await loadCredentialToken(webId, session.fetch);
       await registerSyncWorkerParticipant({
         webId,
-        credentialToken,
-        storageDocumentUrl:
-          connection?.storageDocumentUrl ||
-          toAbsolutePodDocumentUrl(webId, storageDocumentUrl),
         solidFetch: session.fetch,
+        storageDocumentUrl: saved.storageDocumentUrl,
+        streamsOnly: values.kind === 'custom' && values.options.mode === 'stream'
       });
-      if (
-        entities.length > 0 &&
-        selectedEntities.length > 0 &&
-        !entities.some((entity) => selectedEntities.includes(entity.entityId))
-      ) {
-        throw new Error("No selected Home Assistant entities were found.");
-      }
-      setHomeAssistantConnections((current) => {
-        const withoutOld = current.filter((item) => item.id !== connection.id);
-        return [connection, ...withoutOld].sort((a, b) => {
-          const left = a.modifiedAt?.getTime?.() || a.createdAt?.getTime?.() || 0;
-          const right = b.modifiedAt?.getTime?.() || b.createdAt?.getTime?.() || 0;
-          return right - left || a.id.localeCompare(b.id);
-        });
-      });
-      setActiveHomeAssistantId(connection.id);
-      setHomeAssistantName(connection?.name || homeAssistantName);
-      setUrl(connection?.url || url);
-      setPort(connection?.port || port);
-      setAccessToken(connection?.accessToken || accessToken);
-      setStorageDocumentUrl(
-        toPodRelativeDocumentUrl(
-          webId,
-          connection?.storageDocumentUrl ||
-            toAbsolutePodDocumentUrl(webId, storageDocumentUrl)
-        )
-      );
-      setSelectedEntities(connection?.selectedEntities || selectedEntities);
-      setHomeAssistantOpen(false);
-    } catch (err) {
-      setError(err?.message || "Connection could not be saved.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveCustom = async (event) => {
-    event.preventDefault();
-    setError("");
-
-    try {
-      setSaving(true);
-      const saved = await saveCustomConnection(webId, session.fetch, customValues);
-      const credentialToken = await loadCredentialToken(webId, session.fetch);
-      await registerSyncWorkerParticipant({
-        webId,
-        credentialToken,
-        storageDocumentUrl:
-          saved?.storageDocumentUrl ||
-          toAbsolutePodDocumentUrl(webId, customValues.storageDocumentUrl),
-        solidFetch: session.fetch,
-      });
-      setCustomConnections((current) => {
-        const withoutOld = current.filter((item) => item.id !== saved.id);
-        return [...withoutOld, saved].sort((a, b) => a.name.localeCompare(b.name));
-      });
-      setCustomOpen(false);
-    } catch (err) {
-      setError(err?.message || "Custom connection could not be saved.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDeleteHomeAssistant = (targetConnection) => {
-    if (!targetConnection?.id) return;
-    setError("");
-    setDeleteTarget({
-      type: "home-assistant",
-      connection: targetConnection,
+      setForm(null);
+      await reload();
+      setNotice('Connection settings saved.');
     });
   };
-
-  const handleDeleteCustom = (targetConnection = customValues) => {
-    if (!targetConnection?.id) return;
-    setError("");
-    setDeleteTarget({
-      type: "custom",
-      connection: targetConnection,
-    });
-  };
-
-  const closeDeleteModal = () => {
-    if (saving) return;
-    setDeleteTarget(null);
-  };
-
-  const confirmDeleteConnection = async () => {
-    const targetConnection = deleteTarget?.connection;
-    if (!targetConnection?.id) return;
-
-    setError("");
-    try {
-      setSaving(true);
-
-      if (deleteTarget.type === "home-assistant") {
-        await deleteHomeAssistantConnection(
-          webId,
-          session.fetch,
-          targetConnection.id
-        );
-        setHomeAssistantConnections((current) =>
-          current.filter((connection) => connection.id !== targetConnection.id)
-        );
-        if (activeHomeAssistantId === targetConnection.id) {
-          resetHomeAssistantForm();
-        }
-        setHomeAssistantOpen(false);
-      } else {
-        await deleteCustomConnection(webId, session.fetch, targetConnection.id);
-        setCustomConnections((current) =>
-          current.filter((connection) => connection.id !== targetConnection.id)
-        );
-        if (customValues.id === targetConnection.id) {
-          setCustomOpen(false);
-          setCustomValues(emptyCustomConnection());
-        }
-      }
-
-      setDeleteTarget(null);
-    } catch (err) {
-      setError(err?.message || "Connection could not be deleted.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (!setupReady) {
-    return (
-      <DataConnectionSetupScreen
-        status={setupStatus}
-        onSetup={handleSetup}
-      />
-    );
-  }
-
-  const hasConnections = homeAssistantConnections.length > 0 || customConnections.length > 0;
-
-  return (
-    <div className="data-connection">
-      <div className="toolbar toolbar--title data-connection__header">
-        <div className="crumb">
-          <FontAwesomeIcon icon={faLink} className="crumb-icon" />
-          <span>Data Connection</span>
-        </div>
-      </div>
-
-      <div className="data-connection__shell">
-        <div className="data-connection__grid">
-          {homeAssistantConnections.map((connection) => (
-            <div className="data-connection-cardShell" key={connection.id}>
-              <button
-                type="button"
-                className="data-connection-card data-connection-card--withAction"
-                onClick={() => openExistingHomeAssistant(connection)}
-                title={connection.endpoint || "Home Assistant"}
-              >
-                <span className="data-connection-card__icon">
-                  <img src={HOME_ASSISTANT_LOGO} alt="Home Assistant logo" />
-                </span>
-                <span className="data-connection-card__copy">
-                  <strong translate="no">{connection.name || "Home Assistant"}</strong>
-                  <span className="data-connection-card__endpoint">
-                    {connection.endpoint || connection.url}
-                  </span>
-                  <span className="data-connection-card__badges">
-                    <span>{connection.selectedEntities.length} entities</span>
-                  </span>
-                  <span className="data-connection-card__lastUpdate">
-                    {formatLastUpdate(
-                      lastSyncByConnection[
-                        connectionSyncKey("home-assistant", connection.id)
-                      ]
-                    )}
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="data-connection-card__delete"
-                onClick={() => handleDeleteHomeAssistant(connection)}
-                title="Delete Home Assistant connection"
-                aria-label={`Delete ${connection.name || "Home Assistant"}`}
-                disabled={saving}
-              >
-                <FontAwesomeIcon icon={faTrash} />
-              </button>
-            </div>
-          ))}
-
-          {customConnections.map((connection) => (
-            <div className="data-connection-cardShell" key={connection.id}>
-              <button
-                type="button"
-                className="data-connection-card data-connection-card--withAction"
-                onClick={() => openExistingCustom(connection)}
-                title={connection.name}
-              >
-                <span className="data-connection-card__icon data-connection-card__icon--custom">
-                  <FontAwesomeIcon icon={faServer} />
-                </span>
-                <span className="data-connection-card__copy">
-                  <strong translate="no">{connection.name}</strong>
-                  <span className="data-connection-card__endpoint">
-                    {connection.endpoint || connection.url}
-                  </span>
-                  <span className="data-connection-card__badges">
-                    <span>{connection.method || "GET"}</span>
-                    <span>{formatAuthType(connection.authType)}</span>
-                  </span>
-                  <span className="data-connection-card__lastUpdate">
-                    {formatLastUpdate(
-                      lastSyncByConnection[
-                        connectionSyncKey("custom", connection.id)
-                      ]
-                    )}
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="data-connection-card__delete"
-                onClick={() => handleDeleteCustom(connection)}
-                title={`Delete ${connection.name}`}
-                aria-label={`Delete ${connection.name}`}
-                disabled={saving}
-              >
-                <FontAwesomeIcon icon={faTrash} />
-              </button>
-            </div>
-          ))}
-
-          <button
-            type="button"
-            className={`data-connection-card data-connection-card--add${
-              hasConnections ? "" : " data-connection-card--empty"
-            }`}
-            onClick={openAddConnection}
-            title="Add data connection"
-          >
-            <span className="data-connection-card__icon">
-              <FontAwesomeIcon icon={faPlus} />
-            </span>
-            <span className="data-connection-card__copy">
-              <strong>Add connection</strong>
-              <span>Home Assistant or custom API</span>
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <HomeAssistantModal
-        open={homeAssistantOpen}
-        name={homeAssistantName}
-        url={url}
-        port={port}
-        accessToken={accessToken}
-        storageDocumentUrl={storageDocumentUrl}
-        entities={entities}
-        selectedEntities={selectedEntities}
-        entitySearch={entitySearch}
-        domainFilter={domainFilter}
-        saving={saving}
-        loadingEntities={loadingEntities}
-        error={error}
-        showTypeSelector={!activeHomeAssistantId}
-        onTypeChange={switchNewConnectionType}
-        onNameChange={setHomeAssistantName}
-        onUrlChange={setUrl}
-        onPortChange={setPort}
-        onAccessTokenChange={setAccessToken}
-        onStorageDocumentUrlChange={(value) =>
-          setStorageDocumentUrl(toPodRelativeDocumentUrl(webId, value))
-        }
-        onEntitySearchChange={setEntitySearch}
-        onDomainFilterChange={setDomainFilter}
-        onToggleEntity={toggleEntity}
-        onSelectEntities={selectEntities}
-        onClearSelection={() => setSelectedEntities([])}
-        onClose={closeHomeAssistant}
-        onSubmit={handleSaveHomeAssistant}
-      />
-
-      <CustomConnectionModal
-        open={customOpen}
-        values={customValues}
-        saving={saving}
-        error={error}
-        showTypeSelector={!customValues.id}
-        onChange={(values) =>
-          setCustomValues({
-            ...values,
-            storageDocumentUrl: toPodRelativeDocumentUrl(
-              webId,
-              values.storageDocumentUrl
-            ),
-          })
-        }
-        onTypeChange={switchNewConnectionType}
-        onClose={closeCustom}
-        onSubmit={handleSaveCustom}
-      />
-
-      <DeleteConnectionModal
-        target={deleteTarget}
-        saving={saving}
-        onCancel={closeDeleteModal}
-        onConfirm={confirmDeleteConnection}
-      />
+  const filtered = connections.filter(c => (kind === 'all' || (kind === 'stream' ? c.options?.mode === 'stream' : c.kind === kind && c.options?.mode !== 'stream')) && (state === 'all' || (c.options?.enabled === false ? 'paused' : 'active') === state) && `${c.name} ${c.description || ''} ${sourceLabel(c.endpoint || c.url)}`.toLowerCase().includes(query.toLowerCase()));
+  const filteredEntities = entities.filter(e => `${e.friendlyName} ${e.entityId}`.toLowerCase().includes(entityQuery.toLowerCase()));
+  const statusLabel = {
+    failed: 'Synchronization failed',
+    partial: 'Some connections failed',
+    success: 'Synchronization complete',
+    running: 'Synchronization running…',
+    'no-connection': 'No active connections',
+    'no-selected-entities': 'No active connections'
+  }[status?.lastStatus];
+  const errorBox = error && <div className="dc-alert dc-alert--error" role="alert">{t(error)}</div>;
+  const workerIntervalSeconds = status?.syncIntervalSeconds || (getSyncWorkerConfig().intervalMinutes || 10) * 60;
+  const streamLabels = {connected:'Connected',connecting:'Connecting',reconnecting:'Reconnecting','storage-error':'Storage pending',stopped:'Stopped',ended:'Source ended the stream',error:'Stream error'};
+  const streamStatus = c => status?.streams?.find(row => row.id === c.id);
+  const rdfStorage = form?.kind === 'home-assistant' && ['sdm-entity-snapshot', 'sosa-observation'].includes(form.dataModel);
+  const field = (label, key, type = 'text', extra = {}) => <label>{t(label)}<input type={type} value={form[key] || ''} onChange={e => update(key, e.target.value)} disabled={busy} {...extra} /></label>;
+  return <div className="data-connection" translate="no">
+    <div className="toolbar toolbar--title data-connection__header"><div className="crumb"><FontAwesomeIcon icon={faLink} className="crumb-icon" /><span>Data Connection</span></div></div>
+    <div className="dc-workspace">
+      {!setup?.ready ? <section className="dc-empty"><span className="dc-source-icon"><FontAwesomeIcon icon={faLink} /></span><h2>{t(setup ? 'Set up Data Connection' : 'Checking setup…')}</h2><p>{t('The worker receives access to the connection folder. Your personal account password is not needed.')}</p>{setup?.error && <div role="alert">{t(setup.error)}</div>}{errorBox}<button className="dc-button dc-button--primary" disabled={busy || !setup} onClick={() => run(async () => {
+          const result = await prepareDataConnectionSetup({
+            webId,
+            solidFetch: session.fetch,
+            provision: true
+          });
+          setSetup(result);
+          if (result.ready) await reload();
+        })}>{t('Set up Data Connection')}</button></section> : <>
+        <div className="dc-tools"><label className="dc-search"><FontAwesomeIcon icon={faSearch} /><input aria-label={t('Search connections')} placeholder={t('Search connections')} value={query} onChange={e => setQuery(e.target.value)} /></label><button className="dc-button dc-button--primary" onClick={() => open(null)}><FontAwesomeIcon icon={faPlus} />{t('Add connection')}</button><button className="dc-button" disabled={busy} onClick={() => run(reload)} aria-label={t('Refresh')}><FontAwesomeIcon icon={faRotate} /></button><button className="dc-button" disabled={busy || !connections.length} onClick={() => run(async () => {
+            const result = await connectionWorkerCall(webId, session.fetch, 'sync', {streamsOnly: connections.every(c => c.options?.mode === 'stream')});
+            setStatus(result.status);
+            await reload();
+          })}><FontAwesomeIcon icon={faPlay} />{t('Run now')}</button></div>
+        <div className="dc-filters"><select aria-label={t('Source type')} value={kind} onChange={e => setKind(e.target.value)}><option value="all">{t('All sources')}</option><option value="custom">{t('REST API')}</option><option value="home-assistant">Home Assistant</option><option value="stream">{t('Continuous stream')}</option></select><select aria-label={t('State')} value={state} onChange={e => setState(e.target.value)}><option value="all">{t('All states')}</option><option value="active">{t('Active')}</option><option value="paused">{t('Paused')}</option></select><span>{t('Interval')}: {workerIntervalSeconds} {t('Seconds')}</span></div>
+        {getDataspaceId() === 'test' && <p className="dc-note">{t('Test connections are stored separately from production connections.')}</p>}
+        {errorBox}{notice && <div className="dc-alert" role="status">{t(notice)}</div>}
+        {statusLabel && connections.some(c => c.options?.mode !== 'stream') && <div className={`dc-status ${['failed', 'partial'].includes(status?.lastStatus) ? 'dc-status--error' : ''}`} role="status"><strong>{t(statusLabel)}</strong>{status?.lastError && <span>{status.lastError}</span>}</div>}
+        <div className="dc-list">{filtered.map(c => <article className="dc-card" key={c.kind + c.id}><button className="dc-card-main" onClick={() => open(c)}><span className={`dc-source-icon ${c.kind === 'home-assistant' ? 'dc-source-icon--green' : ''}`}><FontAwesomeIcon icon={c.kind === 'home-assistant' ? faServer : faLink} /></span><span className="dc-card-copy"><strong>{c.name}</strong><span>{c.description || sourceLabel(c.endpoint || c.url)}</span><span className="dc-badges"><em>{c.kind === 'home-assistant' ? 'Home Assistant' : c.options?.mode === 'stream' ? t('Continuous stream') : t('REST API')}</em><em>{c.kind === 'home-assistant' ? `${c.selectedEntities.length} ${t('entities')}` : c.method}</em></span></span><span className="dc-card-meta"><span className={`dc-pill ${c.options?.enabled === false ? 'dc-pill--paused' : ''}`}>{t(c.options?.enabled === false ? 'Paused' : c.options?.mode === 'stream' ? streamLabels[streamStatus(c)?.status] || 'Connecting' : 'Active')}</span>{c.options?.mode === 'stream' && streamStatus(c)?.possibleGap && <small>{t('A connection interruption occurred; the source may not replay all events.')}</small>}{c.options?.mode === 'stream' && streamStatus(c)?.lastError && <small>{t(streamStatus(c).lastError)}</small>}<small>{lastSync[c.kind + c.id] ? `${t('Last update')}: ${new Date(lastSync[c.kind + c.id]).toLocaleString(language === 'de' ? 'de-DE' : 'en-GB')}` : t('Waiting for the first synchronization')}</small></span><FontAwesomeIcon icon={faChevronRight} /></button><button className="dc-icon dc-delete" aria-label={`${t('Delete connection')}: ${c.name}`} onClick={() => {
+              setError('');
+              setRemove(c);
+            }}><FontAwesomeIcon icon={faTrash} /></button></article>)}</div>
+        {!filtered.length && <section className="dc-empty"><span className="dc-source-icon"><FontAwesomeIcon icon={faLink} /></span><h2>{t(connections.length ? 'No matching connections' : 'No connections yet')}</h2><p>{t('Connect a REST API or Home Assistant to collect data in your Pod.')}</p></section>}
+      </>}
     </div>
-  );
+    {form && <ConnectionModal title={t(editing ? 'Edit connection' : 'New connection')} t={t} busy={busy} onClose={() => setForm(null)}><form onSubmit={save} className="dc-editor"><div className="dc-modal-body">
+      {!editing && <div className="dc-types">{['custom', 'home-assistant'].map(k => <button type="button" key={k} className={form.kind === k ? 'selected' : ''} disabled={busy} onClick={() => {
+              update('kind', k);
+              setEntities([]);
+            }}>{k === 'custom' ? t('REST API') : 'Home Assistant'}</button>)}</div>}
+      <fieldset disabled={busy}><legend>{t('Source')}</legend>{field('Name', 'name', 'text', {
+              required: true,
+              maxLength: 120
+            })}{field('URL including query parameters', 'endpoint', 'url', {
+              required: true,
+              placeholder: 'https://api.example.org/data?limit=100'
+            })}{form.kind === 'custom' && <>{field('Description', 'description')}<label>{t('Connection mode')}<select value={form.options.mode} onChange={e => setForm(current => ({...current,method:e.target.value === 'stream' && current.options.streamFormat === 'sse' ? 'GET' : current.method,options:{...current.options,mode:e.target.value,...(e.target.value === 'stream' ? {storageMode:'original',pagination:'none',nextPagePath:'',responsePath:''} : {})}}))}><option value="periodic">{t('Periodic retrieval')}</option><option value="stream">{t('Continuous stream')}</option></select></label><label>{t('Method')}<select value={form.method} onChange={e => update('method', e.target.value)}><option>GET</option><option>POST</option></select></label>{form.method === 'POST' && <><label>{t('Request Content-Type')}<input value={form.options.requestContentType} onChange={e => option('requestContentType', e.target.value)} list="dc-request-types" placeholder="application/json" /></label><datalist id="dc-request-types">{['application/json','application/xml','application/x-www-form-urlencoded','text/plain','text/turtle','application/sparql-query','application/octet-stream'].map(type => <option key={type} value={type} />)}</datalist><label>{t('Request encoding')}<select value={form.options.requestEncoding} onChange={e => option('requestEncoding', e.target.value)}><option value="text">{t('Text (UTF-8)')}</option><option value="base64">{t('Binary as Base64')}</option></select></label><label>{t('Request body')}<textarea value={form.options.requestBody} onChange={e => option('requestBody', e.target.value)} rows={4} /></label><label className="dc-check"><input type="checkbox" checked={form.options.readOnlyPost} onChange={e => option('readOnlyPost', e.target.checked)} />{t('This POST only queries data; repeating it does not change the source.')}</label></>}</>}</fieldset>
+      <fieldset disabled={busy}><legend>{t('Authentication')}</legend>{form.kind === 'custom' && <label>{t('Authentication')}<select value={form.authType} onChange={e => update('authType', e.target.value)}><option value="none">{t('None')}</option><option value="bearer">{t('Bearer token')}</option><option value="api-key">{t('API key')}</option><option value="basic">{t('Basic authentication')}</option></select></label>}{form.authType === 'basic' && <label>{t('Username')}<input value={form.options.username} onChange={e => option('username', e.target.value)} /></label>}{form.authType === 'api-key' && field('Header name', 'authHeader')}{(form.kind === 'home-assistant' || form.authType !== 'none') && <>{field('Token / password', 'secret', 'password', {
+                autoComplete: 'new-password'
+              })}{form.encryptedSecret && <p className="dc-note">{t('Leave empty to keep the saved credential.')}</p>}</>}{form.kind === 'custom' && <label>{t('Additional headers (JSON)')}<textarea value={form.headersJson} onChange={e => update('headersJson', e.target.value)} placeholder='{"Accept": "application/json"}' rows={3} /></label>}</fieldset>
+      {form.kind === 'custom' && form.options.mode !== 'stream' && <fieldset disabled={busy}>
+        <legend>{t('Response')}</legend>
+        <label>{t('Storage mode')}<select value={form.options.storageMode} onChange={e => {
+          const mode = e.target.value;
+          setForm(current => ({...current, options: {...current.options, storageMode: mode,
+            responsePath: mode === 'original' ? '' : current.options.responsePath,
+            maxResponseMiB: Math.min(current.options.maxResponseMiB, mode === 'original' ? 32 : 2)}}));
+        }}><option value="original">{t('Original files')}</option><option value="history">{t('JSON history')}</option></select></label>
+        <label>{t('Response handling')}<select value={form.options.responseMode} onChange={e => option('responseMode',e.target.value)}>
+          <option value="auto">{t('Automatic detection')}</option><option value="json">JSON</option><option value="text">{t('Text (CSV, XML, RDF, …)')}</option><option value="binary">{t('File / binary')}</option>
+        </select></label>
+        {form.options.storageMode === 'history' && <label>{t('Response path (JSON Pointer)')}<input value={form.options.responsePath} onChange={e => option('responsePath', e.target.value)} placeholder="/data/items" /></label>}
+        <label>{t('Pagination')}<select value={form.options.pagination} onChange={e => setForm(current => ({...current,options:{...current.options,pagination:e.target.value,nextPagePath:e.target.value === 'json' ? current.options.nextPagePath : ''}}))}>
+          <option value="none">{t('No pagination')}</option><option value="json">{t('JSON next-page field')}</option><option value="link">{t('HTTP Link header')}</option>
+        </select></label>
+        {form.options.pagination === 'json' && <label>{t('Next-page URL path (optional)')}<input value={form.options.nextPagePath} onChange={e => option('nextPagePath', e.target.value)} placeholder="/links/next" required /></label>}
+        <div className="dc-two">{form.options.pagination !== 'none' && <label>{t('Maximum pages')}<input type="number" min="1" max="20" value={form.options.maxPages} onChange={e => option('maxPages', Number(e.target.value))} /></label>}
+          <label>{t('Timeout in seconds')}<input type="number" min="1" max="60" value={form.options.timeoutSeconds} onChange={e => option('timeoutSeconds', Number(e.target.value))} /></label>
+          <label>{t('Maximum response size (MiB)')}<input type="number" min="1" max={form.options.storageMode === 'original' ? 32 : 2} value={form.options.maxResponseMiB} onChange={e => option('maxResponseMiB',Number(e.target.value))}/></label>
+        </div>
+        <label className="dc-check"><input type="checkbox" checked={form.options.followRedirects} onChange={e => option('followRedirects',e.target.checked)}/>{t('Follow redirects')}</label>
+        {form.options.followRedirects && <p className="dc-note">{t('Credentials stay on the original host; POST bodies are not forwarded to other hosts.')}</p>}
+      </fieldset>}
+      {form.kind === 'custom' && form.options.mode === 'stream' && <fieldset disabled={busy}>
+        <legend>{t('Continuous stream')}</legend>
+        <label>{t('Stream format')}<select value={form.options.streamFormat} onChange={e => setForm(current => ({...current,method:e.target.value === 'sse' ? 'GET' : current.method,options:{...current.options,streamFormat:e.target.value}}))}>
+          <option value="sse">SSE</option><option value="ndjson">NDJSON</option><option value="json-seq">JSON-Sequences</option><option value="raw">{t('Raw data')}</option>
+        </select></label>
+        <label className="dc-check"><input type="checkbox" checked={form.options.streamIntervalSeconds !== '' && !Number(form.options.streamIntervalSeconds)} onChange={e => option('streamIntervalSeconds',e.target.checked ? 0 : workerIntervalSeconds)}/>{t('Use worker interval')} ({workerIntervalSeconds} {t('Seconds')})</label>
+        {(form.options.streamIntervalSeconds === '' || Number(form.options.streamIntervalSeconds) !== 0) && <label>{t('Stream storage interval')} ({t('Seconds')})<input type="number" min="10" max="86400" value={form.options.streamIntervalSeconds} onChange={e => option('streamIntervalSeconds',e.target.value === '' ? '' : Number(e.target.value))}/></label>}
+        <p className="dc-note">{t('The connection stays open. The interval closes storage sections; full sections can be saved earlier.')}</p>
+        <div className="dc-two"><label>{t('Maximum segment size (MiB)')}<input type="number" min="1" max="8" value={form.options.streamSegmentMiB} onChange={e => option('streamSegmentMiB',Number(e.target.value))}/></label>
+        <label>{t('Connection timeout (seconds)')}<input type="number" min="1" max="60" value={form.options.timeoutSeconds} onChange={e => option('timeoutSeconds',Number(e.target.value))}/></label>
+        <label>{t('Idle timeout (seconds)')}<input type="number" min="15" max="3600" value={form.options.streamIdleSeconds} onChange={e => option('streamIdleSeconds',Number(e.target.value))}/></label></div>
+        <label className="dc-check"><input type="checkbox" checked={form.options.followRedirects} onChange={e => option('followRedirects',e.target.checked)}/>{t('Follow redirects')}</label>
+        <p className="dc-note">{t('Streams use a separate .stream.json index. Existing histories and files are retained.')}</p>
+      </fieldset>}
+      <div className="dc-preview"><button type="button" className="dc-button" onClick={testRequest} disabled={busy}>{t(busy ? 'Testing…' : form.kind === 'home-assistant' ? 'Load entities' : form.options.mode === 'stream' ? 'Test stream (5 seconds)' : 'Test request')}</button>{preview && <><p role="status">{t('Connection test succeeded.')} {preview.status ? `HTTP ${preview.status} · ${preview.stream ? `${preview.events} ${t('Events')}` : `${preview.pages} ${t('pages')}`} · ${preview.bytes} B` : ''}</p>{preview.binary && <p>{t(preview.stream ? 'Binary stream preview (hex)' : 'Binary response received. It will be saved as an original file.')}</p>}{preview.files?.length > 0 && <ul aria-label={t('Files')}>{preview.files.map((file,index) => <li key={index}>{file.contentType} · {file.bytes} B</li>)}</ul>}{preview.stream && <p>{t('Stream preview ended without saving data.')}</p>}{preview.preview && <pre>{preview.preview}</pre>}{preview.previewTruncated && <p>{t('Preview shortened for display.')}</p>}</>}</div>
+      {form.kind === 'home-assistant' && <fieldset disabled={busy}><legend>{t('Selected entities')} ({form.selectedEntities.length})</legend><input aria-label={t('Filter entities')} placeholder={t('Filter entities')} value={entityQuery} onChange={e => setEntityQuery(e.target.value)} /><div className="dc-filters"><button type="button" className="dc-button" onClick={() => update('selectedEntities', [...new Set([...form.selectedEntities, ...filteredEntities.map(e => e.entityId)])])}>{t('Select visible')}</button><button type="button" className="dc-button" onClick={() => update('selectedEntities', [])}>{t('Clear selection')}</button></div><div className="dc-entities">{(entities.length ? filteredEntities : form.selectedEntities.map(id => ({
+                entityId: id,
+                friendlyName: id
+              }))).map(e => <label className="dc-check" key={e.entityId}><input type="checkbox" checked={form.selectedEntities.includes(e.entityId)} onChange={event => update('selectedEntities', event.target.checked ? [...form.selectedEntities, e.entityId] : form.selectedEntities.filter(id => id !== e.entityId))} /><span><strong>{e.friendlyName}</strong><small>{e.entityId}</small></span><span>{e.state}</span></label>)}</div></fieldset>}
+      <fieldset disabled={busy}><legend>{t('Storage')}</legend>{field(rdfStorage ? 'Pod RDF file (optional)' : form.kind === 'custom' && form.options.storageMode === 'original' ? 'Pod index file (optional)' : 'Pod JSON file (optional)', 'storageDocumentUrl', 'text', {
+              placeholder: `connections/${getDataspaceId() === 'test' ? 'test/' : ''}my-source.${rdfStorage ? 'ttl' : 'json'}`
+            })}<p className="dc-note">{t('Default: a separate file for this connection.')}</p><p className="dc-note">{t(rdfStorage ? 'The existing RDF storage format is preserved.' : form.kind === 'custom' && form.options.storageMode === 'original' ? 'Original files keep their bytes and versions. The index records media types and links to each download.' : 'Recent entries stay in the current file. Older entries are archived in the same Pod folder.')}</p><label className="dc-check"><input type="checkbox" checked={form.options.enabled !== false} onChange={e => option('enabled', e.target.checked)} />{t('Automatic synchronization')}</label><p className="dc-note">{t('No catalog entry is created automatically. You can register the stored file in the Semantic Data Catalog.')}</p></fieldset>
+      {errorBox}</div><footer><button type="button" className="dc-button" disabled={busy} onClick={() => setForm(null)}>{t('Cancel')}</button><button className="dc-button dc-button--primary" disabled={busy} type="submit">{t(busy ? 'Saving…' : 'Save connection')}</button></footer></form></ConnectionModal>}
+    {remove && <ConnectionModal title={t('Delete connection')} t={t} busy={busy} onClose={() => setRemove(null)}><div className="dc-modal-body"><h3>{remove.name}</h3><p>{t('Only the connection settings will be deleted. Collected data and archives stay in your Pod.')}</p>{errorBox}</div><footer><button className="dc-button" disabled={busy} onClick={() => setRemove(null)}>{t('Cancel')}</button><button className="dc-button dc-button--danger" disabled={busy} onClick={() => run(async () => {
+          await (remove.kind === 'home-assistant' ? deleteHomeAssistantConnection : deleteCustomConnection)(webId, session.fetch, remove.id);
+          if (remove.options?.mode === 'stream') await connectionWorkerCall(webId, session.fetch, 'sync', {streamsOnly:true});
+          setRemove(null);
+          await reload();
+          setNotice('Connection removed; collected data retained.');
+        })}>{t('Delete')}</button></footer></ConnectionModal>}
+  </div>;
 }
-
-export default DataConnection;

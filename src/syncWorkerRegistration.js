@@ -225,6 +225,7 @@ export async function registerSyncWorkerParticipant({
   accountIndexUrl,
   credentialToken,
   storageDocumentUrl,
+  streamsOnly = false,
   solidFetch,
   timeoutMs = DEFAULT_REGISTRATION_TIMEOUT_MS,
 }) {
@@ -259,6 +260,7 @@ export async function registerSyncWorkerParticipant({
         credentialResource: credentialToken?.resource || "",
         connectionsContainerUrl: getConnectionsContainerUrl(webId),
         enabled: true,
+        ...(streamsOnly ? { streamsOnly: true } : {}),
       }),
     },
     timeoutMs,

@@ -1,7 +1,17 @@
+import { getDataspaceId } from "./config/runtimeConfig";
+import { SEALED_SECRET_PREFIX, sealConnectionCredential } from "./dataConnectionClient";
 import {
   addStringNoLocale,
   addUrl,
   createContainerAt,
+  createAclFromFallbackAcl,
+  getSolidDatasetWithAcl,
+  getResourceAcl,
+  hasResourceAcl,
+  hasAccessibleAcl,
+  saveAclFor,
+  setAgentResourceAccess,
+  setAgentDefaultAccess,
   createSolidDataset,
   createThing,
   deleteFile,
@@ -25,7 +35,6 @@ import {
 import { getPodRoot } from "./solidCatalog";
 import {
   decryptCredentialSecret,
-  encryptCredentialSecret,
 } from "./solidCredentialToken";
 
 const SDM_NS = "https://w3id.org/solid-dataspace-manager#";
@@ -95,7 +104,7 @@ export const HOME_ASSISTANT_DATA_MODELS = [
 ];
 
 export const getConnectionsContainerUrl = (webId) =>
-  webId ? `${getPodRoot(webId)}connections/` : "";
+  webId ? `${getPodRoot(webId)}connections/${getDataspaceId() === "test" ? "test/" : ""}` : "";
 
 export const getHomeAssistantConnectionDocumentUrl = (
   webId,
@@ -199,7 +208,21 @@ export const ensureConnectionsContainer = async (webId, fetch) => {
   }
 
   try {
+    // Test is a separate child container; create its parent if necessary.
+    if (getDataspaceId() === "test") {
+      const parent = `${getPodRoot(webId)}connections/`;
+      try { await getSolidDataset(parent, { fetch }); }
+      catch (error) { if ((error.statusCode || error.response?.status) !== 404) throw error; await createContainerAt(parent, { fetch }); }
+    }
     await createContainerAt(containerUrl, { fetch });
+    const resource = await getSolidDatasetWithAcl(containerUrl, { fetch });
+    let acl = hasResourceAcl(resource) ? getResourceAcl(resource) : hasAccessibleAcl(resource) ? createAclFromFallbackAcl(resource) : null;
+    if (!acl) throw new Error("Private connection storage requires ACL access.");
+    for (const thing of getThingAll(acl)) acl = removeThing(acl, thing);
+    const owner = { read: true, append: true, write: true, control: true };
+    acl = setAgentResourceAccess(acl, webId, owner);
+    acl = setAgentDefaultAccess(acl, webId, owner);
+    await saveAclFor(resource, acl, { fetch });
   } catch (err) {
     const status = err?.statusCode || err?.response?.status;
     if (status !== 409 && status !== 412) {
@@ -310,7 +333,7 @@ const normalizeSyncIntervalMinutes = (value) => {
   return String(interval);
 };
 
-const normalizeStorageDocumentUrl = (webId, value) => {
+const normalizeStorageDocumentUrl = (webId, value, { allowRdf = false } = {}) => {
   const raw = String(value || "").trim();
   if (!raw) return getHomeAssistantEntitiesDocumentUrl(webId);
 
@@ -318,7 +341,10 @@ const normalizeStorageDocumentUrl = (webId, value) => {
     const parsed = hasProtocol(raw)
       ? new URL(raw)
       : new URL(raw.replace(/^\/+/, ""), getPodRoot(webId));
-    parsed.hash = "";
+    const base = getConnectionsContainerUrl(webId);
+    const extension = allowRdf ? ".ttl" : ".json";
+    if (parsed.username || parsed.password || parsed.search || parsed.hash || !parsed.href.startsWith(base) || !parsed.pathname.endsWith(extension))
+      throw new Error("Choose a file matching the data model in this Pod's connection area.");
     return parsed.href;
   } catch {
     throw new Error("Enter a valid Pod storage document URL.");
@@ -333,7 +359,9 @@ const normalizeCustomStorageDocumentUrl = (webId, value, id) => {
     const parsed = hasProtocol(raw)
       ? new URL(raw)
       : new URL(raw.replace(/^\/+/, ""), getPodRoot(webId));
-    parsed.hash = "";
+    const base = getConnectionsContainerUrl(webId);
+    if (parsed.username || parsed.password || parsed.search || parsed.hash || !parsed.href.startsWith(base) || !parsed.pathname.endsWith(".json"))
+      throw new Error("Choose a JSON file in this Pod's connection area.");
     return parsed.href;
   } catch {
     throw new Error("Enter a valid Pod storage document URL.");
@@ -439,7 +467,7 @@ const normalizeHttpMethod = (value) => {
 
 const normalizeAuthType = (value) => {
   const authType = String(value || "none").trim().toLowerCase();
-  return ["none", "bearer", "api-key"].includes(authType) ? authType : "none";
+  return ["none", "bearer", "api-key", "basic"].includes(authType) ? authType : "none";
 };
 
 const normalizeHeadersJson = (value) => {
@@ -623,6 +651,8 @@ export const normalizeHomeAssistantConnection = ({
   url,
   port,
   accessToken,
+  encryptedAccessToken = "",
+  options = {},
   storageDocumentUrl,
   dataModel,
   syncIntervalMinutes,
@@ -645,7 +675,7 @@ export const normalizeHomeAssistantConnection = ({
     !hasProtocol(rawUrl) && normalizedPort === "443" ? "https" : "http";
   const normalizedUrl = normalizeUrl(rawUrl, inferredProtocol);
   const normalizedAccessToken = String(accessToken || "").trim();
-  if (!normalizedAccessToken) {
+  if (!normalizedAccessToken && !encryptedAccessToken.startsWith(SEALED_SECRET_PREFIX)) {
     throw new Error("Access token is required.");
   }
 
@@ -667,11 +697,13 @@ export const normalizeHomeAssistantConnection = ({
     endpoint: buildEndpoint(normalizedUrl, normalizedPort),
     storageDocumentUrl: normalizeStorageDocumentUrl(
       webId,
-      storageDocumentUrl || defaultStorageDocumentUrl
+      storageDocumentUrl || defaultStorageDocumentUrl,
+      { allowRdf: normalizedDataModel !== SOLID_SYNC_JSON_DATA_MODEL }
     ),
     dataModel: normalizedDataModel,
     syncIntervalMinutes: normalizeSyncIntervalMinutes(syncIntervalMinutes),
     accessToken: normalizedAccessToken,
+    encryptedAccessToken, options,
     selectedEntities: normalizeSelectedEntities(selectedEntities),
   };
 };
@@ -687,6 +719,8 @@ export const normalizeCustomConnection = ({
   method = "GET",
   authType = "none",
   authSecret = "",
+  encryptedAuthSecret = "",
+  options = {},
   authHeader = "",
   headersJson = "",
   storageDocumentUrl = "",
@@ -741,7 +775,7 @@ export const normalizeCustomConnection = ({
       ? String(authHeader || "X-API-Key").trim()
       : "";
 
-  if (normalizedAuthType !== "none" && !normalizedAuthSecret) {
+  if (normalizedAuthType !== "none" && !normalizedAuthSecret && !encryptedAuthSecret.startsWith(SEALED_SECRET_PREFIX)) {
     throw new Error("Authentication secret is required.");
   }
 
@@ -763,6 +797,7 @@ export const normalizeCustomConnection = ({
     method: normalizeHttpMethod(method),
     authType: normalizedAuthType,
     authSecret: normalizedAuthSecret,
+    encryptedAuthSecret, options,
     authHeader: normalizedAuthHeader,
     headersJson: normalizedHeadersJson,
     storageDocumentUrl: normalizeCustomStorageDocumentUrl(
@@ -811,7 +846,7 @@ const homeAssistantConnectionFromThing = (thing, webId, documentUrl) => {
     syncIntervalMinutes: normalizeSyncIntervalMinutes(
       getStringNoLocale(thing, SDM_CONNECTION_SYNC_INTERVAL_MINUTES)
     ),
-    accessToken: encryptedAccessToken
+    accessToken: encryptedAccessToken && !encryptedAccessToken.startsWith(SEALED_SECRET_PREFIX)
       ? decryptCredentialSecret(
           encryptedAccessToken,
           webId,
@@ -823,6 +858,7 @@ const homeAssistantConnectionFromThing = (thing, webId, documentUrl) => {
       getStringNoLocale(thing, SDM_CONNECTION_TOKEN_ALGORITHM) ||
       DEMO_ENCRYPTION_ALGORITHM,
     selectedEntities: normalizeSelectedEntities(selectedEntities),
+    options: JSON.parse(getStringNoLocale(thing, `${SDM_NS}connectionOptionsJson`) || "{}"),
     documentUrl,
     createdAt: getDatetime(thing, DCTERMS_CREATED),
     modifiedAt: getDatetime(thing, DCTERMS_MODIFIED),
@@ -963,16 +999,12 @@ export async function saveHomeAssistantConnection(webId, fetch, values) {
   connectionThing = setStringNoLocale(
     connectionThing,
     SDM_CONNECTION_ACCESS_TOKEN,
-    encryptCredentialSecret(
-      normalized.accessToken,
-      webId,
-      getHomeAssistantSecretName(normalized.id)
-    )
+    await sealConnectionCredential(webId, fetch, getHomeAssistantSecretName(normalized.id), normalized.accessToken, normalized.encryptedAccessToken)
   );
   connectionThing = setStringNoLocale(
     connectionThing,
     SDM_CONNECTION_TOKEN_ALGORITHM,
-    DEMO_ENCRYPTION_ALGORITHM
+    "worker-aes-gcm-v1"
   );
   normalized.selectedEntities.forEach((entityId) => {
     connectionThing = addStringNoLocale(
@@ -987,6 +1019,7 @@ export async function saveHomeAssistantConnection(webId, fetch, values) {
   }
   connectionThing = setDatetime(connectionThing, DCTERMS_MODIFIED, new Date());
 
+  connectionThing = setStringNoLocale(connectionThing, `${SDM_NS}connectionOptionsJson`, JSON.stringify(normalized.options || {}));
   dataset = setThing(dataset, connectionThing);
   await saveSolidDatasetAt(documentUrl, dataset, { fetch });
 
@@ -1001,17 +1034,7 @@ export async function deleteHomeAssistantConnection(
   if (!webId || !fetch) return;
 
   const normalizedId = normalizeHomeAssistantConnectionId(id);
-  const existingConnection = await loadHomeAssistantConnection(
-    webId,
-    fetch,
-    normalizedId
-  );
-  const documentUrls = [
-    getHomeAssistantConnectionDocumentUrl(webId, normalizedId),
-    getHomeAssistantEntitiesDocumentUrl(webId, normalizedId),
-    getHomeAssistantSolidSyncDocumentUrl(webId, normalizedId),
-    existingConnection?.storageDocumentUrl,
-  ].filter(Boolean);
+  const documentUrls = [getHomeAssistantConnectionDocumentUrl(webId, normalizedId)];
 
   for (const documentUrl of Array.from(new Set(documentUrls))) {
     try {
@@ -1064,7 +1087,7 @@ const customConnectionFromThing = (thing, webId, documentUrl) => {
     ),
     authType,
     authSecret:
-      encryptedAuthSecret && authType !== "none"
+      encryptedAuthSecret && authType !== "none" && !encryptedAuthSecret.startsWith(SEALED_SECRET_PREFIX)
         ? decryptCredentialSecret(
             encryptedAuthSecret,
             webId,
@@ -1074,6 +1097,7 @@ const customConnectionFromThing = (thing, webId, documentUrl) => {
     encryptedAuthSecret,
     authHeader: getStringNoLocale(thing, SDM_CONNECTION_AUTH_HEADER) || "",
     headersJson: getStringNoLocale(thing, SDM_CONNECTION_HEADERS) || "",
+    options: JSON.parse(getStringNoLocale(thing, `${SDM_NS}connectionOptionsJson`) || "{}"),
     documentUrl,
     createdAt: getDatetime(thing, DCTERMS_CREATED),
     modifiedAt: getDatetime(thing, DCTERMS_MODIFIED),
@@ -1111,7 +1135,7 @@ export async function loadCustomConnections(webId, fetch) {
   }
 
   const resourceUrls = getContainedResourceUrlAll(containerDataset).filter(
-    (url) => !url.endsWith("/") && url.includes("/custom-")
+    (url) => !url.endsWith("/") && /\/custom-[^/]+\.ttl$/.test(url)
   );
   const connections = [];
 
@@ -1216,16 +1240,12 @@ export async function saveCustomConnection(webId, fetch, values) {
     connectionThing = setStringNoLocale(
       connectionThing,
       SDM_CONNECTION_AUTH_SECRET,
-      encryptCredentialSecret(
-        normalized.authSecret,
-        webId,
-        `${CUSTOM_SECRET_PREFIX}-${normalized.id}`
-      )
+      await sealConnectionCredential(webId, fetch, `${CUSTOM_SECRET_PREFIX}-${normalized.id}`, normalized.authSecret, normalized.encryptedAuthSecret)
     );
     connectionThing = setStringNoLocale(
       connectionThing,
       SDM_CONNECTION_TOKEN_ALGORITHM,
-      DEMO_ENCRYPTION_ALGORITHM
+      "worker-aes-gcm-v1"
     );
   }
   if (normalized.authHeader) {
@@ -1248,6 +1268,7 @@ export async function saveCustomConnection(webId, fetch, values) {
   }
   connectionThing = setDatetime(connectionThing, DCTERMS_MODIFIED, new Date());
 
+  connectionThing = setStringNoLocale(connectionThing, `${SDM_NS}connectionOptionsJson`, JSON.stringify(normalized.options || {}));
   dataset = setThing(dataset, connectionThing);
   await saveSolidDatasetAt(documentUrl, dataset, { fetch });
 
@@ -1258,12 +1279,7 @@ export async function deleteCustomConnection(webId, fetch, id) {
   const normalizedId = slugifyConnectionId(id);
   const documentUrl = getCustomConnectionDocumentUrl(webId, normalizedId);
   if (!documentUrl || !fetch) return;
-  const existingConnection = await loadCustomConnection(webId, fetch, normalizedId);
-  const documentUrls = [
-    documentUrl,
-    getCustomSyncDocumentUrl(webId, normalizedId),
-    existingConnection?.storageDocumentUrl,
-  ].filter(Boolean);
+  const documentUrls = [documentUrl];
 
   for (const targetUrl of Array.from(new Set(documentUrls))) {
     try {
@@ -1390,7 +1406,8 @@ export async function saveHomeAssistantEntitySnapshots(
       : "";
   const documentUrl = normalizeStorageDocumentUrl(
     webId,
-    storageDocumentUrl || defaultStorageDocumentUrl
+    storageDocumentUrl || defaultStorageDocumentUrl,
+    { allowRdf: selectedDataModel !== SOLID_SYNC_JSON_DATA_MODEL }
   );
   await ensureContainerAtUrl(getContainerUrlForDocument(documentUrl), fetch);
 

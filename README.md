@@ -65,3 +65,12 @@ This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) an
 ## Citation
 
 If you use this repository, please cite it using the metadata in [CITATION.cff](CITATION.cff).
+
+
+Data Connection also offers an explicit **Continuous stream** mode for SSE,
+NDJSON, JSON sequences and raw bytes. It defaults to the actual worker interval
+for closing storage sections without reopening the source connection. The
+responsive DE/EN editor supports an optional interval override, bounded preview,
+connection status and pause. Streams use a separate `.stream.json` index; existing
+polling connections, histories and original files are retained. The worker README
+documents replay behavior, resource limits and outbox backup requirements.
