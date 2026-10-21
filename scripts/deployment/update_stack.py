@@ -3,8 +3,9 @@
 Without --manifest the existing image pins are reapplied. Live source mounts,
 secrets and data volumes are preserved. Image rollback does not revert Pod data.
 """
-import argparse, contextlib, datetime, fcntl, json, os, re, shutil, subprocess, tempfile, uuid
+import argparse, contextlib, datetime, fcntl, json, os, re, shutil, subprocess, tempfile, time, uuid
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 import yaml
 
@@ -21,6 +22,37 @@ def compose_command(directory, file):
         if override.exists(): result += ['-f', str(override)]
     return result
 
+class ServiceStarting(RuntimeError):
+    pass
+
+def verify_route(url, route, profile_id, *, opener=urlopen, clock=time.monotonic, pause=time.sleep, startup_timeout=60):
+    # Compose considers services without a healthcheck ready as soon as the
+    # process starts. Allow their listener and reverse proxy to become ready.
+    deadline = clock() + startup_timeout
+    while True:
+        try:
+            with opener(url, timeout=max(0.1, min(15, deadline-clock()))) as response:
+                data = response.read(65537)
+                if response.status != 200 or len(data) > 65536:
+                    raise RuntimeError('Updated route is unavailable: ' + url)
+                if route.endswith('/health'):
+                    value = json.loads(data)
+                    if value.get('status') != 'ok' and value.get('ok') is not True:
+                        raise ServiceStarting('Updated service is not ready: ' + url)
+                elif ('"dataspaceId": "' + profile_id + '"').encode() not in data:
+                    raise RuntimeError('Unexpected runtime profile: ' + url)
+            return
+        except HTTPError as error:
+            if error.code not in (502, 503, 504):
+                raise
+            failure = error
+        except (URLError, TimeoutError, ConnectionError, ServiceStarting) as error:
+            failure = error
+        remaining = deadline - clock()
+        if remaining <= 0:
+            raise RuntimeError('Updated route did not become ready: ' + url) from failure
+        pause(min(2, remaining))
+
 def verify_routes(environment, services, source):
     profiles = [yaml.safe_load(p.read_text()) for p in (source/'profiles').glob('*.yaml')]
     paths = set()
@@ -30,15 +62,7 @@ def verify_routes(environment, services, source):
     for profile in profiles:
         if profile['environment'] != environment: continue
         for route in sorted(paths):
-            with urlopen('https://' + profile['domains'][0] + route, timeout=15) as response:
-                data = response.read(65537)
-                if response.status != 200 or len(data) > 65536: raise RuntimeError('Updated route is unavailable: ' + route)
-                if route.endswith('/health'):
-                    value = json.loads(data)
-                    if value.get('status') != 'ok' and value.get('ok') is not True:
-                        raise RuntimeError('Updated service is not ready: ' + route)
-                elif ('"dataspaceId": "' + profile['id'] + '"').encode() not in data:
-                    raise RuntimeError('Unexpected runtime profile.')
+            verify_route('https://' + profile['domains'][0] + route, route, profile['id'])
 
 def update(environment, manifest=None, services=(), *, srv=Path('/srv'), source=None, run=subprocess.run, health=verify_routes):
     source = source or Path(__file__).resolve().parents[3]/'solid-dataspace/config'
