@@ -2,7 +2,8 @@ import WorkspaceLogin from "./components/WorkspaceLogin";
 import { revokeWorkspaceSession } from "./workspaceAccess";
 import { accountLoginRedirect } from "./accountLoginHandoff";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import session from "./solidSession";
+import session, { sessionRecovery } from "./solidSession";
+import SessionExpiryBoundary from "./components/SessionExpiryBoundary";
 import "@hoelk-f/solid-data-manager/embed.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
@@ -117,7 +118,7 @@ const App = () => {
 
   const getAuthState = useCallback(() => {
     return {
-      isLoggedIn: Boolean(session.info.isLoggedIn),
+      isLoggedIn: Boolean(session.info.isLoggedIn && !sessionRecovery?.getSnapshot().expired),
       webId: session.info.webId || null,
     };
   }, []);
@@ -127,6 +128,11 @@ const App = () => {
     setSessionActive(auth.isLoggedIn);
     setWebId(auth.webId || "");
   }, [getAuthState]);
+
+  useEffect(() => {
+    session.events?.on('logout', syncLocalStateFromSession);
+    return () => session.events?.removeListener('logout', syncLocalStateFromSession);
+  }, [syncLocalStateFromSession]);
 
   const loginToSolid = useCallback(async (issuer, accountToken) => {
     if (!issuer) return;
@@ -481,7 +487,7 @@ const App = () => {
 
   const renderWithI18n = (content) => (
     <I18nProvider language={language} onLanguageChange={handleLanguageChange}>
-      {content}
+      <SessionExpiryBoundary onLogin={loginToSolid}>{content}</SessionExpiryBoundary>
     </I18nProvider>
   );
 
@@ -626,6 +632,7 @@ const App = () => {
       >
         <Sidebar
           webId={webId}
+          onLogout={logoutFromSolid}
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed((value) => !value)}
           statisticsAdmin={statisticsAdmin && !administrationEnabled}

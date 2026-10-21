@@ -1,3 +1,5 @@
+import { createSessionRecovery } from "./sessionRecovery";
+import { getEnabledProviders } from "./config/runtimeConfig";
 import { Session } from "@inrupt/solid-client-authn-browser";
 
 const STORAGE_PREFIX = "solid-dataspace-manager:";
@@ -28,8 +30,23 @@ const session = new Session(
   "solid-dataspace-manager"
 );
 
+const recoveryStorage = (() => { try { return window.sessionStorage; } catch { return undefined; } })();
+
+export const sessionRecovery = createSessionRecovery(session, {
+  storage: recoveryStorage,
+  location: typeof window === 'undefined' ? { origin: 'https://localhost', href: 'https://localhost/' } : window.location,
+  history: typeof window === 'undefined' ? undefined : window.history,
+  window: typeof window === 'undefined' ? undefined : window,
+  document: typeof document === 'undefined' ? undefined : document,
+  resolveIssuer: webId => getEnabledProviders().find(provider => {
+    try { return new URL(provider.issuer).origin === new URL(webId).origin; } catch { return false; }
+  })?.issuer || ''
+});
+
 export async function restoreSession() {
+  if (!sessionRecovery.canRestore()) return session;
   await session.handleIncomingRedirect({ restorePreviousSession: true });
+  sessionRecovery.restored();
   return session;
 }
 

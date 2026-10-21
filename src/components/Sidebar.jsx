@@ -44,6 +44,7 @@ function Sidebar({
   webId,
   collapsed = false,
   onToggle,
+  onLogout,
   statisticsAdmin = false,
   adminArea = false,
 }) {
@@ -180,7 +181,8 @@ function Sidebar({
 
   const handleLogout = async () => {
     try {
-      await session.logout();
+      if (onLogout) await onLogout();
+      else await session.logout({ logoutType: "app" });
       window.location.href = "/";
     } catch (e) {
       console.error("Logout failed:", e);

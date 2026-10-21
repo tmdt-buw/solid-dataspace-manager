@@ -74,3 +74,47 @@ responsive DE/EN editor supports an optional interval override, bounded preview,
 connection status and pause. Streams use a separate `.stream.json` index; existing
 polling connections, histories and original files are retained. The worker README
 documents replay behavior, resource limits and outbox backup requirements.
+
+
+## Unified connection management
+
+Data Connection displays APIs, streams, Home Assistant and provider imports in a
+single Connections list with shared search, type and active/paused filters.
+Add connection first offers Own API, Stream, Home Assistant and Import template.
+The chosen type opens its existing editor with the corresponding defaults.
+Provider imports remain accessible without personal connection setup. Their
+existing owner and target folder stay fixed, and source changes still require a
+successful read-only preview. Retrieving personal APIs uses the existing bulk
+sync action; each import template retains its individual run button.
+
+This is a presentation change. Existing Pod addresses, credentials, schedules,
+worker definitions and collected histories are not migrated or rewritten.
+
+
+Own API connections can store a deduplicated Observation history with configurable
+timestamp/identity JSON Pointers, source timezone and optional dynamic URL time
+windows. Daily files and a separate observation index preserve existing connection
+outputs. The Import template chooser includes Wuppertal - Climate station, combining
+Cismet current readings with authenticated Heidelberg backfill. The UI is available
+in German and English; source keys are never included in template defaults.
+
+
+## Session expiry and reauthentication
+
+The Dataspace host guards its shared Solid session, including the sessions passed
+to embedded apps and the fetch function exposed through the host bridge. The
+non-dismissible session dialog covers every host route, including iframe apps.
+It responds to the SDK sessionExpired event or the recorded token expiration,
+including after a suspended browser tab resumes. HTTP 401/403, other HTTP errors
+and failed network requests alone never trigger reauthentication.
+
+While expired, new shared-session requests are blocked locally and existing form
+components remain mounted behind the modal. Requests are never replayed. Sign in
+again revokes the workspace cookie, clears the local SDK login and starts the
+normal Solid login. Revocation/login failures stay retryable in the dialog.
+The return path, query and fragment are kept in tab-local storage for up to one
+hour and restored after a successful login. External destinations and OAuth
+callback parameters are rejected or removed. No credentials are kept in this
+recovery record. Provider sessions, saved Pod data and server-side imports are
+not removed. The dialog follows the host language and supports mobile layouts
+and keyboard navigation.

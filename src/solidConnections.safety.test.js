@@ -1,5 +1,5 @@
 import { createSolidDataset, getSolidDataset, saveSolidDatasetAt, deleteFile } from "@inrupt/solid-client";
-import { saveCustomConnection, deleteCustomConnection, deleteHomeAssistantConnection, normalizeHomeAssistantConnection } from "./solidConnections";
+import { connectionContainerExists, saveCustomConnection, deleteCustomConnection, deleteHomeAssistantConnection, normalizeHomeAssistantConnection } from "./solidConnections";
 import { sealConnectionCredential } from "./dataConnectionClient";
 
 jest.mock("./dataConnectionClient",()=>({ SEALED_SECRET_PREFIX:"worker-aes-gcm-v1:",sealConnectionCredential:jest.fn() }));
@@ -42,3 +42,6 @@ test.each(["sdm-entity-snapshot", "sosa-observation"])("existing %s connections 
   expect(()=>normalizeHomeAssistantConnection({...connection,storageDocumentUrl:"https://pod.example/alice/connections/legacy.ttl"})).toThrow(/Pod storage/);
   expect(()=>normalizeHomeAssistantConnection({...connection,dataModel:"solid-sync-json"})).toThrow(/Pod storage/);
 });
+
+test.each([401,403,500])('setup inspection propagates HTTP %i instead of claiming storage is missing',async statusCode=>{const error=Object.assign(new Error('request failed'),{statusCode});getSolidDataset.mockRejectedValue(error);await expect(connectionContainerExists(webId,fetch)).rejects.toBe(error);});
+test('setup inspection only treats 404 as missing and propagates network failures',async()=>{getSolidDataset.mockRejectedValue(Object.assign(new Error('not found'),{statusCode:404}));await expect(connectionContainerExists(webId,fetch)).resolves.toBe(false);const error=new TypeError('offline');getSolidDataset.mockRejectedValue(error);await expect(connectionContainerExists(webId,fetch)).rejects.toBe(error);});

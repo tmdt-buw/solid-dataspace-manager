@@ -188,7 +188,8 @@ export const connectionContainerExists = async (webId, fetch) => {
   try {
     await getSolidDataset(containerUrl, { fetch });
     return true;
-  } catch {
+  } catch (error) {
+    if ((error?.statusCode || error?.response?.status) !== 404) throw error;
     return false;
   }
 };

@@ -12,7 +12,8 @@ export async function prepareDataConnectionSetup({
     credentialReady: true,
     workerRegistered: false,
     workerReason: '',
-    error: ''
+    error: '',
+    inspectionFailed: false
   };
   if (!webId || typeof solidFetch !== 'function') return {
     ...status,
@@ -41,8 +42,9 @@ export async function prepareDataConnectionSetup({
     status.workerRegistered = result?.registered === true;
     status.workerReason = result?.reason || '';
     status.ready = status.workerRegistered;
-    if (!status.ready) status.error = 'Background worker registration failed.';
+    if (!status.ready) { status.error = 'Background worker registration failed.'; status.inspectionFailed = true; }
   } catch (error) {
+    status.inspectionFailed = true;
     status.error = error.message || 'Data Connection setup failed.';
   }
   return status;
