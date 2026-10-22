@@ -235,6 +235,7 @@ const de = {
   'Use the authentication fields for credentials.': 'Verwende die Authentifizierungsfelder für Zugangsdaten.',
   'Authenticated sources require HTTPS.': 'Quellen mit Zugangsdaten erfordern HTTPS.',
   'Confirm that this POST only queries data.': 'Bestätige, dass dieser POST nur Daten abfragt.',
+  'Query public Pod data': 'Öffentliche Pod-Daten abfragen',
   'Data Connection is disabled for this profile.': 'Data Connection ist für dieses Profil deaktiviert.',
   'Background worker registration failed.': 'Die Anmeldung beim Hintergrunddienst ist fehlgeschlagen.',
   'Sign in with Solid to manage connections.': 'Melde dich mit Solid an, um Verbindungen zu verwalten.',
@@ -617,7 +618,7 @@ export default function DataConnection({
             setStatus(result.status); await reload();
           })}><FontAwesomeIcon icon={faPlay} />{t(connections.every(c => c.options?.mode === 'stream') ? 'Check stream connections' : 'Retrieve APIs now')}</button>}
         </div>
-        <div className="dc-filters"><select aria-label={t('Connection type')} value={kind} onChange={e => setKind(e.target.value)}><option value="all">{t('All types')}</option>{choices.map(choice => <option key={choice.id} value={choice.id}>{t(choice.label)}</option>)}</select><select aria-label={t('State')} value={state} onChange={e => setState(e.target.value)}><option value="all">{t('All states')}</option><option value="active">{t('Active')}</option><option value="paused">{t('Paused')}</option></select></div>
+        <div className="dc-filters"><a className="dc-button" href="/web/catalog?view=public-data">{t('Query public Pod data')}</a><select aria-label={t('Connection type')} value={kind} onChange={e => setKind(e.target.value)}><option value="all">{t('All types')}</option>{choices.map(choice => <option key={choice.id} value={choice.id}>{t(choice.label)}</option>)}</select><select aria-label={t('State')} value={state} onChange={e => setState(e.target.value)}><option value="all">{t('All states')}</option><option value="active">{t('Active')}</option><option value="paused">{t('Paused')}</option></select></div>
         {getDataspaceId() === 'test' && <p className="dc-note">{t('Test connections are stored separately from production connections.')}</p>}
         {errorBox}{imports.error && <div className="dc-alert dc-alert--error" role="alert">{imports.error}</div>}{notice && <div className="dc-alert" role="status">{t(notice)}</div>}{imports.notice && <div className="dc-alert" role="status">{imports.notice}</div>}
         {statusLabel && connections.some(c => c.options?.mode !== 'stream') && <div className={`dc-status ${['failed', 'partial'].includes(status?.lastStatus) ? 'dc-status--error' : ''}`} role="status"><strong>{t(statusLabel)}</strong>{status?.lastError && <span>{t(status.lastError)}</span>}</div>}
