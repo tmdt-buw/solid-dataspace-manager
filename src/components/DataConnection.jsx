@@ -12,6 +12,9 @@ import { connectionWorkerCall, loadConnectionStatus } from '../dataConnectionCli
 import { loadCustomConnections, loadHomeAssistantConnections, saveCustomConnection, saveHomeAssistantConnection, deleteCustomConnection, deleteHomeAssistantConnection, loadConnectionLastSync } from '../solidConnections';
 import './DataConnection.css';
 const de = {
+  "Wuppertal - Weather and water stations": "Wuppertal - Wetter- und Gewässerstationen",
+  "Station": "Station",
+  "Historical retrieval (days)": "Nachladen der Historie (Tage)",
   "Observation history": "Messwerthistorie",
   "Timestamp field (JSON Pointer)": "Zeitstempelfeld (JSON Pointer)",
   "Identity fields (JSON Pointers)": "Identifikationsfelder (JSON Pointer)",

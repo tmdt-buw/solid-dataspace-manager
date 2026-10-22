@@ -168,6 +168,25 @@ function setupEditor() {
     ok: true
   });
 }
+test('gzip storage requires a fresh preview and keeps the existing Pod address', async () => {
+  setupEditor();
+  const next = JSON.parse(JSON.stringify(metadata));
+  next.templates[0].fields.push({ key: 'historyCompression', label: 'History storage', type: 'select', default: 'json', options: [
+    { value: 'json', label: 'JSON' }, { value: 'gzip', label: 'Gzip with existing JSON links retained' }
+  ] });
+  session.fetch.mockImplementation(async () => ({ ok: true, json: async () => next }));
+  render(<ImportsHarness webId="https://pod.example/a/profile/card#me" />);
+  fireEvent.click(await screen.findByRole('button', { name: /^UDSP sensors / }));
+  fireEvent.change(screen.getByLabelText('History storage'), { target: { value: 'gzip' } });
+  expect(screen.getByRole('button', { name: 'Save connection' })).toBeDisabled();
+  expect(screen.getByLabelText('Target folder in Pod')).toHaveValue(editable.targetBase);
+  expect(screen.getByText('Existing JSON links remain current. Gzip stores the same complete history.')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Test and preview' }));
+  await waitFor(() => expect(connectionWorkerCall).toHaveBeenCalled());
+  const draft = connectionWorkerCall.mock.calls.find(call => call[3].action === 'preview')[3].draft;
+  expect(draft.source.historyCompression).toBe('gzip');
+  expect(draft.targetBase).toBe(editable.targetBase);
+});
 test('new import requires a successful preview and saves only the approved token', async () => {
   setupEditor();
   render(<ImportsHarness webId="https://pod.example/a/profile/card#me" />);
@@ -266,4 +285,33 @@ test('Wuppertal climate template requires its own source key when reusing anothe
  expect(screen.getByText(/Current readings come from Cismet/)).toBeInTheDocument();expect(screen.getByLabelText('Initial history (hours)')).toHaveValue(24);
  fireEvent.change(screen.getByLabelText('Source API key'),{target:{value:'test-source-key'}});fireEvent.click(screen.getByRole('button',{name:'Test and preview'}));
  await waitFor(()=>expect(connectionWorkerCall).toHaveBeenCalledWith(expect.anything(),expect.anything(),'imports',expect.objectContaining({action:'preview',draft:expect.objectContaining({provider:'wuppertal-climate',credentialImportId:'sample',credentials:{sourceSecret:'test-source-key'}})})));
+});
+
+test('prepared AQ Mesh connection requires a successful preview before activation and defaults to gzip', async () => {
+  setupEditor();
+  const source = { entityId: 'urn:ngsi-ld:W_ENV_AQMesh_1932', tenant: 'testumwelt', historyCompression: 'gzip' };
+  const pending = { ...editable, name: 'AQ Mesh 1932', provider: 'udsp-aq-mesh', source, activated: false, enabled: false };
+  const template = { id: pending.provider, name: 'Wuppertal - AQ Mesh air stations', requiresSourceSecret: false, fields: [
+    { key: 'entityId', label: 'Station entity ID', type: 'text', default: source.entityId },
+    { key: 'tenant', label: 'Tenant', type: 'text', default: source.tenant },
+    { key: 'historyCompression', label: 'History storage', type: 'select', default: 'gzip', options: [{ value: 'json', label: 'JSON' }, { value: 'gzip', label: 'Gzip with existing JSON links retained' }] }
+  ] };
+  const originalFetch = session.fetch.getMockImplementation();
+  session.fetch.mockImplementation(async url => String(url).includes('preview=') ? originalFetch(url) : ({ ok: true, json: async () => ({ ...metadata, imports: [pending], templates: [template] }) }));
+  render(<ImportsHarness webId="https://pod.example/a/profile/card#me" />);
+  fireEvent.click(await screen.findByRole('button', { name: /^AQ Mesh 1932 / }));
+  expect(screen.getByLabelText('History storage')).toHaveValue('gzip');
+  expect(screen.queryByLabelText('Source API key')).not.toBeInTheDocument();
+  expect(screen.getByText(/AQ Mesh retains complete station snapshots/)).toBeInTheDocument();
+  const save = screen.getByRole('button', { name: 'Save connection' });
+  fireEvent.click(screen.getByLabelText('Automatic import'));
+  expect(save).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Test and preview' }));
+  await screen.findByText('Preview successful');
+  expect(save).toBeEnabled();
+  const preview = connectionWorkerCall.mock.calls.find(call => call[3].action === 'preview')[3];
+  expect(preview.draft.source).toEqual(source);
+  expect(preview.draft.enabled).toBe(true);
+  fireEvent.click(save);
+  await waitFor(() => expect(connectionWorkerCall).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), 'imports', { action: 'save', previewId: 'checked' }));
 });

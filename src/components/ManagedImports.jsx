@@ -8,6 +8,9 @@ import { getSyncWorkerConfig } from '../config/runtimeConfig';
 import { connectionWorkerCall } from '../dataConnectionClient';
 import { ConnectionModal } from './DataConnection';
 const de = {
+  "Wuppertal - Weather and water stations": "Wuppertal - Wetter- und Gewässerstationen",
+  "Station": "Station",
+  "Historical retrieval (days)": "Nachladen der Historie (Tage)",
   "Observation history": "Messwerthistorie",
   "Timestamp field (JSON Pointer)": "Zeitstempelfeld (JSON Pointer)",
   "Identity fields (JSON Pointers)": "Identifikationsfelder (JSON Pointer)",
@@ -40,6 +43,13 @@ const de = {
   "Historical retrieval pending": "Historische Messwerte werden nachgeladen",
 
   'Wuppertal - UDSP sensors': 'Wuppertal - UDSP-Sensoren',
+  'Wuppertal - AQ Mesh air stations': 'Wuppertal - AQ-Mesh-Luftstationen',
+  'Station entity ID': 'Stations-ID',
+  'AQ Mesh retains complete station snapshots with the original measurement timestamps and units. Repeated identical snapshots are skipped.': 'AQ Mesh speichert vollständige Stationsdaten mit den originalen Messzeitpunkten und Einheiten. Identische Wiederholungen werden übersprungen.',
+  'Invalid AQ Mesh response. Existing data was retained.': 'AQ Mesh hat eine ungültige Antwort geliefert. Bestehende Daten wurden erhalten.',
+  'AQ Mesh has no valid observation timestamp. Existing data was retained.': 'AQ Mesh liefert keinen gültigen Messzeitpunkt. Bestehende Daten wurden erhalten.',
+  'AQ Mesh source is unavailable. Existing data was retained.': 'Die AQ-Mesh-Quelle ist nicht erreichbar. Bestehende Daten wurden erhalten.',
+  'AQ Mesh TLS connection failed. Existing data was retained.': 'Die verschlüsselte Verbindung zur AQ-Mesh-Quelle ist fehlgeschlagen. Bestehende Daten wurden erhalten.',
   'Wuppertal - Bicycle counters': 'Wuppertal - Fahrradzähler',
   'Open-Meteo - Weather and air quality': 'Open-Meteo - Wetter und Luftqualität',
   'BBK / NINA - Warnings': 'BBK / NINA - Warnmeldungen',
@@ -53,6 +63,13 @@ const de = {
   'Edit connection': 'Verbindung bearbeiten',
   'Create connection': 'Verbindung anlegen',
   'Save connection': 'Verbindung speichern',
+  'History storage': 'Speicherung der Historie',
+  'Gzip with existing JSON links retained': 'Gzip mit weiterhin aktuellen JSON-Links',
+  'Existing JSON links remain current. Gzip stores the same complete history.': 'Bestehende JSON-Links bleiben aktuell. Gzip speichert dieselbe vollständige Historie.',
+  'Compressed history is invalid. Existing data was retained.': 'Die komprimierte Historie ist ungültig. Bestehende Daten wurden erhalten.',
+  'Compressed history differs from the original. Existing data was retained.': 'Die komprimierte Historie weicht vom Original ab. Bestehende Daten wurden erhalten.',
+  'History access rules could not be preserved. Existing data was retained.': 'Die Zugriffsrechte konnten nicht sicher übernommen werden. Bestehende Daten wurden erhalten.',
+  'Gzip history cannot be disabled while existing readers use it.': 'Gzip kann nicht deaktiviert werden, solange bestehende Leser es verwenden.',
   'Existing sources, filenames and histories are retained.': 'Bestehende Quellen, Dateinamen und Historien bleiben erhalten.',
   'Import settings': 'Importeinstellungen',
   'Schedule': 'Zeitplan',
@@ -359,7 +376,7 @@ export default function ManagedImports({
     setPreview(null);
     setError('');
   };
-  const fullChange = Boolean(editing && (!editing.id || editing.name !== editing.original.name || JSON.stringify(editing.source) !== JSON.stringify(editing.original.source || defaults(editing.provider)) || editing.credentialImportId || ['clientId', 'clientSecret', 'sourceSecret'].some(k => editing.credentials[k]) || (editing.credentials.issuer && editing.credentials.issuer !== metadata.issuers[0])));
+  const fullChange = Boolean(editing && (!editing.id || editing.original.activated === false || editing.name !== editing.original.name || JSON.stringify(editing.source) !== JSON.stringify(editing.original.source || defaults(editing.provider)) || editing.credentialImportId || ['clientId', 'clientSecret', 'sourceSecret'].some(k => editing.credentials[k]) || (editing.credentials.issuer && editing.credentials.issuer !== metadata.issuers[0])));
   const action = async (payload, success) => {
     const identity = webId;
     setBusy(true);
@@ -430,6 +447,7 @@ export default function ManagedImports({
     {editing && <ConnectionModal title={t(editing.id ? 'Edit connection' : 'New connection')} t={t} busy={busy} onClose={close}><form className="dc-editor" onSubmit={save}>
       <div className="dc-modal-body dc-import-editor">
         {editing.provider === 'wuppertal-climate' && <p className="dc-note">{t('Current readings come from Cismet. Historical readings are retrieved from Heidelberg using the source API key.')}</p>}
+        {editing.provider === 'udsp-aq-mesh' && <p className="dc-note">{t('AQ Mesh retains complete station snapshots with the original measurement timestamps and units. Repeated identical snapshots are skipped.')}</p>}
         <fieldset disabled={busy || testing}><legend>{t('Source settings')}</legend>
           <label>{t('Name')}<input required maxLength={100} value={editing.name} onChange={e => update({
                 name: e.target.value
@@ -452,7 +470,7 @@ export default function ManagedImports({
                   }
                 });
               }}>{metadata.templates.map(p => <option key={p.id} value={p.id}>{t(p.name)}</option>)}</select></label>}
-          {(template?.fields || []).map(f => f.type === 'devices' ? <div key={f.key} className="dc-counter-list"><span>{t(f.label)}</span>{editing.source.devices.map((device, i) => <div className="dc-counter" key={i}><label>{t('Counter name')}<input required value={device.name} maxLength={80} disabled={Boolean(editing.original?.source?.devices?.some(d => d.id === device.id))} onChange={e => source('devices', editing.source.devices.map((d, n) => n === i ? {
+          {(template?.fields || []).map(f => f.type === 'select' ? <label key={f.key}>{t(f.label)}<select aria-label={t(f.label)} value={editing.source[f.key] ?? f.default} onChange={e => source(f.key, e.target.value)}>{f.options.map(option => <option key={option.value} value={option.value} disabled={f.key === 'historyCompression' && editing.original?.source?.historyCompression === 'gzip' && option.value !== 'gzip'}>{t(option.label)}</option>)}</select></label> : f.type === 'devices' ? <div key={f.key} className="dc-counter-list"><span>{t(f.label)}</span>{editing.source.devices.map((device, i) => <div className="dc-counter" key={i}><label>{t('Counter name')}<input required value={device.name} maxLength={80} disabled={Boolean(editing.original?.source?.devices?.some(d => d.id === device.id))} onChange={e => source('devices', editing.source.devices.map((d, n) => n === i ? {
                     ...d,
                     name: e.target.value
                   } : d))} /></label><label>{t('Counter ID')}<input required value={device.id} disabled={Boolean(editing.original?.source?.devices?.some(d => d.id === device.id))} onChange={e => source('devices', editing.source.devices.map((d, n) => n === i ? {
@@ -462,6 +480,7 @@ export default function ManagedImports({
                 name: '',
                 id: ''
               }])}><FontAwesomeIcon icon={faPlus} />{t('Add counter')}</button></div> : <label key={f.key}>{t(f.label)}<input type={f.type === 'number' ? 'number' : f.key === 'sourceUrl' ? 'url' : 'text'} required min={f.min} max={f.max} step={f.key === 'maxStations' ? '1' : 'any'} pattern={f.pattern} disabled={Boolean(editing.id && f.stable)} value={editing.source[f.key] ?? ''} onChange={e => source(f.key, f.type === 'number' ? e.target.value === '' ? '' : Number(e.target.value) : e.target.value)} /></label>)}
+          {editing.source.historyCompression === 'gzip' && <p className="dc-note">{t('Existing JSON links remain current. Gzip stores the same complete history.')}</p>}
         </fieldset>
         <fieldset disabled={busy || testing}><legend>{t('Pod and access')}</legend>
           {!editing.id && <label>{t('Saved Pod access')}<select aria-label={t('Saved Pod access')} value={editing.credentialImportId} onChange={e => {
@@ -512,7 +531,7 @@ export default function ManagedImports({
               if (e.currentTarget.form.reportValidity()) test();
             }}><FontAwesomeIcon icon={faFlask} />{t(testing ? 'Testing source and Pod access…' : 'Test and preview')}</button>
           {testing && <p role="status">{t('Testing source and Pod access…')}</p>}
-          {preview?.status === 'success' && <div className="dc-import-preview-result" role="status"><strong>{t('Preview successful')}</strong><p>{t('Files')}: {preview.result.files}</p><ul>{preview.result.resources.map(resource => <li key={resource.path}><strong>{resource.path}</strong><span>{t(resource.mode === 'append' ? 'Append new records' : resource.exists ? 'Update file' : 'Create file')}{resource.records !== undefined && `, ${t('Incoming records')}: ${resource.records}`}{resource.added !== undefined && `, ${t('New records')}: ${resource.added}`}</span>{resource.sample !== undefined && <details><summary>{t('Data preview')}</summary><pre>{JSON.stringify(resource.sample, null, 2)}</pre></details>}</li>)}</ul></div>}
+          {preview?.status === 'success' && <div className="dc-import-preview-result" role="status"><strong>{t('Preview successful')}</strong><p>{t('Files')}: {preview.result.files}</p><ul>{preview.result.resources.map(resource => <li key={resource.path}><strong>{resource.compressedPath || resource.path}</strong><span>{t(resource.mode === 'append' ? 'Append new records' : resource.exists ? 'Update file' : 'Create file')}{resource.records !== undefined && `, ${t('Incoming records')}: ${resource.records}`}{resource.added !== undefined && `, ${t('New records')}: ${resource.added}`}</span>{resource.sample !== undefined && <details><summary>{t('Data preview')}</summary><pre>{JSON.stringify(resource.sample, null, 2)}</pre></details>}</li>)}</ul></div>}
           {fullChange && preview?.status !== 'success' && <p className="dc-note">{t('Test the changed source or access settings before saving.')}</p>}
         </div>
         <p className="dc-note">{t('No catalog entry is created automatically. You can register the stored files in the Semantic Data Catalog.')}</p>
