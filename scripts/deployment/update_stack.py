@@ -3,7 +3,7 @@
 Without --manifest the existing image pins are reapplied. Live source mounts,
 secrets and data volumes are preserved. Image rollback does not revert Pod data.
 """
-import argparse, contextlib, datetime, fcntl, json, os, re, shutil, subprocess, tempfile, time, uuid
+import argparse, datetime, fcntl, json, os, re, subprocess, time, uuid
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen

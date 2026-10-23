@@ -9,7 +9,6 @@ describe("cross-browser viewport scaling", () => {
   const sidebarCss = readSourceCss("components/Sidebar.css");
   const appCss = readSourceCss("App.css");
   const externalHostCss = readSourceCss("components/ExternalHost.css");
-  const appSource = readSourceCss("App.js");
 
   test("keeps legacy density through CSS zoom without transforming the root", () => {
     expect(indexCss).toMatch(
@@ -50,9 +49,6 @@ describe("cross-browser viewport scaling", () => {
     expect(sidebarCss).toMatch(
       /\.layout\s*>\s*\.main\s*>\s*\.container\s*>\s*\.route-content\s*{[^}]*flex:\s*1\s+1\s+auto[^}]*overflow-y:\s*auto[^}]*scrollbar-gutter:\s*auto/s
     );
-    expect(appSource).toMatch(
-      /<div\s+className="container">\s*<div\s+className="route-content">\s*<Routes>/s
-    );
     expect(sidebarCss).toMatch(
       /\.sidebar\s*{[^}]*position:\s*fixed[^}]*height:\s*var\(--dataspace-scaled-vh,\s*100vh\)/s
     );
@@ -82,15 +78,6 @@ describe("cross-browser viewport scaling", () => {
     );
     expect(appCss).toMatch(
       /\.health-questionnaire-frame\s*{[^}]*min-height:\s*0[^}]*overflow:\s*hidden/s
-    );
-  });
-
-  test("lets catalog wheel input reach its vertical scroll owner", () => {
-    expect(appCss).toMatch(
-      /\.data-catalog-embed\s+\.catalog-table\s*{[^}]*overflow-y:\s*auto/s
-    );
-    expect(appCss).toMatch(
-      /\.data-catalog-embed\s+\.dataset-grid\s*{[^}]*overscroll-behavior-y:\s*auto/s
     );
   });
 

@@ -1,7 +1,7 @@
 """Profile transactions. The HTTP container has no Docker socket or write access to YAML.
 The local controller rechecks scope, identity, revision, and schema for every request.
 """
-import copy, datetime, fcntl, hashlib, json, os, re, shutil, tempfile, uuid
+import copy, datetime, fcntl, hashlib, json, os, re, uuid
 from contextlib import nullcontext
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 import yaml
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts' / 'deployment'))
-from compile_config import compile_config, read_config, APP_PATHS
+from compile_config import compile_config as compile_config, read_config, APP_PATHS
 from statistics_plan import statistics_plan
 
 class ConfigError(Exception):

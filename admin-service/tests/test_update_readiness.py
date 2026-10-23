@@ -1,4 +1,4 @@
-import io, json, sys, unittest
+import io, sys, unittest
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]/'scripts/deployment'))

@@ -1,4 +1,4 @@
-import copy,json,shutil,subprocess,sys,tempfile,unittest,fcntl
+import json, subprocess, sys, tempfile, unittest, fcntl
 from pathlib import Path
 from types import SimpleNamespace
 import yaml

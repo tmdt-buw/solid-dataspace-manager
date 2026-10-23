@@ -128,20 +128,6 @@ body {
   flex: 0 0 auto;
 }
 
-.data-catalog-embed .catalog-table {
-  min-width: 0;
-  min-height: 0;
-  flex: 1 1 auto;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-
-.data-catalog-embed .dataset-grid {
-  overscroll-behavior-y: auto;
-}
-
 .solid-health-app-embed {
   position: relative;
   width: 100%;

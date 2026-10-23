@@ -255,18 +255,6 @@ export default function Profile({ webId }) {
     setPrivateRegistryMembers((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const refreshPrivateRegistryMembers = async () => {
-    if (registryMode !== "private" || !webId) return;
-    const targetUrl = privateRegistryUrl || buildDefaultPrivateRegistry(webId);
-    if (!targetUrl) return;
-    try {
-      const members = await loadRegistryMembersFromContainer(targetUrl, session.fetch);
-      setPrivateRegistryMembers(normalizeRegistryMembers(members));
-    } catch (err) {
-      console.warn("Failed to refresh private registry members:", err);
-    }
-  };
-
   const profileDocUrl = webId ? webId.split("#")[0] : "";
   const solidPodUrl = (() => {
     if (!webId) return "";

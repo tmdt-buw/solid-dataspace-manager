@@ -1,4 +1,4 @@
-import contextlib,copy,json,shutil,sys,tempfile,unittest
+import contextlib, copy, shutil, sys, tempfile, unittest
 from pathlib import Path
 import yaml
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))

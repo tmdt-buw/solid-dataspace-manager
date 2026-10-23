@@ -156,7 +156,11 @@ import App from "./App";
 test.each(["/web/catalog", "/semantic-search"])("opens the catalog host, preserving legacy semantic-search bookmarks: %s", async path => {
   window.history.replaceState({}, "", path);
   const { container } = render(<App />);
-  await screen.findByTestId('catalog-embed');
+  const catalog = await screen.findByTestId('catalog-embed');
+  const viewport = container.querySelector('.main > .container > .route-content');
+  expect(viewport).toContainElement(catalog);
+  expect(viewport).not.toContainElement(container.querySelector('.app-footer'));
+  expect(container.querySelector('.app-footer')).toBeInTheDocument();
   expect(container.querySelector('.catalog-header')).toHaveTextContent('Semantic Data Catalog');
   expect(container.querySelector('.integrated-version')).toHaveTextContent('test');
   expect(window.location.pathname).toBe('/web/catalog');
