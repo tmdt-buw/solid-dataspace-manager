@@ -714,3 +714,7 @@
     transition: none;
   }
 }
+
+.notification-delivery { padding: 14px; border: 1px solid #edce9b; border-radius: 10px; background: #fff9ee; margin: 14px 0; }
+.notification-delivery p { margin: 0 0 8px; }
+.notifications-hidden { font-size: 13px; color: #68758b; }

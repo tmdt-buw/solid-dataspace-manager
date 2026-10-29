@@ -8,7 +8,7 @@ import { createAuthenticator } from "./auth.mjs";
 const COOKIE = "__Host-dataspace-workspace";
 const TTL = 8 * 60 * 60 * 1000;
 const workerPrefix = "/sync-worker";
-const participantPath = /^\/sync-worker\/participants(?:\/status|\/sync|\/seal|\/preview|\/imports)?(?:\?|$)/;
+const participantPath = /^\/sync-worker\/participants(?:\/status|\/sync|\/seal|\/preview|\/imports|\/relocations)?(?:\?|$)/;
 const workspacePath = /^\/(node-red|plasma)(?:\/|$)/;
 const tokenHash = token => createHash("sha256").update(token).digest("hex");
 function cookie(req) {

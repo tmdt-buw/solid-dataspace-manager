@@ -18,6 +18,25 @@ export const PROFILE_LANGUAGE_PREDICATE =
   "https://w3id.org/solid-dataspace-manager#preferredLanguage";
 
 const enToDe = {
+  "Delivery of this older decision was not recorded.": "Die Zustellung dieser älteren Entscheidung wurde nicht protokolliert.",
+  "Checking request status...": "Anfragestatus wird geprüft...",
+  "Request pending": "Anfrage ausstehend",
+  "Request Pending": "Anfrage ausstehend",
+  "Request again": "Erneut anfragen",
+  "Request approved": "Anfrage genehmigt",
+  "Access revoked": "Zugriff widerrufen",
+  "Request denied": "Anfrage abgelehnt",
+  "Access expired": "Zugriff abgelaufen",
+  "Request closed": "Anfrage abgeschlossen",
+  "Check request status": "Anfragestatus prüfen",
+  "Request status could not be confirmed. You can check again or send a new request.": "Der Anfragestatus konnte nicht bestätigt werden. Du kannst erneut prüfen oder eine neue Anfrage senden.",
+  "Show decision history": "Entscheidungsverlauf anzeigen",
+  "Hidden by filters:": "Durch Filter ausgeblendet:",
+  "Decision not delivered:": "Entscheidung nicht zugestellt:",
+  "Resend decision": "Entscheidung erneut zustellen",
+  "Access was updated, but the decision could not be delivered. Use Resend decision.": "Der Zugriff wurde aktualisiert, aber die Entscheidung konnte nicht zugestellt werden. Bitte erneut zustellen.",
+  "Decision delivery failed. You can retry without changing access permissions.": "Die Zustellung ist fehlgeschlagen. Du kannst sie wiederholen, ohne die Zugriffsrechte erneut zu ändern.",
+
   ...adminTranslations,
   "Access management": "Zugriffsverwaltung",
   "Manage access to your data.": "Verwalte den Zugriff auf deine Daten.",

@@ -100,8 +100,9 @@ const DecisionInbox = ({ webId }) => {
   const [decisions, setDecisions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [hideClosed, setHideClosed] = useState(true);
+  const [hideClosed, setHideClosed] = useState(false);
   const [showPreviousRuns, setShowPreviousRuns] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [page, setPage] = useState(1);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
@@ -123,18 +124,11 @@ const DecisionInbox = ({ webId }) => {
     return { dataset, thing };
   };
 
-  const buildDecisionKey = (item) =>
-    item.requestId ||
-    (item.scenarioRunId
-      ? `${item.applicationId || "scenario"}:${item.scenarioRunId}:${
-          item.datasetIdentifier || "dataset"
-        }`
-      : "") ||
-    item.datasetIdentifier ||
-    item.datasetAccessUrl ||
-    item.datasetSemanticModelUrl ||
-    item.catalogUrl ||
-    item.id;
+  const buildDecisionKey = (item) => JSON.stringify([
+    item.requesterWebId, item.requestId || item.requestResourceUrl || "",
+    item.catalogDatasetUrl || item.datasetAccessUrl || item.datasetSemanticModelUrl || item.catalogUrl || item.id,
+    item.applicationId || "", item.scenarioRunId || "",
+  ]);
 
   const getDecisionTime = (item) =>
     Date.parse(item.decidedAt || item.createdAt) || item.urlTime || 0;
@@ -155,8 +149,8 @@ const DecisionInbox = ({ webId }) => {
       const rawItems = await Promise.all(
         resourceUrls.map(async (url) => {
           try {
-            const { thing } = await loadDecisionThing(url);
-            return parseAccessDecisionThing(url, thing);
+            const { dataset } = await loadDecisionThing(url);
+            return getThingAll(dataset).map(thing => parseAccessDecisionThing(url, thing)).filter(Boolean);
           } catch (err) {
             console.warn("Failed to parse decision:", url, err);
             return null;
@@ -164,19 +158,12 @@ const DecisionInbox = ({ webId }) => {
         })
       );
 
-      const filtered = rawItems.filter(Boolean);
-      const latestByKey = new Map();
-      filtered.forEach((item) => {
-        const key = buildDecisionKey(item);
-        const existing = latestByKey.get(key);
-        if (!existing || getDecisionTime(item) > getDecisionTime(existing)) {
-          latestByKey.set(key, item);
-        }
+      const unique = new Map();
+      rawItems.flat().filter(item => item && item.requesterWebId === webId).forEach(item => {
+        const key = item.decisionId ? JSON.stringify([item.requesterWebId, item.decidedBy, item.decisionId]) : item.id;
+        if (!unique.has(key)) unique.set(key, item);
       });
-      const latest = Array.from(latestByKey.values());
-      latest.sort((a, b) => getDecisionTime(b) - getDecisionTime(a));
-
-      setDecisions(latest);
+      setDecisions([...unique.values()].sort((a, b) => getDecisionTime(b) - getDecisionTime(a)));
       localStorage.setItem(LAST_SEEN_DECISIONS_KEY, new Date().toISOString());
     } catch (err) {
       console.error("Failed to load decisions:", err);
@@ -216,9 +203,11 @@ const DecisionInbox = ({ webId }) => {
   }, [webId]);
 
   const currentRunDecisions = filterPreviousScenarioRuns(decisions, showPreviousRuns);
-  const filteredDecisions = currentRunDecisions.filter((item) =>
-    hideClosed ? !CLOSED_DECISIONS.has(item.decision) : true
-  );
+  const latestByKey = new Map();
+  currentRunDecisions.forEach(item => { const key = buildDecisionKey(item); if (!latestByKey.has(key)) latestByKey.set(key, item); });
+  const visibleHistory = showHistory ? currentRunDecisions : [...latestByKey.values()];
+  const filteredDecisions = visibleHistory.filter(item => !hideClosed || !CLOSED_DECISIONS.has(item.decision));
+  const hiddenCount = decisions.length - filteredDecisions.length;
   const totalPages = Math.max(1, Math.ceil(filteredDecisions.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const pagedDecisions = filteredDecisions.slice(
@@ -262,6 +251,11 @@ const DecisionInbox = ({ webId }) => {
           />
           <span>{t("Show previous scenario runs")}</span>
         </label>
+        <label className="notifications-toggle">
+          <input type="checkbox" checked={showHistory} onChange={event => { setShowHistory(event.target.checked); setPage(1); }} />
+          <span>{t("Show decision history")}</span>
+        </label>
+        {hiddenCount > 0 && <span className="notifications-hidden">{t("Hidden by filters:")} {hiddenCount}</span>}
         <span className="notifications-count" aria-live="polite">
           {t(`Showing ${filteredDecisions.length} decision(s)`)}
         </span>

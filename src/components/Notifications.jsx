@@ -1,3 +1,4 @@
+import { recordAccessDecision, deliverAccessDecision, decisionDeliveries, hasUndeliveredDecision, canClearClosedRequest } from "../accessDecisionDelivery";
 import React, { useEffect, useState } from "react";
 import session from "../solidSession";
 import {
@@ -9,11 +10,6 @@ import {
   getUrlAll,
   getStringNoLocale,
   deleteFile,
-  saveSolidDatasetAt,
-  setStringNoLocale,
-  setUrl,
-  setThing,
-  removeAll,
   getFileWithAcl,
   getSolidDatasetWithAcl,
   getResourceAcl,
@@ -34,8 +30,6 @@ import {
   ENVIRONMENTAL_CONSENT,
   environmentalConsent,
   ENVIRONMENTAL_REQUEST,
-  SDM,
-  buildAccessDecisionTurtle,
   filterPreviousScenarioRuns,
   getAccessTargetUrls,
   getApprovedAccess,
@@ -103,47 +97,9 @@ const Notifications = ({ webId }) => {
     return profile ? getUrl(profile, LDP.inbox) : null;
   };
 
-  const resolveInboxForWebId = async (targetWebId) => {
-    if (!targetWebId) return null;
-    const profileDataset = await getSolidDataset(targetWebId, { fetch: noCacheFetch });
-    const profile = getThing(profileDataset, targetWebId);
-    return profile ? getUrl(profile, LDP.inbox) : null;
-  };
-
-  const notifyRequester = async ({ item, decision, note, expiresAt, decidedAt }) => {
-    try {
-      const inboxUrl = await resolveInboxForWebId(item.requesterWebId);
-      if (!inboxUrl) {
-        console.warn("[AccessDecision] requester inbox missing", item.requesterWebId);
-        return;
-      }
-
-      const turtle = buildAccessDecisionTurtle({
-        item,
-        decision,
-        note,
-        expiresAt,
-        decidedAt,
-      });
-      const res = await session.fetch(inboxUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/turtle",
-          "Slug": `access-decision-${item.datasetIdentifier || "dataset"}-${Date.now()}`,
-        },
-        body: turtle,
-      });
-      if (!res.ok) {
-        console.warn("[AccessDecision] inbox rejected", res.status);
-      }
-    } catch (err) {
-      console.warn("[AccessDecision] notify failed", err);
-    }
-  };
-
   const loadNotificationThing = async (url) => {
     const dataset = await getSolidDataset(url, { fetch: noCacheFetch });
-    const thing = getThing(dataset, url) || getThingAll(dataset)[0];
+    const thing = getThing(dataset, url) || getThingAll(dataset).find(candidate => parseAccessRequestThing(url, candidate));
     return { dataset, thing };
   };
 
@@ -192,43 +148,6 @@ const Notifications = ({ webId }) => {
     }
   };
 
-  const updateNotification = async (url, updates) => {
-    const { dataset, thing } = await loadNotificationThing(url);
-    if (!thing) return;
-
-    let updated = thing;
-    if (updates.status) {
-      updated = setStringNoLocale(updated, SDM.status, updates.status);
-    }
-    if ("decisionComment" in updates) {
-      updated = removeAll(updated, SDM.decisionComment);
-      if (updates.decisionComment) {
-        updated = setStringNoLocale(updated, SDM.decisionComment, updates.decisionComment);
-      }
-    }
-    if ("expiresAt" in updates) {
-      updated = removeAll(updated, SDM.expiresAt);
-      if (updates.expiresAt) {
-        updated = setStringNoLocale(updated, SDM.expiresAt, updates.expiresAt);
-      }
-    }
-    if ("decidedAt" in updates) {
-      updated = removeAll(updated, SDM.decidedAt);
-      if (updates.decidedAt) {
-        updated = setStringNoLocale(updated, SDM.decidedAt, updates.decidedAt);
-      }
-    }
-    if ("decidedBy" in updates) {
-      updated = removeAll(updated, SDM.decidedBy);
-      if (updates.decidedBy) {
-        updated = setUrl(updated, SDM.decidedBy, updates.decidedBy);
-      }
-    }
-
-    const updatedDataset = setThing(dataset, updated);
-    await saveSolidDatasetAt(url, updatedDataset, { fetch: noCacheFetch });
-  };
-
   const getResourceAndAcl = async (url) => {
     const resource = url.endsWith("/")
       ? await getSolidDatasetWithAcl(url, { fetch: noCacheFetch })
@@ -263,13 +182,13 @@ const Notifications = ({ webId }) => {
         await setAccessForResource(target, item.requesterWebId, {});
       }
       const now = new Date().toISOString();
-      await updateNotification(item.id, {
-        status: "expired",
-        decidedAt: now,
-        decidedBy: webId,
-        decisionComment: item.decisionComment || "Access expired.",
-      });
-      return { ...item, status: "expired", decidedAt: now, decidedBy: webId };
+      const next = { ...item, status: "expired", decidedAt: now, decidedBy: webId };
+      const eventUrl = await recordAccessDecision({ fetch: noCacheFetch, item, decision: "expired", decidedAt: now, decidedBy: webId, note: item.decisionComment || "Access expired." });
+      try { await deliverAccessDecision({ fetch: noCacheFetch, requestUrl: item.id, eventUrl }); }
+      catch { setError("Access was updated, but the decision could not be delivered. Use Resend decision."); }
+      const saved = await getSolidDataset(item.id, { fetch: noCacheFetch });
+      return { ...next, deliveries: decisionDeliveries(saved) };
+
     } catch (err) {
       console.error("Failed to expire access:", err);
       return item;
@@ -292,8 +211,9 @@ const Notifications = ({ webId }) => {
       const rawItems = await Promise.all(
         resourceUrls.map(async (url) => {
           try {
-            const { thing } = await loadNotificationThing(url);
-            return parseAccessRequestThing(url, thing);
+            const { dataset, thing } = await loadNotificationThing(url);
+            const item = parseAccessRequestThing(url, thing);
+            return item ? { ...item, deliveries: decisionDeliveries(dataset) } : null;
           } catch (err) {
             console.warn("Failed to parse notification:", url, err);
             return null;
@@ -365,28 +285,13 @@ const Notifications = ({ webId }) => {
         }
       }
 
-      await updateNotification(item.id, {
-        status: decision,
-        decisionComment: note,
-        expiresAt: expiryIso,
-        decidedAt: now,
-        decidedBy: webId,
-      });
-
-      await notifyRequester({
-        item,
-        decision,
-        note,
-        expiresAt: expiryIso,
-        decidedAt: now,
-      });
-
-      console.warn("[AccessRequest] decision saved", {
-        decision,
-        inboxItem: item.id,
-      });
-
+      const eventUrl = await recordAccessDecision({ fetch: noCacheFetch, item, decision, note, expiresAt: expiryIso, decidedAt: now, decidedBy: webId });
+      let delivered = false;
+      try { delivered = (await deliverAccessDecision({ fetch: noCacheFetch, requestUrl: item.id, eventUrl })).delivered; }
+      catch { /* The saved event remains available for an explicit delivery retry. */ }
       await loadNotifications();
+      if (!delivered) setError("Access was updated, but the decision could not be delivered. Use Resend decision.");
+
     } catch (err) {
       console.error("Failed to update decision:", err);
       setError(
@@ -399,9 +304,33 @@ const Notifications = ({ webId }) => {
     }
   };
 
+  const resendLegacyDecision = async (item) => {
+    setProcessingId(item.id);
+    setError("");
+    try {
+      const eventUrl = await recordAccessDecision({ fetch: noCacheFetch, item, decision: item.status, note: item.decisionComment, expiresAt: item.expiresAt, decidedAt: item.decidedAt, decidedBy: item.decidedBy || webId, preserveExisting: true });
+      const result = await deliverAccessDecision({ fetch: noCacheFetch, requestUrl: item.id, eventUrl });
+      await loadNotifications();
+      if (!result.delivered) setError("Decision delivery failed. You can retry without changing access permissions.");
+    } catch { setError("Decision delivery failed. You can retry without changing access permissions."); }
+    finally { setProcessingId(""); }
+  };
+
+  const resendDecision = async (item, event) => {
+    setProcessingId(item.id);
+    setError("");
+    try {
+      const result = await deliverAccessDecision({ fetch: noCacheFetch, requestUrl: item.id, eventUrl: event.id });
+      await loadNotifications();
+      if (!result.delivered) setError("Decision delivery failed. You can retry without changing access permissions.");
+    } catch {
+      setError("Decision delivery failed. You can retry without changing access permissions.");
+    } finally { setProcessingId(""); }
+  };
+
   const clearClosed = async () => {
     if (!notifications.length) return;
-    const closedItems = notifications.filter((item) => CLOSED_STATUSES.has(item.status));
+    const closedItems = notifications.filter(canClearClosedRequest);
     if (!closedItems.length) return;
 
     setClearingRevoked(true);
@@ -419,7 +348,7 @@ const Notifications = ({ webId }) => {
   };
 
   const openClearClosedConfirm = () => {
-    const closedItems = notifications.filter((item) => CLOSED_STATUSES.has(item.status));
+    const closedItems = notifications.filter(canClearClosedRequest);
     if (!closedItems.length) return;
     setConfirmOpen(true);
   };
@@ -439,7 +368,7 @@ const Notifications = ({ webId }) => {
     showPreviousRuns
   );
   const filteredNotifications = currentRunNotifications.filter((item) =>
-    hideClosed ? !CLOSED_STATUSES.has(item.status) : true
+    hideClosed ? !CLOSED_STATUSES.has(item.status) || hasUndeliveredDecision(item) : true
   );
   const totalPages = Math.max(1, Math.ceil(filteredNotifications.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -493,7 +422,7 @@ const Notifications = ({ webId }) => {
           onClick={openClearClosedConfirm}
           disabled={
             clearingRevoked ||
-            !notifications.some((item) => CLOSED_STATUSES.has(item.status))
+            !notifications.some(canClearClosedRequest)
           }
         >
           <FontAwesomeIcon icon={faTrash} aria-hidden="true" />
@@ -544,6 +473,20 @@ const Notifications = ({ webId }) => {
                   </div>
                   <AccessStatus status={item.status || "pending"} label={getDisplayStatus(item.status)} />
                 </header>
+
+                {item.deliveries?.filter(event => event.deliveryStatus !== "delivered").map(event => (
+                  <div className="notification-delivery" role="status" key={event.id}>
+                    <p>{t("Decision not delivered:")} {t(getDisplayStatus(event.decision))} ({formatDateTime(event.decidedAt, language)})</p>
+                    <button type="button" className="access-button" disabled={processingId === item.id} onClick={() => resendDecision(item, event)}>{t("Resend decision")}</button>
+                  </div>
+                ))}
+
+                {item.status !== "pending" && item.decidedAt && !item.deliveries?.length && (
+                  <div className="notification-delivery">
+                    <p>{t("Delivery of this older decision was not recorded.")}</p>
+                    <button type="button" className="access-button" disabled={processingId === item.id} onClick={() => resendLegacyDecision(item)}>{t("Resend decision")}</button>
+                  </div>
+                )}
 
                 <dl className="notification-meta">
                   <div>
@@ -695,7 +638,7 @@ const Notifications = ({ webId }) => {
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleConfirm}
       >
-        <p>{t(`Delete ${notifications.filter((item) => CLOSED_STATUSES.has(item.status)).length} closed request(s)?`)}</p>
+        <p>{t(`Delete ${notifications.filter(canClearClosedRequest).length} closed request(s)?`)}</p>
         <p>{t("This will permanently delete the closed requests from your inbox.")}</p>
       </AccessConfirmDialog>
     </section>

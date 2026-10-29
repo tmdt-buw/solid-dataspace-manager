@@ -24,6 +24,8 @@ export const LEGACY_FULL_ACCESS = Object.freeze({
 export const SDM = Object.freeze({
   AccessRequest: `${SDM_NS}AccessRequest`,
   AccessDecision: `${SDM_NS}AccessDecision`,
+  decisionId: `${SDM_NS}decisionId`,
+  requestResourceUrl: `${SDM_NS}requestResourceUrl`,
   status: `${SDM_NS}status`,
   decision: `${SDM_NS}decision`,
   requesterWebId: `${SDM_NS}requesterWebId`,
@@ -103,6 +105,9 @@ const commonFields = (thing) => {
   const requestedModes = strings(thing, SDM.requestedMode);
   return {
     requesterWebId: getUrl(thing, SDM.requesterWebId) || "",
+    decidedBy: getUrl(thing, SDM.decidedBy) || "",
+    decisionId: getStringNoLocale(thing, SDM.decisionId) || "",
+    requestResourceUrl: getUrl(thing, SDM.requestResourceUrl) || "",
     requesterName: getStringNoLocale(thing, SDM.requesterName) || "",
     requesterEmail: getStringNoLocale(thing, SDM.requesterEmail) || "",
     datasetIdentifier: getStringNoLocale(thing, SDM.datasetIdentifier) || "",
@@ -283,6 +288,9 @@ export function buildAccessDecisionTurtle({
   note = "",
   expiresAt = "",
   decidedAt,
+  decidedBy = item.decidedBy,
+  decisionId = item.decisionId,
+  requestResourceUrl = item.requestResourceUrl,
 }) {
   const lines = [
     `@prefix sdm: <${SDM_NS}>.`,
@@ -301,6 +309,8 @@ export function buildAccessDecisionTurtle({
     `  dct:title "${escapeLiteral(item.datasetTitle || "")}";`,
   ];
   const urls = [
+    ["decidedBy", decidedBy],
+    ["requestResourceUrl", requestResourceUrl],
     ["datasetAccessUrl", item.datasetAccessUrl],
     ["datasetSemanticModelUrl", item.datasetSemanticModelUrl],
     ["catalogUrl", item.catalogUrl],
@@ -310,6 +320,7 @@ export function buildAccessDecisionTurtle({
     if (value) lines.push(`  sdm:${predicate} <${value}>;`);
   });
   const literals = [
+    ["decisionId", decisionId],
     ["requesterName", item.requesterName],
     ["requesterEmail", item.requesterEmail],
     ["requestId", item.requestId],
