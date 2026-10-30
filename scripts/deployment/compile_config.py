@@ -88,7 +88,8 @@ def site(profile):
     lines += ['  @standaloneCatalog path /catalog /catalog/', '  route @standaloneCatalog {',
               '    rewrite * /semantic-data-catalog/', f'    reverse_proxy {common}-semantic-data-catalog-frontend:5000', '  }']
     for path, service, port in [('semantic-data-catalog','semantic-data-catalog-frontend',5000),('environmental-monitoring','environmental-monitoring',5173),('solid-data-manager','solid-data-manager',3002),('solid-health-app','solid-health-app',3000),('solid-health-questionnaire','solid-health-questionnaire',3007),('city-tours','city-tours',3006)]:
-        lines += [f'  redir /{path} /{path}/ 308', f'  reverse_proxy /{path}/* {common}-{service}:{port}']
+        query = '{?query}' if path == 'solid-data-manager' else ''
+        lines += [f'  redir /{path} /{path}/{query} 308', f'  reverse_proxy /{path}/* {common}-{service}:{port}']
     lines += [f'  reverse_proxy /api/* {common}-semantic-data-catalog-backend:8000']
     if profile['public'].get('accessGateway'):
         lines += [f'  reverse_proxy /access-api/* {common}-admin-api:3012',
