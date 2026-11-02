@@ -17,14 +17,14 @@ export const externalLinks = [
     slug: "environmental-monitoring",
     title: "Environmental Monitoring",
     url: "/environmental-monitoring/",
-    version: "0.3.22",
+    version: "0.3.23",
     hideOpenButton: true,
   },
   {
     slug: "solid-health-app",
     title: "Health App",
     url: "/solid-health-app/",
-    version: "0.1.27",
+    version: "0.1.28",
     hideOpenButton: true,
   },
 ];
