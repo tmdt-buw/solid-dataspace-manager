@@ -36,6 +36,7 @@ import {
 
 export default function LoginScreen({ onLogin }) {
   const providers = getEnabledProviders();
+  const providerLogin = window.__APP_CONFIG__?.loginMode === "oidc";
   const branding = getBranding();
 
   const [selected, setSelected] = useState(providers[0]?.issuer || "");
@@ -101,6 +102,14 @@ export default function LoginScreen({ onLogin }) {
 
   const openAccountLoginFlow = async () => {
     if (!issuerToLogin) return;
+    if (providerLogin) {
+      setAuthLoading(true);
+      setAuthError("");
+      try { await onLogin(issuerToLogin); }
+      catch (error) { setAuthError(error?.message || "Solid login could not be started."); }
+      finally { setAuthLoading(false); }
+      return;
+    }
 
     const nextIssuer = issuerToLogin;
     const nextAccountIndexUrl = getAccountIndexUrl(nextIssuer);
@@ -428,9 +437,10 @@ export default function LoginScreen({ onLogin }) {
             </div>
           </div>
 
+          {providerLogin && authError && !authModalOpen && <p role="alert">{authError}</p>}
           <div className="login-footer">
             <LanguageSelect className="login-language-select" />
-            <button
+            {!providerLogin && <button
               type="button"
               className="login-secondary"
               onClick={openRegisterWizard}
@@ -439,7 +449,7 @@ export default function LoginScreen({ onLogin }) {
             >
               <FontAwesomeIcon icon={faUserPlus} />
               <span>Register</span>
-            </button>
+            </button>}
             <button
               type="button"
               className="login-primary"

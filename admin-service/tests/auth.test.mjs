@@ -164,3 +164,10 @@ test("admin discovery returns the authorized profile with a real browser proof",
   assert.equal(result.body.webId, webId);
   assert.deepEqual(result.body.profiles.map(({ id, canEdit }) => ({ id, canEdit })), [{ id: "test", canEdit: true }]);
 });
+
+
+test("browser DPoP proofs bind the exact local HTTP origin and port", async () => {
+  const target = "http://localhost:8080/sync-worker/participants/status";
+  assert.equal(await setup().auth(await browserRequest({target}), target, new Set([webId])), webId);
+  await assert.rejects(setup().auth(await browserRequest({target}), target.replace(":8080", ":8081"), new Set([webId])));
+});

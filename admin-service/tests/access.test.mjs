@@ -7,10 +7,12 @@ import os from "node:os";
 import path from "node:path";
 import { createAccessGateway } from "../access.mjs";
 
-async function fixture(t) {
+async function fixture(t, options = {}) {
+  const domain = options.publicOrigin ? new URL(options.publicOrigin).host : "test.example";
+  const verifiedUrls = [];
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "workspace-test-"));
   await fs.mkdir(path.join(dir, "profiles"));
-  const profile = { id: "test", environment: "test", domains: ["test.example"], public: {
+  const profile = { id: "test", environment: "test", domains: [domain], public: {
     accessGateway: true, providers: [{ enabled: true, issuer: "https://issuer.example/" }],
     apps: [{ id: "node-red", enabled: true }, { id: "plasma", enabled: true }] } };
   await fs.writeFile(path.join(dir, "profiles/test.yaml"), JSON.stringify(profile));
@@ -27,14 +29,15 @@ async function fixture(t) {
   });
   await new Promise(r => upstream.listen(0, "127.0.0.1", r));
   const gateway = createAccessGateway({ source: dir, environment: "test", keyFile: key,
-    authenticate: async req => { if (req.headers.authorization !== "DPoP verified") throw Error(); return "https://pod.example/alice/profile/card#me"; },
+    publicOrigin: options.publicOrigin,
+    authenticate: async (req, url) => { verifiedUrls.push(url); if (req.headers.authorization !== "DPoP verified") throw Error(); return "https://pod.example/alice/profile/card#me"; },
     resolveUpstream: (p, app, url) => "http://127.0.0.1:" + upstream.address().port + url });
   const server = http.createServer(async (req, res) => { if (!await gateway.handle(req, res)) { res.statusCode = 404; res.end(); } });
   server.on("upgrade", gateway.upgrade);
   await new Promise(r => server.listen(0, "127.0.0.1", r));
   const request = (url, options = {}) => new Promise((resolve, reject) => {
     const req = http.request("http://127.0.0.1:" + server.address().port + url,
-      { method: options.method || "GET", headers: { Host: "test.example", ...options.headers } }, res => {
+      { method: options.method || "GET", headers: { Host: domain, ...options.headers } }, res => {
         const chunks = []; res.on("data", c => chunks.push(c));
         res.on("end", () => resolve(new Response(Buffer.concat(chunks), { status: res.statusCode,
           headers: Object.fromEntries(Object.entries(res.headers).map(([k,v]) => [k, Array.isArray(v) ? v.join(", ") : v])) })));
@@ -43,11 +46,11 @@ async function fixture(t) {
   const login = async () => {
     const response = await request("/access-api/session", { method: "POST", headers: { Authorization: "DPoP verified", "X-Dataspace-Access": "1" } });
     assert.equal(response.status, 200);
-    assert.match(response.headers.get("set-cookie"), /HttpOnly; Secure; SameSite=Strict/);
+    assert.match(response.headers.get("set-cookie"), options.publicOrigin?.startsWith("http:") ? /HttpOnly; SameSite=Strict/ : /HttpOnly; Secure; SameSite=Strict/);
     return response.headers.get("set-cookie").split(";")[0];
   };
   t.after(async () => { gateway.close(); server.closeAllConnections(); upstream.closeAllConnections(); server.close(); upstream.close(); await fs.rm(dir, { recursive: true }); });
-  return { server, gateway, request, login, forwarded };
+  return { server, gateway, request, login, forwarded, verifiedUrls };
 }
 test("workspaces require login and browser navigation returns to the regular Solid login", async t => {
   const f = await fixture(t);
@@ -98,5 +101,38 @@ test("REST preview and credential sealing require verified owner identity", asyn
     assert.equal((await f.request(path, { method: "POST", body })).status, 401);
     assert.equal((await f.request(path, { method: "POST", headers: { Authorization: "DPoP verified" }, body })).status, 200);
     assert.ok(f.forwarded.at(-1).headers["x-dataspace-signature"]);
+  }
+});
+
+
+test("explicit loopback origin preserves the port in Solid proof verification", async t => {
+  const f = await fixture(t, { publicOrigin: "http://localhost:8080" });
+  const cookie = await f.login();
+  assert.match(cookie, /^dataspace-local-workspace=/);
+  assert.equal(f.verifiedUrls[0], "http://localhost:8080/access-api/session");
+  assert.equal((await f.request("/node-red/flows", { method: "POST", headers: { Cookie: cookie, Origin: "http://localhost:8080" }, body: "[]" })).status, 200);
+  for (const origin of ["http://localhost:8081", "https://localhost:8080", "http://evil.example"]) {
+    assert.equal((await f.request("/node-red/flows", { method: "POST", headers: { Cookie: cookie, Origin: origin }, body: "[]" })).status, 403);
+  }
+  assert.equal((await f.request("/node-red/flows", { headers: { Host: "evil.example", Cookie: cookie } })).status, 401);
+  assert.equal((await f.request("/node-red/flows", { headers: { Host: "localhost:8081", Cookie: cookie } })).status, 401);
+  assert.equal((await f.request("/access-api/logout", { method: "POST", headers: { Cookie: cookie, Origin: "http://localhost:8080", "X-Dataspace-Access": "1" } })).status, 200);
+  assert.equal((await f.request("/node-red/flows", { headers: { Cookie: cookie } })).status, 401);
+});
+test("local participant routes still require verified own WebID and signed forwarding", async t => {
+  const f = await fixture(t, { publicOrigin: "http://localhost:8080" });
+  const data = { webId: "https://pod.example/alice/profile/card#me" };
+  const headers = { Origin: "http://localhost:8080", "Content-Type": "application/json" };
+  assert.equal((await f.request("/sync-worker/participants", { method: "POST", headers, body: JSON.stringify(data) })).status, 401);
+  headers.Authorization = "DPoP verified";
+  assert.equal((await f.request("/sync-worker/participants", { method: "POST", headers, body: JSON.stringify({ webId: "https://pod.example/bob/profile/card#me" }) })).status, 403);
+  assert.equal((await f.request("/sync-worker/participants", { method: "POST", headers, body: JSON.stringify(data) })).status, 200);
+  assert.equal(f.verifiedUrls.at(-1), "http://localhost:8080/sync-worker/participants");
+  assert.ok(f.forwarded.at(-1).headers["x-dataspace-signature"]);
+  assert.equal(f.forwarded.at(-1).headers["x-forwarded-proto"], "http");
+});
+test("HTTP public origins outside loopback and non-origin URLs are rejected", () => {
+  for (const publicOrigin of ["http://example.org", "http://192.168.1.2:8080", "https://example.org/path", "https://user:password@example.org", "ftp://localhost"]) {
+    assert.throws(() => createAccessGateway({ publicOrigin }), /public origin/);
   }
 });

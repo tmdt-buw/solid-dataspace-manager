@@ -11,9 +11,9 @@ const workerPrefix = "/sync-worker";
 const participantPath = /^\/sync-worker\/participants(?:\/status|\/sync|\/seal|\/preview|\/imports|\/relocations)?(?:\?|$)/;
 const workspacePath = /^\/(node-red|plasma)(?:\/|$)/;
 const tokenHash = token => createHash("sha256").update(token).digest("hex");
-function cookie(req) {
-  const values = String(req.headers.cookie || "").split(";").map(s => s.trim()).filter(s => s.startsWith(COOKIE + "="));
-  return values.length === 1 ? values[0].slice(COOKIE.length + 1) : "";
+function cookie(req, name = COOKIE) {
+  const values = String(req.headers.cookie || "").split(";").map(s => s.trim()).filter(s => s.startsWith(name + "="));
+  return values.length === 1 ? values[0].slice(name.length + 1) : "";
 }
 function json(res, status, body, headers = {}) {
   res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store",
@@ -35,11 +35,19 @@ function cleanHeaders(req, host) {
   return headers;
 }
 export function createAccessGateway({ source, environment, keyFile, authenticate, now = Date.now,
-  resolveUpstream, sessionTtl = TTL }) {
+  resolveUpstream, sessionTtl = TTL, publicOrigin }) {
+  const origin = publicOrigin ? new URL(publicOrigin) : null;
+  if (origin && (origin.origin !== publicOrigin || origin.username || origin.password ||
+      (origin.protocol !== "https:" && !(origin.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname)))))
+    throw Error("The public origin must be HTTPS or an explicit loopback HTTP origin.");
+  const localHttp = origin?.protocol === "http:";
+  const cookieName = localHttp ? "dataspace-local-workspace" : COOKIE;
+  const cookieFlags = "; Path=/; HttpOnly;" + (localHttp ? "" : " Secure;") + " SameSite=Strict; Max-Age=";
+  const requestOrigin = req => origin?.origin || "https://" + req.headers.host;
   const sessions = new Map(), authenticators = new Map(), replayStore = new Map();
   const stack = environment === "prod" ? "solid-dataspace-prod" : "solid-dataspace-live-test";
   async function profile(req) {
-    if (!/^[a-z0-9.-]+$/.test(req.headers.host || "")) throw Error("Unknown host.");
+    if (origin ? req.headers.host !== origin.host : !/^[a-z0-9.-]+$/.test(req.headers.host || "")) throw Error("Unknown host.");
     for (const file of await fs.readdir(path.join(source, "profiles"))) {
       if (!/^[a-z0-9-]+\.yaml$/.test(file)) continue;
       const p = parse(await fs.readFile(path.join(source, "profiles", file), "utf8"));
@@ -56,7 +64,7 @@ export function createAccessGateway({ source, environment, keyFile, authenticate
       authenticators.set(key, createAuthenticator({ issuers, identityHosts: hosts, replayStore, allowPublicWebIds: true }));
     }
     const actor = await (authenticate || authenticators.get(key))(req,
-      "https://" + req.headers.host + req.url.split("?")[0],
+      requestOrigin(req) + req.url.split("?")[0],
       { has: value => { try { const u = new URL(value); return u.protocol === "https:" && !u.username && !u.password; } catch { return false; } } });
     return actor;
   }
@@ -66,7 +74,7 @@ export function createAccessGateway({ source, environment, keyFile, authenticate
     sessions.delete(key);
   }
   function getSession(req, p) {
-    const token = cookie(req), session = sessions.get(tokenHash(token));
+    const token = cookie(req, cookieName), session = sessions.get(tokenHash(token));
     if (!session || session.expires <= now() || session.host !== req.headers.host || session.profileId !== p.id) {
       if (session && session.expires <= now()) revoke(token);
       return null;
@@ -74,7 +82,7 @@ export function createAccessGateway({ source, environment, keyFile, authenticate
     return session;
   }
   function originAllowed(req, required = false) {
-    return (!required && !req.headers.origin) || req.headers.origin === "https://" + req.headers.host;
+    return (!required && !req.headers.origin) || req.headers.origin === requestOrigin(req);
   }
   function upstream(p, app, url) {
     if (resolveUpstream) return new URL(resolveUpstream(p, app, url));
@@ -91,7 +99,7 @@ export function createAccessGateway({ source, environment, keyFile, authenticate
   }
   function available(p, app) { return p.public.apps.some(x => x.id === app && x.enabled); }
   function proxy(req, res, target, extraHeaders = {}, payload) {
-    const headers = { ...cleanHeaders(req, target.host), ...extraHeaders };
+    const headers = { ...cleanHeaders(req, target.host), "x-forwarded-proto": localHttp ? "http" : "https", ...extraHeaders };
     if (payload !== undefined) { headers["content-length"] = Buffer.byteLength(payload); delete headers["transfer-encoding"]; }
     const outgoing = http.request(target, { method: req.method, headers, timeout: 60000 }, incoming => {
       const headers = { ...incoming.headers, "cache-control": "no-store" };
@@ -117,7 +125,7 @@ export function createAccessGateway({ source, environment, keyFile, authenticate
       if (req.url === "/access-api/session" && req.method === "POST") {
         if (req.headers["x-dataspace-access"] !== "1") { json(res, 400, { error: "Invalid session request." }); return true; }
         const actor = await verify(req, p);
-        let token = cookie(req), current = getSession(req, p);
+        let token = cookie(req, cookieName), current = getSession(req, p);
         if (current && current.webId !== actor) { revoke(token); current = null; }
         if (!current) {
           if (sessions.size >= 5000) { json(res, 503, { error: "Session capacity reached." }); return true; }
@@ -125,19 +133,19 @@ export function createAccessGateway({ source, environment, keyFile, authenticate
           current = { webId: actor, profileId: p.id, host: req.headers.host, sockets: new Set() };
         }
         current.expires = now() + sessionTtl; sessions.set(tokenHash(token), current);
-        json(res, 200, { webId: actor }, { "Set-Cookie": COOKIE + "=" + token + "; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=" + Math.floor(sessionTtl / 1000) });
+        json(res, 200, { webId: actor }, { "Set-Cookie": cookieName + "=" + token + cookieFlags + Math.floor(sessionTtl / 1000) });
         return true;
       }
       if (req.url === "/access-api/logout" && req.method === "POST") {
         if (!originAllowed(req, true) || req.headers["x-dataspace-access"] !== "1") { json(res, 403, { error: "Origin is required." }); return true; }
-        revoke(cookie(req));
-        json(res, 200, { ok: true }, { "Set-Cookie": COOKIE + "=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0" }); return true;
+        revoke(cookie(req, cookieName));
+        json(res, 200, { ok: true }, { "Set-Cookie": cookieName + "=" + cookieFlags + "0" }); return true;
       }
       if (participantPath.test(req.url)) {
         if (p.public.syncWorker?.enabled === false) { json(res, 403, { error: "Data Connection is disabled for this profile." }); return true; }
         const actor = await verify(req, p);
         const data = await body(req);
-        const webId = data.webId || new URL(req.url, "https://" + req.headers.host).searchParams.get("webId");
+        const webId = data.webId || new URL(req.url, requestOrigin(req)).searchParams.get("webId");
         if (webId !== actor) { json(res, 403, { error: "Only your own WebID can be managed." }); return true; }
         const key = await fs.readFile(keyFile); if (key.length < 32) throw Error("Invalid worker key.");
         const targetPath = req.url.slice(workerPrefix.length);
@@ -190,5 +198,5 @@ export function createAccessGateway({ source, environment, keyFile, authenticate
       for (const socket of session.sockets) socket.destroy(); sessions.delete(key);
     }
   }, 30000); timer.unref();
-  return { handle, upgrade, close() { clearInterval(timer); for (const s of sessions.values()) for (const socket of s.sockets) socket.destroy(); sessions.clear(); } };
+  return { publicOrigin: origin?.origin, handle, upgrade, close() { clearInterval(timer); for (const s of sessions.values()) for (const socket of s.sockets) socket.destroy(); sessions.clear(); } };
 }
