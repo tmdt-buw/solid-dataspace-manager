@@ -1,5 +1,7 @@
 // Carry the Dataspace language through OIDC and establish the selected account
 // in a top-level request. Never put account credentials in the redirect URL.
+import { usesProviderLogin } from "./loginMode";
+
 const HANDOFF_ISSUER = "https://solid-community-server.tmdt.info";
 
 export function accountLoginRedirect(issuer, accountToken, language = "en") {
@@ -10,7 +12,7 @@ export function accountLoginRedirect(issuer, accountToken, language = "en") {
       throw new Error("Unexpected Solid authorization endpoint.");
     }
     target.searchParams.set("ui_locales", language === "de" ? "de" : "en");
-    if (!accountToken) {
+    if (!accountToken || usesProviderLogin()) {
       window.location.assign(target.href);
       return;
     }

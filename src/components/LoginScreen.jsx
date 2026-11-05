@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usesProviderLogin } from "../loginMode";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowRight,
@@ -36,7 +37,7 @@ import {
 
 export default function LoginScreen({ onLogin }) {
   const providers = getEnabledProviders();
-  const providerLogin = window.__APP_CONFIG__?.loginMode === "oidc";
+  const providerLogin = usesProviderLogin();
   const branding = getBranding();
 
   const [selected, setSelected] = useState(providers[0]?.issuer || "");
