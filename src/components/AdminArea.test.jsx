@@ -245,3 +245,76 @@ test("activates operational changes after explicit review", async () => {
     screen.queryByRole("button", { name: "Oberfläche neu laden" }),
   ).toBeInTheDocument();
 });
+
+test("selects a profile from the styled list and marks the current profile", async () => {
+  const secondProfile = {
+    id: "stadt-wuppertal",
+    label: "Stadt Wuppertal",
+    environment: "prod",
+    canEdit: true,
+  };
+  adminRequest.mockImplementation(async (path) => {
+    const result = loaded();
+    if (path === "/profiles/stadt-wuppertal") {
+      result.profile.id = secondProfile.id;
+      result.profile.public.branding.projectName = secondProfile.label;
+    }
+    return result;
+  });
+  show({
+    access: { ...access, profiles: [...access.profiles, secondProfile] },
+  });
+  await screen.findByRole("switch", { name: "Semantic Data Catalog aktiv" });
+  const selector = screen.getByRole("combobox", { name: "Profil auswählen" });
+  fireEvent.mouseDown(selector);
+  expect(
+    screen.getByRole("option", { name: "Test Instance test" }),
+  ).toHaveAttribute("aria-selected", "true");
+  fireEvent.click(
+    screen.getByRole("option", { name: "Stadt Wuppertal stadt-wuppertal" }),
+  );
+  await waitFor(() =>
+    expect(selector).toHaveTextContent("Stadt Wuppertal (stadt-wuppertal)"),
+  );
+  expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  expect(
+    adminRequest.mock.calls.some(
+      ([path]) => path === "/profiles/stadt-wuppertal",
+    ),
+  ).toBe(true);
+});
+
+test("keeps unsaved settings when a profile switch from the list is cancelled", async () => {
+  show({
+    access: {
+      ...access,
+      profiles: [
+        ...access.profiles,
+        {
+          id: "stadt-wuppertal",
+          label: "Stadt Wuppertal",
+          environment: "prod",
+          canEdit: true,
+        },
+      ],
+    },
+  });
+  const visible = await screen.findByRole("switch", {
+    name: "Semantic Data Catalog im Menü",
+  });
+  fireEvent.click(visible);
+  const selector = screen.getByRole("combobox", { name: "Profil auswählen" });
+  fireEvent.mouseDown(selector);
+  fireEvent.click(
+    screen.getByRole("option", { name: "Stadt Wuppertal stadt-wuppertal" }),
+  );
+  await screen.findByRole("dialog", { name: "Profil wechseln?" });
+  fireEvent.click(screen.getByRole("button", { name: "Zurück" }));
+  expect(selector).toHaveTextContent("Test Instance (test)");
+  expect(visible).not.toBeChecked();
+  expect(
+    adminRequest.mock.calls.some(
+      ([path]) => path === "/profiles/stadt-wuppertal",
+    ),
+  ).toBe(false);
+});

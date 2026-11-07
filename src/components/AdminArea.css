@@ -4,7 +4,7 @@
   --admin-muted: #68758b;
   /* Keep the admin workspace readable inside the shell's compact layout. */
   zoom: calc(1 / var(--dataspace-ui-scale, 1));
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.55;
   min-width: 0;
   min-height: 100%;
@@ -24,16 +24,16 @@
   margin: 0;
 }
 .admin-area h1 {
-  font-size: 32px;
+  font-size: 28px;
   letter-spacing: -0.6px;
 }
 .admin-area h2 {
-  font-size: 20px;
+  font-size: 18px;
 }
 .admin-area p {
   color: var(--admin-muted);
-  font-size: 15px;
-  line-height: 1.7;
+  font-size: 14px;
+  line-height: 1.6;
 }
 .admin-header {
   margin: 0 !important;
@@ -43,11 +43,11 @@
   color: var(--admin-blue);
 }
 .admin-context {
-  padding: 28px 32px 24px;
+  padding: 20px 24px 16px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 20px;
+  align-items: flex-end;
+  gap: 16px;
 }
 .admin-context label {
   min-width: 0;
@@ -58,17 +58,119 @@
   color: var(--admin-muted);
   margin-bottom: 6px;
 }
-.admin-context select {
+.admin-profile-field {
+  flex: 0 1 360px;
+  min-width: 0;
   max-width: 100%;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  font-size: 22px;
-  font-weight: 800;
-  color: #14213b;
-  padding-right: 20px;
-  min-height: 44px;
 }
+.admin-profile-select {
+  position: relative;
+  display: block;
+}
+.admin-profile-control.MuiInputBase-root {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  background: white;
+  color: #14213b;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.admin-profile-control .MuiSelect-select {
+  padding: 10px 42px;
+}
+.admin-profile-control .MuiOutlinedInput-notchedOutline {
+  border-color: #dce4ef;
+}
+.admin-profile-control:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #95b9ee;
+}
+.admin-profile-control.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-width: 2px;
+  border-color: #1769e8;
+}
+.admin-profile-control .MuiSelect-icon {
+  right: 14px;
+  top: calc(50% - 6px);
+  width: 12px;
+  height: 12px;
+  color: #68758b;
+}
+.admin-profile-icon {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  color: var(--admin-blue);
+  font-size: 16px;
+}
+.admin-profile-menu.MuiPaper-root {
+  margin-top: 6px;
+  max-height: min(360px, calc(100dvh - 32px));
+  border: 1px solid #dce4ef;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 12px 32px #14213b1f;
+  font-family: Manrope, "Segoe UI", sans-serif;
+}
+.admin-profile-options.MuiList-root {
+  padding: 6px;
+}
+.admin-profile-option.MuiMenuItem-root {
+  min-height: 58px;
+  padding: 10px 12px;
+  gap: 16px;
+  border-radius: 8px;
+  color: #334766;
+  font: inherit;
+  line-height: 1.4;
+  white-space: normal;
+}
+.admin-profile-option.MuiMenuItem-root + .admin-profile-option {
+  margin-top: 4px;
+}
+.admin-profile-option.MuiMenuItem-root:hover,
+.admin-profile-option.Mui-focusVisible {
+  background: #f1f6ff;
+}
+.admin-profile-option.MuiMenuItem-root.Mui-selected {
+  background: #eaf2ff;
+  color: #1769e8;
+}
+.admin-profile-option.MuiMenuItem-root.Mui-selected:hover,
+.admin-profile-option.MuiMenuItem-root.Mui-selected.Mui-focusVisible {
+  background: #deebff;
+}
+.admin-profile-option-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  overflow-wrap: anywhere;
+}
+.admin-profile-option-text strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+.admin-profile-option-text > span {
+  color: #68758b;
+  font-size: 12px;
+}
+.admin-profile-check {
+  flex: 0 0 auto;
+  color: #1769e8;
+  font-size: 16px;
+}
+.admin-context > .admin-btn {
+  margin-left: auto;
+}
+
 .admin-chip {
   display: inline-flex;
   padding: 5px 10px;
@@ -82,8 +184,8 @@
 .admin-nav {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 32px 18px;
+  gap: 6px;
+  padding: 0 24px 14px;
   overflow-x: auto;
   scrollbar-width: thin;
   border-bottom: 1px solid var(--admin-line);
@@ -96,13 +198,13 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: 9px;
-  padding: 12px 16px;
+  padding: 10px 12px;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #60718b;
   cursor: pointer;
-  min-height: 46px;
+  min-height: 44px;
   white-space: nowrap;
 }
 .admin-nav button.is-active {
@@ -115,14 +217,14 @@
   background: #edf4ff;
 }
 .admin-nav svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 .admin-mobile-nav {
   display: none;
 }
 .admin-content {
-  padding: 30px 32px;
+  padding: 22px 24px;
   flex: 1;
   min-width: 0;
 }
@@ -131,7 +233,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
   flex-wrap: wrap;
 }
 .admin-page-heading p {
@@ -142,8 +244,8 @@
   background: white;
   border: 1px solid var(--admin-line);
   border-radius: 13px;
-  padding: 26px;
-  margin-bottom: 22px;
+  padding: 20px;
+  margin-bottom: 18px;
 }
 .admin-panel-heading {
   display: flex;
@@ -151,13 +253,13 @@
   gap: 15px;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 .admin-grid,
 .admin-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
+  gap: 16px;
 }
 .admin-grid > .admin-panel {
   margin-bottom: 0;
@@ -180,14 +282,14 @@
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  min-height: 48px;
+  min-height: 44px;
   border: 1px solid #dce4ef;
   background: white;
   color: #23344f;
   border-radius: 9px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   font: inherit;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 400;
   line-height: 1.5;
 }
@@ -206,7 +308,7 @@
 }
 .admin-inline {
   display: flex;
-  gap: 22px;
+  gap: 16px;
   align-items: center;
   flex-wrap: wrap;
   margin: 14px 0;
@@ -216,14 +318,14 @@
   justify-content: center;
   align-items: center;
   gap: 8px;
-  min-height: 46px;
-  padding: 12px 16px;
+  min-height: 44px;
+  padding: 10px 14px;
   border: 1px solid #dce4ef;
   border-radius: 9px;
   background: white;
   color: #334766;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   box-shadow: none;
@@ -277,15 +379,15 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 11px;
   background: #eaf2ff;
   color: #2375e5;
 }
 .admin-symbol svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
 .admin-metrics {
   display: grid;
@@ -295,11 +397,11 @@
 .admin-metric {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 22px;
+  gap: 12px;
+  padding: 18px;
 }
 .admin-metric strong {
-  font-size: 28px;
+  font-size: 24px;
   letter-spacing: -0.5px;
 }
 .admin-metric p {
@@ -308,7 +410,7 @@
 .admin-quick {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
   cursor: pointer;
   color: inherit;
   text-align: left;
@@ -330,8 +432,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 100px 100px 44px;
   align-items: center;
-  gap: 16px;
-  padding: 20px 26px;
+  gap: 14px;
+  padding: 16px 20px;
   border-bottom: 1px solid #edf0f5;
 }
 .admin-app-heading {
@@ -352,7 +454,7 @@
 }
 .admin-app-info strong {
   display: block;
-  font-size: 15px;
+  font-size: 14px;
   overflow-wrap: anywhere;
 }
 .admin-app-info small {
@@ -430,7 +532,7 @@
   min-width: 0;
 }
 .admin-person strong {
-  font-size: 15px;
+  font-size: 14px;
 }
 .admin-person p,
 .admin-webid {
@@ -496,12 +598,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 32px;
-  min-height: 84px;
+  padding: 14px 24px;
+  min-height: 72px;
   flex-wrap: wrap;
 }
 .admin-savebar strong {
-  font-size: 15px;
+  font-size: 14px;
 }
 .admin-savebar small {
   display: block;
@@ -517,13 +619,13 @@
   color: #14213b;
   border: 1px solid var(--admin-line);
   border-radius: 16px;
-  padding: 28px;
+  padding: 24px;
   width: min(860px, calc(100% - 32px));
   max-height: calc(100dvh - 32px);
   overflow: auto;
   background: white;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 14px;
 }
 .admin-modal::backdrop {
   background: #14213b66;
@@ -537,7 +639,7 @@
 }
 .admin-modal-heading h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
 }
 .admin-modal-content {
   min-width: 0;
@@ -555,7 +657,7 @@
 .admin-diff {
   padding: 16px 0;
   border-bottom: 1px solid var(--admin-line);
-  font-size: 15px;
+  font-size: 14px;
 }
 .admin-diff > div {
   display: grid;
@@ -639,20 +741,14 @@
   .admin-context {
     padding: 18px 16px;
   }
-  .admin-context select {
-    font-size: 18px;
-  }
   .admin-context small {
-    font-size: 12px;
-  }
-  .admin-context .admin-chip {
     font-size: 12px;
   }
   .admin-content {
     padding: 20px 16px;
   }
   .admin-area h1 {
-    font-size: 28px;
+    font-size: 26px;
   }
   .admin-page-heading {
     gap: 12px;
@@ -899,7 +995,7 @@
     grid-column: 2;
     grid-row: 2 / span 2;
   }
-  .admin-context label {
+  .admin-profile-field {
     width: 100%;
   }
 }

@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
 import {
   faShieldHalved,
   faTableCellsLarge,
@@ -19,6 +21,7 @@ import {
   faPen,
   faCircleInfo,
   faRotateRight,
+  faChevronDown,
 } from "@fortawesome/free-solid-svg-icons";
 import { adminRequest, awaitAdminJob } from "../adminApi";
 import { useI18n } from "../i18n";
@@ -75,6 +78,9 @@ const friendlyPath = (path) =>
     .replace("fundingLogos", "Förderlogos");
 function Icon({ icon }) {
   return <FontAwesomeIcon icon={icon} />;
+}
+function ProfileSelectArrow(props) {
+  return <FontAwesomeIcon icon={faChevronDown} {...props} />;
 }
 function Button({ children, primary, icon, ...props }) {
   return (
@@ -176,6 +182,7 @@ export default function AdminArea({ access, loadingAccess, webId }) {
     [switchTo, setSwitchTo] = useState(""),
     [reloadAvailable, setReloadAvailable] = useState(false);
   const requestRef = useRef(0);
+  const profileSelectRef = useRef(null);
   const canEdit = Boolean(loaded?.canEdit),
     dirty = Boolean(loaded && draft && !equal(loaded.profile, draft));
   const profiles = localAccess?.profiles || access?.profiles || EMPTY_PROFILES;
@@ -1094,24 +1101,62 @@ export default function AdminArea({ access, loadingAccess, webId }) {
         <span className="integrated-version">{appVersion}</span>
       </header>
       <div className="admin-context">
-        <label>
-          <small>Du verwaltest das Profil</small>
-          <select
-            aria-label="Profil auswählen"
-            value={profileId}
-            disabled={busy}
-            onChange={(e) => {
-              if (dirty) setSwitchTo(e.target.value);
-              else setProfileId(e.target.value);
-            }}
-          >
-            {profiles.map((p) => (
-              <option translate="no" key={p.id} value={p.id}>
-                {p.label} · {p.id}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="admin-profile-field">
+          <label htmlFor="admin-profile-selector">
+            <small>Du verwaltest das Profil</small>
+          </label>
+          <div className="admin-profile-select">
+            <span className="admin-profile-icon" aria-hidden="true">
+              <Icon icon={faLayerGroup} />
+            </span>
+            <Select
+              id="admin-profile-selector"
+              ref={profileSelectRef}
+              className="admin-profile-control"
+              inputProps={{ "aria-label": t("Profil auswählen") }}
+              value={profileId}
+              disabled={busy}
+              IconComponent={ProfileSelectArrow}
+              renderValue={() => (
+                <span translate="no">
+                  {current?.label} ({current?.id})
+                </span>
+              )}
+              MenuProps={{
+                disablePortal: true,
+                container: () => profileSelectRef.current,
+                disableScrollLock: true,
+                slotProps: {
+                  paper: { className: "admin-profile-menu" },
+                  list: { className: "admin-profile-options" },
+                },
+              }}
+              onChange={(e) => {
+                if (dirty) setSwitchTo(e.target.value);
+                else setProfileId(e.target.value);
+              }}
+            >
+              {profiles.map((p) => (
+                <MenuItem
+                  className="admin-profile-option"
+                  translate="no"
+                  key={p.id}
+                  value={p.id}
+                >
+                  <span className="admin-profile-option-text">
+                    <strong>{p.label}</strong>
+                    <span>{p.id}</span>
+                  </span>
+                  {p.id === profileId && (
+                    <span className="admin-profile-check" aria-hidden="true">
+                      <Icon icon={faCheck} />
+                    </span>
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </div>
+        </div>
         {(localAccess?.isOperator || access?.isOperator) && (
           <Button
             onClick={() => setNewProfile(true)}
@@ -1121,9 +1166,6 @@ export default function AdminArea({ access, loadingAccess, webId }) {
             {t("Create profile")}
           </Button>
         )}
-        <span className="admin-chip">
-          {current?.environment === "test" ? "Live-Test" : "Produktion"}
-        </span>
       </div>
       <nav className="admin-nav" aria-label="Admin-Bereiche">
         {available.map(([id, label, icon]) => (
