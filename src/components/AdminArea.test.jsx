@@ -318,3 +318,22 @@ test("keeps unsaved settings when a profile switch from the list is cancelled", 
     ),
   ).toBe(false);
 });
+
+
+test("keeps keyboard focus in the profile menu under StrictMode and closes with Escape", async () => {
+  render(
+    <React.StrictMode>
+      <I18nProvider language="de">
+        <AdminArea webId={webId} access={access} />
+      </I18nProvider>
+    </React.StrictMode>,
+  );
+  await screen.findByRole("switch", { name: "Semantic Data Catalog aktiv" });
+  const selector = screen.getByRole("combobox", { name: "Profil auswählen" });
+  fireEvent.mouseDown(selector);
+  const selected = await screen.findByRole("option", { name: "Test Instance test" });
+  await waitFor(() => expect(selected).toHaveFocus());
+  fireEvent.keyDown(document.activeElement, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument());
+  expect(selector).toHaveFocus();
+});

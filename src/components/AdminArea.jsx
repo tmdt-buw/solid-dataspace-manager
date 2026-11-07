@@ -1129,6 +1129,12 @@ export default function AdminArea({ access, loadingAccess, webId }) {
                 slotProps: {
                   paper: { className: "admin-profile-menu" },
                   list: { className: "admin-profile-options" },
+                  transition: {
+                    onEntered: (menu) => {
+                      // Keep keyboard focus in the menu after opening completes.
+                      menu.querySelector('[role="option"][aria-selected="true"]')?.focus();
+                    },
+                  },
                 },
               }}
               onChange={(e) => {
