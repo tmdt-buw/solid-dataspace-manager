@@ -11,6 +11,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts' / 'deployment'))
 from compile_config import compile_config as compile_config, read_config, APP_PATHS
 from statistics_plan import statistics_plan
+from catalog_metadata import validate_catalog_metadata
 
 class ConfigError(Exception):
     def __init__(self, message, status=400):
@@ -27,7 +28,8 @@ def differences(before, after, path=''):
         return [d for key in sorted(set(before)|set(after)) for d in differences(before.get(key),after.get(key), f'{path}.{key}' if path else key)]
     if isinstance(before,list) and isinstance(after,list) and before and after and all(isinstance(v,dict) and 'id' in v for v in before+after):
         left={v['id']:v for v in before};right={v['id']:v for v in after}
-        return [d for key in sorted(set(left)|set(right)) for d in differences(left.get(key),right.get(key),f'{path}.{key}')]
+        order=[{'path':path+'._order','before':list(left),'after':list(right)}] if list(left)!=list(right) else []
+        return order + [d for key in sorted(set(left)|set(right)) for d in differences(left.get(key),right.get(key),f'{path}.{key}')]
     if before == after: return []
     return [{'path':path, 'before':before, 'after':after}]
 
@@ -110,7 +112,9 @@ def validate_profile(candidate, before, registries, identity_hosts):
     if not enabled or recommended>1: raise ConfigError('Mindestens einen Anbieter aktivieren und höchstens einen empfehlen.')
     # Keep a working login path for current admins; a new issuer needs a coordinated deployment.
     if not any(v['issuer'] in {x['issuer'] for x in old['providers'] if x['enabled']} and v['enabled'] for v in providers): raise ConfigError('Mindestens ein bestehender Login-Anbieter muss aktiv bleiben.')
-    cat=p['catalog'];keys(cat,['defaultRegistry'],'Katalog');url(cat.get('defaultRegistry'),'Registry')
+    cat=p['catalog'];url(cat.get('defaultRegistry'),'Registry')
+    try: validate_catalog_metadata(cat, old['catalog'])
+    except ValueError as error: raise ConfigError(str(error)) from error
     if cat['defaultRegistry'].rstrip('/') not in {r['url'].rstrip('/') for r in registries}: raise ConfigError('Unbekannte Registry.')
     sw=p['syncWorker'];keys(sw,['enabled','apiUrl','serviceWebId','intervalMinutes'],'Sync-Worker')
     boolean(sw.get('enabled'),'Worker-Verwaltung');url(sw.get('apiUrl'),'Worker-API',True);url(sw.get('serviceWebId'),'Worker-WebID')
@@ -129,6 +133,16 @@ def validate_profile(candidate, before, registries, identity_hosts):
 
 def diff_label(path, before, after):
     names={'enabled':'Aktivierung','visible':'Im Menü','title':'Anzeigename','href':'Link','order':'Reihenfolge','section':'Menügruppe','iconKey':'Symbol','linkType':'Linkart','projectName':'Projektname','logoUrl':'Projektlogo','logoAlt':'Alternativtext','logoWidth':'Logobreite','logoHeight':'Logohöhe','logoMaxHeight':'Maximale Logohöhe','fundingGrantNumber':'Förderkennzeichen','adminWebIds':'Berechtigte WebIDs','defaultRegistry':'Registry-Zuordnung','domains':'Domains','timezone':'Zeitzone','podBaseUrl':'Statistik-Pod','eventsUrl':'Download-Ereignisse','activityResourcePath':'Aktivitäts-Ressourcenpfad','workerWebId':'Worker-WebID','apiUrl':'API-Adresse','serviceWebId':'Service-WebID','intervalMinutes':'Intervall-Vorgabe','plasmaUrl':'PLASMA-Adresse','issuer':'Login-Anbieter','recommended':'Empfohlen','note':'Hinweis','src':'Logo-Adresse','alt':'Logo-Beschreibung'}
+    if path.startswith('public.catalog.metadata'):
+        names.update({'metadataProfile':'Katalogprofil','metadataProfiles':'Katalogprofile','label':'Bezeichnung','help':'Hilfetext','required':'Pflichtfeld für neue Einträge','multiple':'Mehrfachauswahl','form':'Im Formular','details':'In den Details','filter':'Als Filter','exclusive':'Nur allein auswählbar','_order':'Reihenfolge'})
+        labels=[]
+        value=after
+        for part in path.split('.'):
+            if isinstance(value,list): value=next((item for item in value if item.get('id')==part),{})
+            elif isinstance(value,dict): value=value.get(part,{})
+            else: break
+            if isinstance(value,dict) and isinstance(value.get('label'),dict):labels.append(value['label'].get('de') or part)
+        return ' / '.join(['Katalogprofil']+labels+[names.get(path.split('.')[-1],path.split('.')[-1])])
     parts=path.split('.')
     if len(parts)>=4 and parts[1] in ('apps','providers','fundingLogos'):
         collection=after['public'][parts[1]]+before['public'][parts[1]]
@@ -244,7 +258,7 @@ class ConfigStore(ProfileStore):
         return current,[r for r in registries if r.get('environment',self.environment)==self.environment]
     def check_plan(self,actor,before,after,registries):
         changes=differences(before or {},after)
-        operational=before is None or any(d['path'].startswith(('domains','redirectDomains','public.catalog.','public.syncWorker.','public.statistics.','public.plasmaUrl')) for d in changes)
+        operational=before is None or any(d['path'].startswith(('domains','redirectDomains','public.catalog.defaultRegistry','public.syncWorker.','public.statistics.','public.plasmaUrl')) for d in changes)
         old_providers={p['issuer'] for p in before['public']['providers'] if p['enabled']} if before else set()
         new_providers={p['issuer'] for p in after['public']['providers'] if p['enabled']}
         operational=operational or old_providers!=new_providers

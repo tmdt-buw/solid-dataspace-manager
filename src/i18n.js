@@ -1035,6 +1035,34 @@ Object.assign(enToDe, {
     "Der Katalog beschreibt veröffentlichte Datensätze; Registries machen teilnehmende Pods und Kataloge auffindbar.",
 });
 
+Object.assign(enToDe, {
+  "Unknown fields in the catalog profile.": "Unbekannte Felder im Katalogprofil.",
+  "Both German and English must be provided.": "Deutsch und Englisch müssen angegeben werden.",
+  "Invalid text in the catalog profile.": "Ungültiger Text im Katalogprofil.",
+  "Too many entries in the catalog profile.": "Zu viele Einträge im Katalogprofil.",
+  "Invalid entry in the catalog profile.": "Ungültiger Eintrag im Katalogprofil.",
+  "Identifiers must be unique.": "Kennungen müssen eindeutig sein.",
+  "Invalid category address.": "Ungültige Kategorie-Adresse.",
+  "The catalog profile is too large.": "Das Katalogprofil ist zu groß.",
+  "Duplicate category address.": "Doppelte Kategorie-Adresse.",
+  "Required fields must be visible in forms and enabled.": "Pflichtfelder müssen im Formular sichtbar und aktiv sein.",
+  "An option does not belong uniquely to its category.": "Auswahlwert gehört nicht eindeutig zur Kategorie.",
+  "Required fields need enabled options.": "Pflichtfelder benötigen aktive Auswahlwerte.",
+  "The selected catalog profile is not enabled.": "Das ausgewählte Katalogprofil ist nicht aktiv.",
+  "Please disable definitions instead of deleting them.": "Verwendbare Definitionen bitte deaktivieren statt löschen.",
+  "Technical identifiers cannot be changed.": "Technische Kennungen dürfen nicht verändert werden.",
+  "Catalog profile": "Katalogprofil",
+  "Catalog profiles": "Katalogprofile",
+  "Required for new entries": "Pflichtfeld für neue Einträge",
+  "Multiple selection": "Mehrfachauswahl",
+  "In forms": "Im Formular",
+  "In details": "In den Details",
+  "As a filter": "Als Filter",
+  "Exclusive option": "Nur allein auswählbar",
+  "Help text": "Hilfetext",
+  "Label": "Bezeichnung"
+});
+
 const deToEn = [
   ...Object.entries(adminTranslations),
   ...Object.entries(enToDe),

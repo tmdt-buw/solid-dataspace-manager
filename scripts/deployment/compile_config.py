@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 
 import yaml
 import jsonschema
+from catalog_metadata import validate_catalog_metadata, vocabulary_turtle
 
 APP_PATHS = {
     'solid-data-manager': ['/solid-data-manager', '/solid-data-manager/*'],
@@ -42,6 +43,7 @@ def read_config(directory):
         registry_urls.add(key); registry_ids.add(registry['id'])
     for profile in profiles:
         jsonschema.validate(profile, schema)
+        validate_catalog_metadata(profile['public']['catalog'])
         if profile['id'] in ids:
             raise ValueError('Duplicate profile ID.')
         ids.add(profile['id'])
@@ -80,6 +82,8 @@ def site(profile):
         lines += [f'  route {url} {{', '    header Cache-Control "no-store"', '    header Vary "Host"',
                   '    header Content-Type "application/javascript; charset=utf-8"',
                   f'    root * /config/consolidated/runtime/{key}', f'    rewrite * /{name}', '    file_server', '  }']
+    if profile['public']['catalog'].get('metadataProfiles'):
+        lines += ['  route /catalog-vocabulary/* {', '    header Content-Type \"text/turtle; charset=utf-8\"', '    header Cache-Control \"public, max-age=300\"', f'    root * /config/consolidated/runtime/{key}', '    rewrite * /catalog-vocabulary.ttl', '    file_server', '  }']
     if profile.get('administration', {}).get('enabled'):
         lines += [f'  reverse_proxy /admin-api/* {common}-admin-api:3012']
     disabled = [path for app in profile['public']['apps'] if not app['enabled'] for path in APP_PATHS[app['id']]]
@@ -142,9 +146,11 @@ def compile_config(directory, output):
         stats = public['statistics']
         catalog = {'PUBLIC_CACHE_URL':'/sync-worker/public-cache','CATALOG_REGISTRIES':profile_registries,
                    'CATALOG_DEFAULT_REGISTRY':public['catalog']['defaultRegistry'],
+                   'CATALOG_METADATA_CONFIG':public['catalog'],
                    'STATISTICS_ENABLED':stats['enabled'],'STATISTICS_POD_BASE_URL':stats['podBaseUrl'],
                    'STATISTICS_EVENTS_URL':stats['eventsUrl'],'STATISTICS_REGISTRY_CONTEXT':profile['id']}
         (runtime / 'env.js').write_text('window._env_ = ' + json.dumps(catalog,ensure_ascii=False) + ';\n')
+        (runtime / 'catalog-vocabulary.ttl').write_text(vocabulary_turtle(public['catalog']))
         sites.append(site(profile))
     (output / 'sites.caddy').write_text('\n\n'.join(sites) + '\n')
     for environment,stack in [('test','solid-dataspace-live-test'),('prod','solid-dataspace-prod')]:

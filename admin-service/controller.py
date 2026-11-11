@@ -19,6 +19,8 @@ class RuntimeTransaction:
             # Journal is local-controller-only; never accept paths from the public API.
             for filename,content in files.items():
                 p=Path(filename)
+                if content is None:
+                    p.unlink(missing_ok=True);continue
                 if filename==record.get('source') and p.read_bytes() not in (base64.b64decode(content),base64.b64decode(record['replacement'])):
                     continue # preserve an intervening manual YAML edit
                 tmp=p.with_name(p.name+'.rollback');tmp.write_bytes(base64.b64decode(content));tmp.replace(p)
@@ -53,9 +55,9 @@ class RuntimeTransaction:
             check.write_text(base.replace('/config/consolidated/sites.caddy',f'/config/{staging.name}/after/sites.caddy'))
             self.run('validate',f'/config/{staging.name}/Caddyfile.check')
             replacements=[('sites.caddy',live_sites)]
-            replacements += [(f"runtime/{after['id']}/{name}",self.live/'runtime'/after['id']/name) for name in ('config.js','env.js')]
+            replacements += [(f"runtime/{after['id']}/{name}",self.live/'runtime'/after['id']/name) for name in ('config.js','env.js','catalog-vocabulary.ttl')]
             # Include source in the journal so recovery after a process interruption is consistent.
-            backup={str(target):base64.b64encode(target.read_bytes()).decode() for _,target in replacements}
+            backup={str(target):(base64.b64encode(target.read_bytes()).decode() if target.exists() else None) for _,target in replacements}
             source_file=source/'profiles'/f"{after['id']}.yaml"
             backup[str(source_file)]=base64.b64encode(source_file.read_bytes()).decode()
             record={'files':backup,'source':str(source_file),'profileId':after['id'],'revision':revision(before),'replacementRevision':revision(after),'replacement':base64.b64encode(yaml.safe_dump(after,allow_unicode=True,sort_keys=False).encode()).decode()}

@@ -1,0 +1,459 @@
+{
+  "id": "dace-ce-v1",
+  "label": {
+    "de": "Kreislaufwirtschaft",
+    "en": "Circular economy"
+  },
+  "enabled": true,
+  "fields": [
+    {
+      "id": "level",
+      "label": {
+        "de": "Betrachtungsebene",
+        "en": "CE level"
+      },
+      "help": {
+        "de": "Auf welcher Ebene sind die Daten relevant?",
+        "en": "At which level are the data relevant?"
+      },
+      "enabled": true,
+      "multiple": true,
+      "required": false,
+      "form": true,
+      "details": true,
+      "filter": true,
+      "values": [
+        {
+          "id": "nano",
+          "label": {
+            "de": "Nano",
+            "en": "Nano"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "micro",
+          "label": {
+            "de": "Mikro",
+            "en": "Micro"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "meso",
+          "label": {
+            "de": "Meso",
+            "en": "Meso"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "macro",
+          "label": {
+            "de": "Makro",
+            "en": "Macro"
+          },
+          "enabled": true,
+          "exclusive": false
+        }
+      ]
+    },
+    {
+      "id": "stakeholders",
+      "label": {
+        "de": "Beteiligte Gruppen",
+        "en": "Stakeholder groups"
+      },
+      "help": {
+        "de": "Für welche Gruppen sind die Daten relevant?",
+        "en": "Which groups are the data relevant to?"
+      },
+      "enabled": true,
+      "multiple": true,
+      "required": false,
+      "form": true,
+      "details": true,
+      "filter": true,
+      "values": [
+        {
+          "id": "government",
+          "label": {
+            "de": "Bundesregierung",
+            "en": "Federal government"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "local-government",
+          "label": {
+            "de": "Land und Kommune",
+            "en": "State / city government"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "community",
+          "label": {
+            "de": "Gemeinschaft und Zivilgesellschaft",
+            "en": "Communities / civil society / NGOs"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "media",
+          "label": {
+            "de": "Medien",
+            "en": "Media"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "companies",
+          "label": {
+            "de": "Unternehmen",
+            "en": "Companies"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "consumers",
+          "label": {
+            "de": "Verbraucher",
+            "en": "Consumers"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "workers",
+          "label": {
+            "de": "Beschäftigte",
+            "en": "Workers"
+          },
+          "enabled": true,
+          "exclusive": false
+        }
+      ]
+    },
+    {
+      "id": "value-chain",
+      "label": {
+        "de": "Wertschöpfungsphase",
+        "en": "Value chain stage"
+      },
+      "help": {
+        "de": "Welche Phasen der Wertschöpfung werden beschrieben?",
+        "en": "Which value chain stages are described?"
+      },
+      "enabled": true,
+      "multiple": true,
+      "required": false,
+      "form": true,
+      "details": true,
+      "filter": true,
+      "values": [
+        {
+          "id": "design",
+          "label": {
+            "de": "Gestaltung",
+            "en": "Design"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "take",
+          "label": {
+            "de": "Rohstoffgewinnung",
+            "en": "Take"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "make",
+          "label": {
+            "de": "Herstellung",
+            "en": "Make"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "distribute",
+          "label": {
+            "de": "Vertrieb",
+            "en": "Distribute"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "use",
+          "label": {
+            "de": "Nutzung",
+            "en": "Use"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "end-of-life",
+          "label": {
+            "de": "Lebensende",
+            "en": "End of life"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "not-applicable",
+          "label": {
+            "de": "Nicht zutreffend",
+            "en": "Not applicable"
+          },
+          "enabled": true,
+          "exclusive": true
+        },
+        {
+          "id": "all",
+          "label": {
+            "de": "Alle Lebenszyklusphasen",
+            "en": "All life cycle stages"
+          },
+          "enabled": true,
+          "exclusive": true
+        }
+      ]
+    },
+    {
+      "id": "strategy",
+      "label": {
+        "de": "Kreislaufstrategie",
+        "en": "CE strategy"
+      },
+      "help": {
+        "de": "Welche Strategie unterstützt der Datensatz?",
+        "en": "Which strategy does the dataset support?"
+      },
+      "enabled": true,
+      "multiple": true,
+      "required": false,
+      "form": true,
+      "details": true,
+      "filter": true,
+      "values": [
+        {
+          "id": "intensification",
+          "label": {
+            "de": "Vermeiden, reduzieren und wiederverwenden",
+            "en": "Refuse, reduce and reuse"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "dematerialization",
+          "label": {
+            "de": "Dematerialisierung und Umdenken",
+            "en": "Dematerialization / rethink"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "extension",
+          "label": {
+            "de": "Reparieren, aufarbeiten und länger nutzen",
+            "en": "Repair, refurbish and remanufacture"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "circulation",
+          "label": {
+            "de": "Recycling und Rückgewinnung",
+            "en": "Recycle and recover"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "none",
+          "label": {
+            "de": "Keine spezifische Strategie",
+            "en": "No specific CE strategy"
+          },
+          "enabled": true,
+          "exclusive": true
+        },
+        {
+          "id": "all",
+          "label": {
+            "de": "Alle Kreislaufstrategien",
+            "en": "All CE strategies"
+          },
+          "enabled": true,
+          "exclusive": true
+        }
+      ]
+    },
+    {
+      "id": "cycle",
+      "label": {
+        "de": "Kreislauf",
+        "en": "Cycle"
+      },
+      "help": {
+        "de": "Handelt es sich um technische oder biologische Kreisläufe?",
+        "en": "Are technical or biological cycles addressed?"
+      },
+      "enabled": true,
+      "multiple": true,
+      "required": false,
+      "form": true,
+      "details": true,
+      "filter": true,
+      "values": [
+        {
+          "id": "technical",
+          "label": {
+            "de": "Technischer Kreislauf",
+            "en": "Technical cycle"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "biological",
+          "label": {
+            "de": "Biologischer Kreislauf",
+            "en": "Biological cycle"
+          },
+          "enabled": true,
+          "exclusive": false
+        }
+      ]
+    },
+    {
+      "id": "focus",
+      "label": {
+        "de": "Schwerpunkt",
+        "en": "Focus"
+      },
+      "help": {
+        "de": "Liegt der Schwerpunkt auf Technik oder gesellschaftlichen und institutionellen Fragen?",
+        "en": "Is the focus technological or socio-institutional?"
+      },
+      "enabled": true,
+      "multiple": true,
+      "required": false,
+      "form": true,
+      "details": true,
+      "filter": true,
+      "values": [
+        {
+          "id": "technical",
+          "label": {
+            "de": "Technologisch",
+            "en": "Technological"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "social",
+          "label": {
+            "de": "Gesellschaftlich und institutionell",
+            "en": "Socio-institutional"
+          },
+          "enabled": true,
+          "exclusive": false
+        }
+      ]
+    },
+    {
+      "id": "data-kind",
+      "label": {
+        "de": "Datenart",
+        "en": "Data kind"
+      },
+      "help": {
+        "de": "Welche Art von Informationen enthält der Datensatz?",
+        "en": "What kind of information does the dataset contain?"
+      },
+      "enabled": true,
+      "multiple": true,
+      "required": false,
+      "form": true,
+      "details": true,
+      "filter": true,
+      "values": [
+        {
+          "id": "quantitative",
+          "label": {
+            "de": "Quantitativ",
+            "en": "Quantitative"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "qualitative",
+          "label": {
+            "de": "Qualitativ",
+            "en": "Qualitative"
+          },
+          "enabled": true,
+          "exclusive": false
+        }
+      ]
+    },
+    {
+      "id": "transition",
+      "label": {
+        "de": "Veränderungsprozess oder Wirkung",
+        "en": "Transition or effect"
+      },
+      "help": {
+        "de": "Beschreiben die Daten den Übergang oder dessen Auswirkungen?",
+        "en": "Do the data describe the transition or its effects?"
+      },
+      "enabled": true,
+      "multiple": true,
+      "required": false,
+      "form": true,
+      "details": true,
+      "filter": true,
+      "values": [
+        {
+          "id": "transition",
+          "label": {
+            "de": "Veränderungsprozess",
+            "en": "Transition"
+          },
+          "enabled": true,
+          "exclusive": false
+        },
+        {
+          "id": "effect",
+          "label": {
+            "de": "Wirkung",
+            "en": "Effect"
+          },
+          "enabled": true,
+          "exclusive": false
+        }
+      ]
+    }
+  ]
+}

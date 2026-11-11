@@ -118,7 +118,7 @@ class Deployment:
             scoped_registries=[r for r in registries if r.get('environment',self.environment)==self.environment]
             replacements={self.live/'sites.caddy':(staging/'after/sites.caddy').read_bytes()}
             for profile in profiles:
-                for name in ['config.js','env.js']:
+                for name in ['config.js','env.js','catalog-vocabulary.ttl']:
                     generated=staging/'after/runtime'/profile['id']/name;target=self.live/'runtime'/profile['id']/name
                     if profile['environment']!=self.environment:
                         if generated.read_bytes()!=(staging/'before/runtime'/profile['id']/name).read_bytes():raise ConfigError('Diese Änderung würde produktive Profile verändern.',409)
@@ -187,7 +187,7 @@ class Deployment:
             record={'profileId':after['id'],'revision':revision(after),'policyRevision':revision(policy_candidate['environments'][self.environment]) if policy_candidate else None,'services':services,'newServices':new_services,'sources':[str(p) for p in source_changes],'files':{str(p):encode(snapshot(p)) for p in all_files},'next':{str(p):encode(data) for p,data in all_files.items()},'modes':{str(p):p.stat().st_mode&0o777 for p in all_files if p.exists()}}
             atomic(self.journal,(canonical(record)+'\n').encode(),0o600)
             try:
-                for path,data in replacements.items():atomic(path,data,0o644 if path.name in ['config.js','env.js','sites.caddy','login-test.caddy','login-prod.caddy','fuseki.ttl','settings.js'] else None)
+                for path,data in replacements.items():atomic(path,data,0o644 if path.name in ['config.js','env.js','catalog-vocabulary.ttl','sites.caddy','login-test.caddy','login-prod.caddy','fuseki.ttl','settings.js'] else None)
                 if services:
                     self.compose('config','--quiet')
                     self.compose('up','-d','--no-deps','--force-recreate','--wait','--wait-timeout','150',*services,timeout=210)

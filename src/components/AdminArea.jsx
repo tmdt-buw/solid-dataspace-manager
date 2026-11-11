@@ -32,6 +32,7 @@ import session from "../solidSession";
 import StatisticsDashboard from "./StatisticsDashboard";
 import { getAppIcon } from "../config/appIcons";
 import "./AdminArea.css";
+import CatalogProfileEditor from "./CatalogProfileEditor";
 
 const EMPTY_PROFILES = [];
 const sections = [
@@ -60,6 +61,7 @@ const display = (value, translate = (value) => value) =>
         ? Array.isArray(value)
           ? value.map((item) => display(item, translate)).join("\n")
           : Object.entries(value)
+              .filter(([key]) => !(value.label && typeof value.label === "object" && ["id", "scheme", "iri"].includes(key)))
               .map(
                 ([key, item]) =>
                   `${translate(friendlyPath(key))}: ${display(item, translate)}`,
@@ -279,7 +281,7 @@ export default function AdminArea({ access, loadingAccess, webId }) {
   }, [webId, access?.currentProfile]);
   function requiresOperator(path) {
     return (
-      /^(domains|redirectDomains|public\.(catalog|statistics|syncWorker)\.|public\.plasmaUrl)/.test(
+      /^(domains|redirectDomains|public\.(statistics|syncWorker)\.|public\.catalog\.defaultRegistry|public\.plasmaUrl)/.test(
         path,
       ) ||
       /^public\.providers\.\d+\.(issuer|enabled)$/.test(path) ||
@@ -713,6 +715,7 @@ export default function AdminArea({ access, loadingAccess, webId }) {
             "Katalog & Registry",
             "Die Registry ergibt sich aus dem aufgerufenen Profil.",
           )}
+          <CatalogProfileEditor key={profileId} catalog={draft.public.catalog} origin={`https://${draft.domains[0]}`} disabled={!canEdit || busy} onChange={catalog => update("public.catalog", catalog)}/>
           <Panel title="Zugeordnete Registry">
             {field("Registry", "public.catalog.defaultRegistry", {
               options: loaded.registries.map((r) => [
