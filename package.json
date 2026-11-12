@@ -1,6 +1,6 @@
 {
   "name": "pod_browser",
-  "version": "0.4.26",
+  "version": "0.4.27",
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
@@ -15,7 +15,7 @@
     "@hoelk-f/solid-data-manager": "0.4.32",
     "@hoelk-f/solid-health-app": "0.1.28",
     "@hoelk-f/solid-health-questionnaire": "0.1.10",
-    "@hoelk-f/city-tours": "0.1.37",
+    "@hoelk-f/city-tours": "0.1.38",
     "@inrupt/solid-client": "^2.1.2",
     "@inrupt/solid-client-authn-browser": "5.0.3",
     "@inrupt/vocab-common-rdf": "^1.0.5",
