@@ -1055,6 +1055,7 @@ Object.assign(enToDe, {
   "Catalog profiles": "Katalogprofile",
   "Required for new entries": "Pflichtfeld für neue Einträge",
   "Multiple selection": "Mehrfachauswahl",
+  "Multiple themes as tags": "Mehrere Themen als Tags",
   "In forms": "Im Formular",
   "In details": "In den Details",
   "As a filter": "Als Filter",

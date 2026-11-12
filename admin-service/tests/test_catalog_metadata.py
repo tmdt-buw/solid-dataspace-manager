@@ -29,6 +29,17 @@ def catalog():
     return {'defaultRegistry':'https://registry.example/test','metadataProfile':profile['id'],'metadataProfiles':[profile]}
 
 class CatalogMetadataTests(unittest.TestCase):
+    def test_theme_mode_is_optional_boolean_and_can_be_turned_off(self):
+        c=catalog();p=c['metadataProfiles'][0]
+        self.assertTrue(p['multipleThemes'])
+        old=copy.deepcopy(c);p['multipleThemes']=False
+        validate_catalog_metadata(c,old)
+        self.assertEqual(differences(old,c)[0]['after'],False)
+        for invalid in ['true',None,1]:
+            p['multipleThemes']=invalid
+            with self.assertRaises(ValueError):validate_catalog_metadata(c)
+        p.pop('multipleThemes');validate_catalog_metadata(c)
+
     def test_preset_and_rdf_labels(self):
         c=catalog();validate_catalog_metadata(c)
         rdf=vocabulary_turtle(c)
@@ -73,6 +84,7 @@ class CatalogMetadataTests(unittest.TestCase):
             compile_config(root/'source',root/'output')
             for filename in ['config.js','env.js']:
                 self.assertIn('dace-ce-v1',(root/'output/runtime/test'/filename).read_text())
+                self.assertIn('multipleThemes', (root/'output/runtime/test'/filename).read_text())
                 self.assertNotIn('dace-ce-v1',(root/'output/runtime/dace'/filename).read_text())
             self.assertIn('skos:Concept',(root/'output/runtime/test/catalog-vocabulary.ttl').read_text())
     def test_category_only_reorder_creates_a_reviewable_diff(self):

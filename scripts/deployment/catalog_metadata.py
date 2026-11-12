@@ -37,8 +37,9 @@ def validate_catalog_metadata(catalog, before=None):
     check(len(json.dumps(catalog)) < 160000, 'Das Katalogprofil ist zu groß.')
     profiles = items(catalog.get('metadataProfiles', []), 8)
     for profile in profiles:
-        keys(profile, ['id', 'label', 'enabled', 'fields'])
+        keys(profile, ['id', 'label', 'enabled', 'fields', 'multipleThemes'])
         labels(profile.get('label')); boolean(profile, 'enabled')
+        if 'multipleThemes' in profile: boolean(profile, 'multipleThemes')
         uris = set()
         for field in items(profile.get('fields'), 24):
             keys(field, ['id', 'scheme', 'label', 'help', 'enabled', 'multiple', 'required', 'form', 'details', 'filter', 'values'])

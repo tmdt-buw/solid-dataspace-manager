@@ -13,11 +13,12 @@ export function createDaceProfile(origin) {
   return profile;
 }
 export function createProfile(origin) {
-  return {id: identifier(), label: {de: 'Neues Katalogprofil', en: 'New catalog profile'}, enabled: true, fields: []};
+  return {id: identifier(), label: {de: 'Neues Katalogprofil', en: 'New catalog profile'}, enabled: true, multipleThemes: false, fields: []};
 }
 export function duplicateProfile(profile) {
   const result = copy(profile);
   result.id = identifier();
+  result.multipleThemes = profile.multipleThemes ?? profile.id === 'dace-ce-v1';
   result.label = {de: `${profile.label.de} (Kopie)`, en: `${profile.label.en} (copy)`};
   result.enabled = true;
   return result;
