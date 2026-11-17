@@ -17,14 +17,14 @@ export const externalLinks = [
     slug: "urban-data-explorer",
     title: "Urban Data Explorer",
     url: "/urban-data-explorer/",
-    version: "0.3.23",
+    version: "0.3.24",
     hideOpenButton: true,
   },
   {
     slug: "solid-health-app",
     title: "Health App",
     url: "/solid-health-app/",
-    version: "0.1.28",
+    version: "0.1.30",
     hideOpenButton: true,
   },
 ];
