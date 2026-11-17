@@ -29,7 +29,7 @@ jest.mock("../config/runtimeConfig", () => ({
 const configuredApplications = [
   {
     id: "environmental-monitoring",
-    title: "Environmental Monitoring",
+    title: "Urban Data Explorer",
     href: "/web/environmental-monitoring",
     iconKey: "temperature",
     linkType: "internal",
@@ -109,7 +109,7 @@ describe("Information page", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("4 aktiv")).toBeInTheDocument();
     expect(screen.getByText("10 Minuten-Takt")).toBeInTheDocument();
-    expect(screen.getAllByText("Umweltmonitoring").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Urban Data Explorer").length).toBeGreaterThan(0);
     expect(
       screen.queryByText("Your Solid Dataspace, at a glance.")
     ).not.toBeInTheDocument();

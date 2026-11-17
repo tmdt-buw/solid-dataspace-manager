@@ -20,7 +20,7 @@ APP_PATHS = {
     'plasma': ['/plasma', '/plasma/*', '/web/plasma'],
     'node-red': ['/node-red', '/node-red/*', '/web/node-red'],
     'data-connection': ['/data-connection'],
-    'environmental-monitoring': ['/environmental-monitoring', '/environmental-monitoring/*', '/web/environmental-monitoring'],
+    'environmental-monitoring': ['/urban-data-explorer', '/urban-data-explorer/*', '/web/urban-data-explorer', '/web/urban-data-explorer/*', '/environmental-monitoring', '/environmental-monitoring/*', '/web/environmental-monitoring', '/web/environmental-monitoring/*'],
     'solid-health-app': ['/solid-health-app', '/solid-health-app/*', '/web/solid-health-app', '/web/solid-health-app/*'],
     'solid-health-questionnaire': ['/solid-health-questionnaire', '/solid-health-questionnaire/*', '/web/solid-health-questionnaire'],
     'city-tours': ['/city-tours', '/city-tours/*', '/web/city-tours'],
@@ -91,9 +91,10 @@ def site(profile):
         lines += ['  @disabled path ' + ' '.join(disabled), '  route @disabled {', '    respond "Application disabled for this profile." 403', '  }']
     lines += ['  @standaloneCatalog path /catalog /catalog/', '  route @standaloneCatalog {',
               '    rewrite * /semantic-data-catalog/', f'    reverse_proxy {common}-semantic-data-catalog-frontend:5000', '  }']
-    for path, service, port in [('semantic-data-catalog','semantic-data-catalog-frontend',5000),('environmental-monitoring','environmental-monitoring',5173),('solid-data-manager','solid-data-manager',3002),('solid-health-app','solid-health-app',3000),('solid-health-questionnaire','solid-health-questionnaire',3007),('city-tours','city-tours',3006)]:
-        query = '{?query}' if path == 'solid-data-manager' else ''
+    for path, service, port in [('semantic-data-catalog','semantic-data-catalog-frontend',5000),('urban-data-explorer','environmental-monitoring',5173),('environmental-monitoring','environmental-monitoring',5173),('solid-data-manager','solid-data-manager',3002),('solid-health-app','solid-health-app',3000),('solid-health-questionnaire','solid-health-questionnaire',3007),('city-tours','city-tours',3006)]:
+        query = '{?query}' if path in ['solid-data-manager','urban-data-explorer','environmental-monitoring'] else ''
         lines += [f'  redir /{path} /{path}/{query} 308', f'  reverse_proxy /{path}/* {common}-{service}:{port}']
+    lines += ['  @legacyUrbanEmbed path /web/environmental-monitoring /web/environmental-monitoring/', '  redir @legacyUrbanEmbed /web/urban-data-explorer{?query} 308']
     lines += [f'  reverse_proxy /api/* {common}-semantic-data-catalog-backend:8000']
     if profile['public'].get('accessGateway'):
         lines += [f'  reverse_proxy /access-api/* {common}-admin-api:3012',
@@ -136,6 +137,9 @@ def compile_config(directory, output):
     sites = []
     for profile in profiles:
         public = copy.deepcopy(profile['public'])
+        for app in public['apps']:
+            if app['id'] == 'environmental-monitoring':
+                app['href'] = re.sub(r'^(/web)?/environmental-monitoring(?=/|[?#]|$)', r'\1/urban-data-explorer', app['href'])
         profile_registries=[r for r in registries if r.get('environment',profile['environment'])==profile['environment']]
         public['registries'] = profile_registries
         if profile.get('administration', {}).get('enabled'):

@@ -151,6 +151,8 @@ jest.mock(
   { virtual: true }
 );
 
+jest.mock("./components/ExternalHost", () => () => <div data-testid="external-host" />);
+
 import App from "./App";
 
 test.each(["/web/catalog", "/semantic-search"])("opens the catalog host, preserving legacy semantic-search bookmarks: %s", async path => {
@@ -196,3 +198,13 @@ describe.each(["/web/city-tours", "/web/solid-tours", "/web/solid-tours/"])(
     });
   }
 );
+
+
+test.each(["/web/urban-data-explorer", "/web/environmental-monitoring", "/web/environmental-monitoring/"])("opens Urban Data Explorer on the canonical route: %s", async path => {
+  window.history.replaceState({}, "", path + "?view=map#layers");
+  render(<App />);
+  expect(await screen.findByTestId("external-host")).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/web/urban-data-explorer");
+  expect(window.location.search).toBe("?view=map");
+  expect(window.location.hash).toBe("#layers");
+});

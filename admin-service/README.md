@@ -1,6 +1,8 @@
-# Admin Area: live Test deployment
+# Admin Area: profile administration and deployment
 
 The Manager serves `/admin` with the existing Dataspace sidebar, horizontal section navigation and a mobile selector. The existing Statistics Dashboard, YAML settings, header and version are retained. The interface and review dialogs support German and English.
+
+For the application overview, see the [Manager README](../README.md). This service is part of the managed server deployment; the lightweight laptop Compose mode does not provision it. Production and Test retain separate controller state and privileges.
 
 ## Active scope and roles
 
@@ -29,7 +31,7 @@ Test and production each use a separate account handoff in their stack. `login-t
 
 Profile edits use draft → validated review → private backup → activation → health checks. Relevant changes update generated runtime files, Caddy routing, Test login origins and the affected Test services. Configuration revisions reject stale drafts and preserve intervening manual edits. Jobs run asynchronously; after a reload, the interface resumes checking the stored job ID.
 
-The Operations section additionally controls the actual scheduler, catalog-cache, monitoring-cache and search-index intervals for this environment. It updates only services affected by the changed interval. These fields differ from the UI's per-connection suggested sync interval. Test remains read-only: statistics collection and privileged sync/scenario writes remain disabled. Credentials and Pod permissions are not changed.
+The Operations section additionally controls the actual scheduler, catalog-cache, monitoring-cache and search-index intervals for this environment. It updates only services affected by the changed interval. These fields differ from the UI's per-connection suggested sync interval. Shared Test managed imports remain paused by operational configuration; statistics and legacy scenario collection remain disabled as configured. Do not confuse paused imports with a universal read-only mode: explicitly authorized test connections can still write to their dedicated test targets. Credentials and Pod permissions are not changed.
 
 Former `pending-deployment` proposals can be loaded for a new review/activation, or discarded. They are not applied automatically. History shows backups and activation outcomes; profile restoration loads a previous configuration as a draft. Global operator-policy records are not exposed to ordinary profile admins.
 
@@ -58,4 +60,8 @@ A live local-controller check temporarily changed the Test logo alternative text
 
 Production rollout backup: `/srv/solid-backups/release-rollout-20261018T060816Z`. Production state/socket: `/srv/solid-config/admin-prod/{state,ipc}`. Test state/socket: `/srv/solid-config/admin/{state,ipc}`.
 
-Authentication compatibility: the deployed Inrupt 3.1.1 browser client generates Solid-OIDC DPoP proofs without `ath`. Such proofs still require verified issuer and proof signatures, an authorized WebID and trusted issuer, token-to-key binding (`cnf.jkt`), valid times, matching HTTP method/URL and a fresh proof identifier. When `ath` is present, it must equal the access-token hash. The Node regression suite exercises the real Inrupt proof generator and authenticated `/admin-api/me` discovery.
+Authentication compatibility: application clients use Inrupt 5.0.3. The API retains compatibility with older Solid-OIDC DPoP proofs that omit `ath`: issuer and proof signatures, authorized WebID, trusted issuer, token-to-key binding (`cnf.jkt`), times, HTTP method/URL and fresh proof identifier are still checked. If `ath` is present it must match the access-token hash. The dependency pins and tests are authoritative; this compatibility path is not an instruction to downgrade browser clients.
+
+## Catalog metadata profiles
+
+Catalog metadata settings are editable through the profile editor. DACE CE dimensions, allowed values and multiple theme tags are profile configuration, not a global schema imposed on every deployment. Validation/review precede activation; disabling a UI category does not delete existing Pod metadata. The compiler's `catalog_metadata.py` and the API/controller tests cover the supported configuration contract.

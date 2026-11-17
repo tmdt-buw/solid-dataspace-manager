@@ -59,10 +59,10 @@ const fallbackConfig = {
     },
     {
       id: "environmental-monitoring",
-      title: "Environmental Monitoring",
-      href: "/web/environmental-monitoring",
+      title: "Urban Data Explorer",
+      href: "/web/urban-data-explorer",
       section: "applications",
-      iconKey: "temperature",
+      iconKey: "map",
       visible: true,
       order: 15,
       linkType: "internal",
@@ -168,6 +168,17 @@ export function normalizePlasmaUrl(value) {
 }
 
 function normalizeApp(app, index) {
+  // Keep profile IDs stable while moving legacy links to the current public route.
+  if (app?.id === "environmental-monitoring") {
+    app = {
+      ...app,
+      title: ["Environmental Monitoring", "Umweltmonitoring", "Umwelt-Monitoring"].includes(app.title)
+        ? "Urban Data Explorer" : app.title,
+      iconKey: app.iconKey === "temperature" ? "map" : app.iconKey,
+      href: typeof app.href === "string" ? app.href.replace(/^(\/web)?\/environmental-monitoring(?=\/|[?#]|$)/, "$1/urban-data-explorer") : app.href,
+    };
+  }
+
   // Instance configurations may still contain the name used before City Tours.
   if (app?.id === "solid-tours") {
     app = {
@@ -544,10 +555,12 @@ export function isStatisticsAdmin(webId) {
 }
 
 export function isAppVisible(id) {
+  if (id === "urban-data-explorer") id = "environmental-monitoring";
   const app = appConfig.apps.find((app) => app.id === id);
   return !app || (app.visible && app.enabled);
 }
 
 export function isAppEnabled(id) {
+  if (id === "urban-data-explorer") id = "environmental-monitoring";
   return appConfig.apps.find((app) => app.id === id)?.enabled !== false;
 }

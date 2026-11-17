@@ -589,6 +589,11 @@ const App = () => {
     return <Navigate to={{ ...location, pathname: "/web/city-tours" }} replace />;
   };
 
+  const LegacyUrbanExplorerRedirect = () => {
+    const location = useLocation();
+    return <Navigate to={{ ...location, pathname: "/web/urban-data-explorer" }} replace />;
+  };
+
   const CityToursPage = () => (
     <div className="city-tours-embed">
       <div className="city-tours-header toolbar--title">
@@ -670,6 +675,7 @@ const App = () => {
                 <Route path="/web/city-tours" element={<CityToursPage />} />
                 <Route path="/web/solid-tours" element={<LegacyCityToursRedirect />} />
                 <Route path="/web/solid-health-questionnaire" element={<HealthQuestionnairePage />} />
+                <Route path="/web/environmental-monitoring" element={<LegacyUrbanExplorerRedirect />} />
                 <Route path="/web/:slug" element={<ExternalHost webId={webId} />} />
               </Routes></ConfiguredAppGate>
             </div>

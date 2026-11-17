@@ -119,9 +119,9 @@ export const INFO_TOOL_GROUPS = [
 
 export const INFO_APPLICATION_DETAILS = {
   "environmental-monitoring": {
-    eyebrow: "Environment & movement",
+    eyebrow: "Urban data & maps",
     description:
-      "Explore weather, soil and movement data on a map. Approved tour activity can appear from the first contribution; direct identifiers are removed, but an individual route may still identify a person or place.",
+      "Explore urban data from the catalog on a map: geography, population, weather, air quality and movement. Approved tour activity can appear from the first contribution; direct identifiers are removed, but an individual route may still identify a person or place.",
     dataNote: "Catalog data and route summaries without direct identifiers",
   },
   "solid-health-app": {

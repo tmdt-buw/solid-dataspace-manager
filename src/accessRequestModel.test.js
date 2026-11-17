@@ -81,7 +81,7 @@ test("parses the extended environmental access request contract", () => {
     requestId: REQUEST_ID,
     scenarioRunId: RUN_ID,
     applicationId: "environmental-monitoring",
-    applicationName: "Environmental Monitoring",
+    applicationName: "Urban Data Explorer",
     requestedMode: ACL_READ,
     requestedModes: [ACL_READ],
     purpose: "completed-route-public-display",
@@ -94,15 +94,15 @@ test("parses the extended environmental access request contract", () => {
   expect(validateTrustedEnvironmentalRequest(item, SERVICE_WEBID, OWNER_WEBID)).toEqual([]);
 });
 
-test("uses the exact Environmental Monitoring informed-consent copy", () => {
+test("uses the exact Urban Data Explorer informed-consent copy", () => {
   expect(ENVIRONMENTAL_CONSENT).toEqual({
-    title: "Environmental Monitoring would like to access your donated data",
+    title: "Urban Data Explorer would like to access your donated data",
     data: "All donated completed routes and their calculated activity values",
     purpose:
-      "With your consent, Environmental Monitoring may read your donated routes and calculated activity values and display them publicly. Your source data in your Pod remains protected.",
+      "With your consent, Urban Data Explorer may read your donated routes and calculated activity values and display them publicly. Your source data in your Pod remains protected.",
     access: "Read only",
     notice:
-      "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.",
+      "Urban Data Explorer does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.",
   });
   expect(ENVIRONMENTAL_CONSENT).not.toHaveProperty("qualityWarning");
   expect(ENVIRONMENTAL_CONSENT).not.toHaveProperty("privacyWarning");
@@ -210,7 +210,7 @@ test("does not trust an application label without the configured worker WebID", 
       "https://pod.example/other#me",
       OWNER_WEBID
     )
-  ).toContain("Environmental Monitoring service identity does not match.");
+  ).toContain("Urban Data Explorer service identity does not match.");
 });
 
 test("rejects a trusted request that is not the single read-only activity bundle", () => {
@@ -319,4 +319,17 @@ test("continuous consent explicitly includes future activities and survives deci
   const decision = parseAccessDecisionThing("https://pod.example/worker/inbox/decision", addUrl(thing, RDF.type, SDM.AccessDecision));
   expect(decision.donationMode).toBe("continuous");
   expect(environmentalConsent({})).toBe(ENVIRONMENTAL_CONSENT);
+});
+
+
+test("rebranding preserves trusted legacy requests without weakening identity checks", () => {
+  const item = parseAccessRequestThing("https://pod.example/laura/inbox/request-1", environmentalThing(SDM.AccessRequest));
+  const legacy = { ...item, applicationName: "Environmental Monitoring" };
+  expect(validateTrustedEnvironmentalRequest(legacy, SERVICE_WEBID, OWNER_WEBID)).toEqual([]);
+  expect(getApprovedAccess(legacy, SERVICE_WEBID)).toBe(READ_ONLY_ACCESS);
+  expect(validateTrustedEnvironmentalRequest({ ...legacy, requesterWebId: "https://pod.example/other/profile/card#me" }, SERVICE_WEBID, OWNER_WEBID))
+    .toContain("Urban Data Explorer service identity does not match.");
+  expect(validateTrustedEnvironmentalRequest({ ...item, applicationName: "Unrelated app" }, SERVICE_WEBID, OWNER_WEBID))
+    .toContain("Urban Data Explorer application name does not match.");
+  expect(item.applicationId).toBe("environmental-monitoring");
 });

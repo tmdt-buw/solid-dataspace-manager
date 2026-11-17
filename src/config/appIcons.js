@@ -17,6 +17,7 @@ import {
   faServer,
   faTableColumns,
   faTemperatureHigh,
+  faMapLocationDot,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { getAppsBySection } from "./runtimeConfig";
@@ -43,6 +44,7 @@ export const navigationIcons = {
 const appIcons = {
   default: faTableColumns,
   temperature: faTemperatureHigh,
+  map: faMapLocationDot,
   database: faDatabase,
   health: faHeartPulse,
   questionnaire: faClipboardCheck,
@@ -51,7 +53,8 @@ const appIcons = {
 };
 
 const defaultAppIconKeys = {
-  "environmental-monitoring": "temperature",
+  "environmental-monitoring": "map",
+  "urban-data-explorer": "map",
   "solid-health-app": "health",
   "solid-health-questionnaire": "questionnaire",
   "city-tours": "tour",
@@ -64,6 +67,7 @@ export function getAppIcon(iconKey) {
 }
 
 export function getApplicationIcon(appId) {
+  if (appId === "urban-data-explorer") appId = "environmental-monitoring";
   if (Object.prototype.hasOwnProperty.call(navigationIcons, appId)) {
     return navigationIcons[appId];
   }

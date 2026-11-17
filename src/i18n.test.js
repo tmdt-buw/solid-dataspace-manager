@@ -54,16 +54,16 @@ describe("i18n language resolution", () => {
     expect(translateText("Refresh", "de")).toBe("Aktualisieren");
   });
 
-  test("keeps Environmental Monitoring consent in English and localizes it for German", () => {
-    const title = "Environmental Monitoring would like to access your donated data";
+  test("keeps Urban Data Explorer consent in English and localizes it for German", () => {
+    const title = "Urban Data Explorer would like to access your donated data";
     const notice =
-      "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.";
+      "Urban Data Explorer does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.";
     expect(translateText(title, "en")).toBe(title);
     expect(translateText(title, "de")).toBe(
-      "Environmental Monitoring möchte auf deine gespendeten Daten zugreifen"
+      "Urban Data Explorer möchte auf deine gespendeten Daten zugreifen"
     );
-    const purpose = "With your consent, Environmental Monitoring may read your donated routes and calculated activity values and display them publicly. Your source data in your Pod remains protected.";
-    expect(translateText(purpose, "de")).toBe("Mit deiner Zustimmung darf Environmental Monitoring deine gespendeten Routen und daraus berechneten Aktivitätswerte lesen und öffentlich darstellen. Deine Quelldaten im Pod bleiben geschützt.");
+    const purpose = "With your consent, Urban Data Explorer may read your donated routes and calculated activity values and display them publicly. Your source data in your Pod remains protected.";
+    expect(translateText(purpose, "de")).toBe("Mit deiner Zustimmung darf Urban Data Explorer deine gespendeten Routen und daraus berechneten Aktivitätswerte lesen und öffentlich darstellen. Deine Quelldaten im Pod bleiben geschützt.");
     expect(translateText(purpose, "de")).not.toMatch(/Instanzen|localhost/);
     expect(translateText(notice, "de")).toContain(
       "einer einzelnen WebID genehmigt"
@@ -186,4 +186,12 @@ describe("i18n language resolution", () => {
       translateText("Loading your personal application workspace …", "de")
     ).toBe("Dein persönlicher Anwendungsbereich wird geladen …");
   });
+});
+
+
+test("uses the current urban brand for historical labels in both languages", () => {
+  for (const language of ["de", "en"]) {
+    expect(translateText("Environmental Monitoring", language)).toBe("Urban Data Explorer");
+    expect(translateText("Urban Data Explorer", language)).toBe("Urban Data Explorer");
+  }
 });

@@ -19,7 +19,7 @@ export default function ExternalHost({ webId }) {
   const navigate = useNavigate();
   const iframeRef = useRef(null);
   const { language, t } = useI18n();
-  const activeLink = externalLinks.find((link) => link.slug === slug);
+  const activeLink = externalLinks.find((link) => link.slug === (slug === "environmental-monitoring" ? "urban-data-explorer" : slug));
   const [loaded, setLoaded] = useState(false);
   const protectedApp = workspaceAccessEnabled() && ["node-red", "plasma"].includes(slug);
   const [access, setAccess] = useState(null);

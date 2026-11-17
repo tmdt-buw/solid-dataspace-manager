@@ -4,12 +4,12 @@ import {
 } from "./externalTargetUrl";
 
 const environmentalLink = {
-  slug: "environmental-monitoring",
-  url: "/environmental-monitoring/",
+  slug: "urban-data-explorer",
+  url: "/urban-data-explorer/",
 };
 
 test.each(["stadt-wuppertal", "dace", "timberconnect", "test"])(
-  "partitions the embedded Environmental Monitoring URL for %s",
+  "partitions the embedded Urban Data Explorer URL for %s",
   (dataspaceId) => {
     expect(
       buildExternalTargetUrl({
@@ -19,7 +19,7 @@ test.each(["stadt-wuppertal", "dace", "timberconnect", "test"])(
         dataspaceId,
       })
     ).toBe(
-      `https://dataspace.example/environmental-monitoring/?lang=de&dataspaceId=${dataspaceId}`
+      `https://dataspace.example/urban-data-explorer/?lang=de&dataspaceId=${dataspaceId}`
     );
   }
 );

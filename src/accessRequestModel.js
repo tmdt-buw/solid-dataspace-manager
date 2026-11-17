@@ -56,7 +56,7 @@ export const SDM = Object.freeze({
 
 export const ENVIRONMENTAL_REQUEST = Object.freeze({
   applicationId: "environmental-monitoring",
-  displayName: "Environmental Monitoring",
+  displayName: "Urban Data Explorer",
   purpose: "completed-route-public-display",
   sharedPurpose: "completed-route-shared-public-display",
   dataCategory: "route-and-derived-activity-summary",
@@ -65,19 +65,19 @@ export const ENVIRONMENTAL_REQUEST = Object.freeze({
 });
 
 export const ENVIRONMENTAL_CONSENT = Object.freeze({
-  title: "Environmental Monitoring would like to access your donated data",
+  title: "Urban Data Explorer would like to access your donated data",
   data: "All donated completed routes and their calculated activity values",
   purpose:
-    "With your consent, Environmental Monitoring may read your donated routes and calculated activity values and display them publicly. Your source data in your Pod remains protected.",
+    "With your consent, Urban Data Explorer may read your donated routes and calculated activity values and display them publicly. Your source data in your Pod remains protected.",
   access: "Read only",
   notice:
-    "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.",
+    "Urban Data Explorer does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.",
 });
 
 export const ENVIRONMENTAL_CONTINUOUS_CONSENT = Object.freeze({
   ...ENVIRONMENTAL_CONSENT,
   data: "All completed routes and activity values, including future City Tours activities until you revoke the donation",
-  purpose: "With your consent, Environmental Monitoring may continuously read all completed City Tours activities, including future activities, and display their routes and calculated values publicly. This continues until you revoke the donation. Your source data in your Pod remains protected.",
+  purpose: "With your consent, Urban Data Explorer may continuously read all completed City Tours activities, including future activities, and display their routes and calculated values publicly. This continues until you revoke the donation. Your source data in your Pod remains protected.",
 });
 
 export const environmentalConsent = (item) => item?.donationMode === "continuous"
@@ -203,12 +203,12 @@ export function validateTrustedEnvironmentalRequest(item, serviceWebId, ownerWeb
   if (!isEnvironmentalApplicationRequest(item)) return [];
   const errors = [];
   if (!serviceWebId) {
-    errors.push("Environmental Monitoring service identity is not configured.");
+    errors.push("Urban Data Explorer service identity is not configured.");
   } else if (item.requesterWebId !== serviceWebId) {
-    errors.push("Environmental Monitoring service identity does not match.");
+    errors.push("Urban Data Explorer service identity does not match.");
   }
-  if (item.applicationName !== ENVIRONMENTAL_REQUEST.displayName) {
-    errors.push("Environmental Monitoring application name does not match.");
+  if (![ENVIRONMENTAL_REQUEST.displayName, "Environmental Monitoring"].includes(item.applicationName)) {
+    errors.push("Urban Data Explorer application name does not match.");
   }
   if (!UUID_V4_PATTERN.test(item.requestId || "")) {
     errors.push("Request identifier must be a UUID v4.");

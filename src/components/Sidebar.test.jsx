@@ -56,7 +56,7 @@ test.each([
   ["data-connection", "Data Connection", "link"],
   ["statistics", "Statistics Dashboard", "chart-line"],
   ["pod-provider", "Solid Pod Provider", "server"],
-  ["environmental-monitoring", "Environmental Monitoring", "temperature-high"],
+  ["environmental-monitoring", "Urban Data Explorer", "map-location-dot"],
   ["solid-health-app", "Health App", "heart-pulse"],
   ["city-tours", "City Tours", "route"],
   ["solid-health-questionnaire", "Health Questionnaire", "clipboard-check"],
@@ -95,7 +95,7 @@ test.each(["database", "unknown-icon"])(
           ? [
               {
                 id: "environmental-monitoring",
-                title: "Environmental Monitoring",
+                title: "Urban Data Explorer",
                 href: "/web/environmental-monitoring",
                 linkType: "internal",
                 iconKey,
@@ -110,7 +110,7 @@ test.each(["database", "unknown-icon"])(
       </>,
     );
     const sidebarIcon = screen
-      .getByRole("link", { name: "Environmental Monitoring" })
+      .getByRole("link", { name: "Urban Data Explorer" })
       .querySelector("svg");
     const loadingIcon = container.querySelector(
       ".dataspace-content-loading__mark svg",

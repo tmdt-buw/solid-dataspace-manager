@@ -201,3 +201,31 @@ test('preserves an explicitly empty funding-logo configuration', () => {
   jest.isolateModules(()=>{expect(require('./runtimeConfig').getFundingLogos()).toEqual([]);});
   window.__APP_CONFIG__=previous;
 });
+
+
+test("legacy urban app profiles keep IDs and custom names while upgrading default links", () => {
+  const previous = window.__APP_CONFIG__;
+  try {
+    const app = { id: "environmental-monitoring", title: "Environmental Monitoring", iconKey: "temperature", href: "/web/environmental-monitoring", section: "applications" };
+    window.__APP_CONFIG__ = { apps: [app] };
+    jest.isolateModules(() => { expect(require("./runtimeConfig").getAppsBySection("applications")[0]).toMatchObject({ id: app.id, title: "Urban Data Explorer", iconKey: "map", href: "/web/urban-data-explorer" }); });
+    window.__APP_CONFIG__ = { apps: [{ ...app, title: "Our city map", iconKey: "database" }] };
+    jest.isolateModules(() => { expect(require("./runtimeConfig").getAppsBySection("applications")[0]).toMatchObject({ title: "Our city map", iconKey: "database" }); });
+  } finally { window.__APP_CONFIG__ = previous; }
+});
+
+
+test("both Urban Data Explorer route names respect an existing disabled profile", () => {
+  const previous=window.__APP_CONFIG__;
+  try {
+    window.__APP_CONFIG__={apps:[{id:"environmental-monitoring",href:"/web/environmental-monitoring?view=map#layers",enabled:false,visible:true}]};
+    jest.isolateModules(()=>{
+      const config=require("./runtimeConfig");
+      for(const id of ["environmental-monitoring","urban-data-explorer"]){expect(config.isAppEnabled(id)).toBe(false);expect(config.isAppVisible(id)).toBe(false);}
+    });
+    window.__APP_CONFIG__={apps:[{id:"environmental-monitoring",href:"/web/environmental-monitoring?view=map#layers",section:"applications"}]};
+    jest.isolateModules(()=>{expect(require("./runtimeConfig").getAppsBySection("applications")[0].href).toBe("/web/urban-data-explorer?view=map#layers");});
+    window.__APP_CONFIG__={apps:[{id:"environmental-monitoring",href:"https://custom.example/map",section:"applications"}]};
+    jest.isolateModules(()=>{expect(require("./runtimeConfig").getAppsBySection("applications")[0].href).toBe("https://custom.example/map");});
+  } finally {window.__APP_CONFIG__=previous;}
+});

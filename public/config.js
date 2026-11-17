@@ -5,10 +5,10 @@ window.__APP_CONFIG__ = {
   "apps": [
     {
       "id": "environmental-monitoring",
-      "title": "Environmental Monitoring",
-      "href": "/web/environmental-monitoring",
+      "title": "Urban Data Explorer",
+      "href": "/web/urban-data-explorer",
       "section": "applications",
-      "iconKey": "temperature",
+      "iconKey": "map",
       "visible": true,
       "order": 15,
       "linkType": "internal"

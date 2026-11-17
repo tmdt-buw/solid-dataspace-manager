@@ -12,7 +12,7 @@ export function buildExternalTargetUrl({
   try {
     const url = new URL(activeLink.url, origin);
     url.searchParams.set("lang", language);
-    if (activeLink.slug === "environmental-monitoring") {
+    if (["urban-data-explorer", "environmental-monitoring"].includes(activeLink.slug)) {
       // Never let an embedded instance silently use the worker's combined,
       // cross-dataspace endpoint when its partition is missing or invalid.
       const normalizedDataspaceId =

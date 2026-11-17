@@ -73,26 +73,26 @@ const enToDe = {
   "Semantic Data Catalog": "Semantischer Datenkatalog",
   "Data Connection": "Datenverbindung",
   "Solid Pod Provider": "Solid-Pod-Anbieter",
-  "Environmental Monitoring": "Umweltmonitoring",
-  "Environmental Monitoring wants to use your completed tours":
-    "Environmental Monitoring möchte deine gemachten Touren verwenden",
+  "Urban Data Explorer": "Urban Data Explorer",
+  "Urban Data Explorer wants to use your completed tours":
+    "Urban Data Explorer möchte deine gemachten Touren verwenden",
   "All completed routes and activity values, including future City Tours activities until you revoke the donation":
     "Alle abgeschlossenen Routen und Aktivitätswerte, einschließlich zukünftiger Aktivitäten in City Tours bis zum Widerruf der Datenspende",
-  "With your consent, Environmental Monitoring may continuously read all completed City Tours activities, including future activities, and display their routes and calculated values publicly. This continues until you revoke the donation. Your source data in your Pod remains protected.":
-    "Mit deiner Zustimmung darf Environmental Monitoring fortlaufend alle abgeschlossenen Aktivitäten in City Tours einschließlich zukünftiger Aktivitäten lesen und deren Routen sowie berechnete Werte öffentlich anzeigen. Dies gilt bis zum Widerruf der Datenspende. Die Quelldaten in deinem Pod bleiben geschützt.",
+  "With your consent, Urban Data Explorer may continuously read all completed City Tours activities, including future activities, and display their routes and calculated values publicly. This continues until you revoke the donation. Your source data in your Pod remains protected.":
+    "Mit deiner Zustimmung darf Urban Data Explorer fortlaufend alle abgeschlossenen Aktivitäten in City Tours einschließlich zukünftiger Aktivitäten lesen und deren Routen sowie berechnete Werte öffentlich anzeigen. Dies gilt bis zum Widerruf der Datenspende. Die Quelldaten in deinem Pod bleiben geschützt.",
   "All donated completed routes and their calculated activity values":
     "Alle gespendeten gemachten Routen und ihre berechneten Aktivitätswerte",
-  "Public display of approved donated routes and their derived activity values without direct identifiers in Environmental Monitoring.":
-    "Öffentliche Darstellung freigegebener gespendeter Routen und der daraus abgeleiteten Aktivitätswerte ohne direkte Identifikatoren in Environmental Monitoring.",
+  "Public display of approved donated routes and their derived activity values without direct identifiers in Urban Data Explorer.":
+    "Öffentliche Darstellung freigegebener gespendeter Routen und der daraus abgeleiteten Aktivitätswerte ohne direkte Identifikatoren in Urban Data Explorer.",
   "Read only": "Nur lesen",
-  "Environmental Monitoring would like to access your donated data":
-    "Environmental Monitoring möchte auf deine gespendeten Daten zugreifen",
-  "With your consent, Environmental Monitoring may read your donated routes and calculated activity values and display them publicly. Your source data in your Pod remains protected.":
-    "Mit deiner Zustimmung darf Environmental Monitoring deine gespendeten Routen und daraus berechneten Aktivitätswerte lesen und öffentlich darstellen. Deine Quelldaten im Pod bleiben geschützt.",
+  "Urban Data Explorer would like to access your donated data":
+    "Urban Data Explorer möchte auf deine gespendeten Daten zugreifen",
+  "With your consent, Urban Data Explorer may read your donated routes and calculated activity values and display them publicly. Your source data in your Pod remains protected.":
+    "Mit deiner Zustimmung darf Urban Data Explorer deine gespendeten Routen und daraus berechneten Aktivitätswerte lesen und öffentlich darstellen. Deine Quelldaten im Pod bleiben geschützt.",
   "Unsupported publication scope.":
     "Nicht unterstützter Veröffentlichungsumfang.",
-  "Environmental Monitoring does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.":
-    "Environmental Monitoring zeigt weder deinen Namen, deine WebID, Pod-URL, Kontakt-E-Mail, das genaue Abschlussdatum noch andere direkte Identifikatoren an. Eine Route und Aktivitätsart können bereits angezeigt werden, sobald der Zugriff auf einen passenden Beitrag einer einzelnen WebID genehmigt wurde; Werte aus weiteren genehmigten Beiträgen werden zusammengefasst, sofern sie vorliegen. Das Entfernen direkter Identifikatoren macht eine Route nicht anonym: Ort und Verlauf einer einzelnen Route, zeitliche Muster oder Bezüge zu bekannten Orten können weiterhin Rückschlüsse auf eine Person oder einen Ort ermöglichen. Die geschützte Quelldatei enthält die vollständigen Routenkoordinaten, das Abschlussdatum, die Aktivitätsart, berechnete Distanz, aktive Minuten, Tempo und beim Gehen eine geschätzte Schrittzahl. Dein öffentlicher Katalogeintrag kann weiterhin den Ersteller, die WebID und die im Solid-Profil hinterlegte Kontakt-E-Mail anzeigen.",
+  "Urban Data Explorer does not display your name, WebID, Pod URL, contact email, exact completion date, or other direct identifiers. A route and activity type may be displayed as soon as access to one matching contribution from a single WebID has been approved; values from additional approved contributions are combined when available. Removing direct identifiers does not make a route anonymous: the location and shape of a single route, timing patterns, or links to known places may still identify a person or place. The restricted source resource contains the full route coordinates, completion date, activity type, calculated distance, active minutes, pace, and an estimated step count for walking. Your public catalog entry may still show the creator, WebID, and contact email stored in your Solid profile.":
+    "Urban Data Explorer zeigt weder deinen Namen, deine WebID, Pod-URL, Kontakt-E-Mail, das genaue Abschlussdatum noch andere direkte Identifikatoren an. Eine Route und Aktivitätsart können bereits angezeigt werden, sobald der Zugriff auf einen passenden Beitrag einer einzelnen WebID genehmigt wurde; Werte aus weiteren genehmigten Beiträgen werden zusammengefasst, sofern sie vorliegen. Das Entfernen direkter Identifikatoren macht eine Route nicht anonym: Ort und Verlauf einer einzelnen Route, zeitliche Muster oder Bezüge zu bekannten Orten können weiterhin Rückschlüsse auf eine Person oder einen Ort ermöglichen. Die geschützte Quelldatei enthält die vollständigen Routenkoordinaten, das Abschlussdatum, die Aktivitätsart, berechnete Distanz, aktive Minuten, Tempo und beim Gehen eine geschätzte Schrittzahl. Dein öffentlicher Katalogeintrag kann weiterhin den Ersteller, die WebID und die im Solid-Profil hinterlegte Kontakt-E-Mail anzeigen.",
   "Delete closed requests": "Geschlossene Anfragen löschen",
   "This will permanently delete the closed requests from your inbox.":
     "Dadurch werden die geschlossenen Anfragen dauerhaft aus deiner Inbox gelöscht.",
@@ -939,9 +939,9 @@ Object.assign(enToDe, {
     "Eine mit dieser Solid-Dataspace-Instanz verbundene Anwendung.",
   "Data handling depends on the application's access policy":
     "Die Datenverarbeitung richtet sich nach der Zugriffsrichtlinie der Anwendung",
-  "Environment & movement": "Umwelt und Bewegung",
-  "Explore weather, soil and movement data on a map. Approved tour activity can appear from the first contribution; direct identifiers are removed, but an individual route may still identify a person or place.":
-    "Erkunde Wetter-, Boden- und Bewegungsdaten auf einer Karte. Freigegebene Tour-Aktivitäten können ab dem ersten Beitrag erscheinen; direkte Identifikatoren werden entfernt, eine einzelne Route kann dennoch Rückschlüsse auf eine Person oder einen Ort ermöglichen.",
+  "Urban data & maps": "Stadtdaten und Karten",
+  "Explore urban data from the catalog on a map: geography, population, weather, air quality and movement. Approved tour activity can appear from the first contribution; direct identifiers are removed, but an individual route may still identify a person or place.":
+    "Erkunde Stadtdaten aus dem Katalog auf einer Karte: Geografie, Bevölkerung, Wetter, Luftqualität und Mobilität. Freigegebene Tour-Aktivitäten können ab dem ersten Beitrag erscheinen; direkte Identifikatoren werden entfernt, eine einzelne Route kann dennoch Rückschlüsse auf eine Person oder einen Ort ermöglichen.",
   "Catalog data and route summaries without direct identifiers":
     "Katalogdaten und Routenzusammenfassungen ohne direkte Identifikatoren",
   "Personal health data": "Persönliche Gesundheitsdaten",
@@ -1268,6 +1268,8 @@ export function resolveInitialLanguageSource() {
 
 export function translateText(value, language) {
   if (typeof value !== "string" || !value.trim()) return value;
+  // Display historical request copy under the current brand without rewriting Pod data.
+  value = value.replaceAll("Environmental Monitoring", "Urban Data Explorer").replaceAll("Umweltmonitoring", "Urban Data Explorer");
   const body = normalizeTranslationKey(value);
   const target = normalizeLanguage(language);
 

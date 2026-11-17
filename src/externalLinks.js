@@ -14,9 +14,9 @@ export const externalLinks = [
     hideOpenButton: true,
   },
   {
-    slug: "environmental-monitoring",
-    title: "Environmental Monitoring",
-    url: "/environmental-monitoring/",
+    slug: "urban-data-explorer",
+    title: "Urban Data Explorer",
+    url: "/urban-data-explorer/",
     version: "0.3.23",
     hideOpenButton: true,
   },
